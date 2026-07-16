@@ -1,0 +1,4 @@
+# 依赖/生成产物忽略
+node_modules/
+*.log
+.DS_Store

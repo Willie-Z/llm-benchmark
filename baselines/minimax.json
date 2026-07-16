@@ -1,0 +1,158 @@
+{
+  "vendor": "minimax",
+  "vendor_name": "MiniMax",
+  "official_docs_base": "https://platform.minimaxi.com/docs",
+  "api_base_url": {
+    "anthropic_recommended": "https://api.minimaxi.com/anthropic",
+    "openai_compatible": "https://api.minimaxi.com/v1"
+  },
+  "fetched_at": "2026-07-14",
+  "fetched_by": "WebFetch crawl",
+  "sources": [
+    "https://platform.minimaxi.com/docs/guides/text-generation.md",
+    "https://platform.minimaxi.com/docs/guides/models-intro.md",
+    "https://platform.minimaxi.com/docs/api-reference/text/api/openapi-chat-openai.json",
+    "https://platform.minimaxi.com/docs/guides/pricing-paygo.md",
+    "https://platform.minimaxi.com/docs/guides/rate-limits.md",
+    "https://platform.minimaxi.com/docs/llms.txt"
+  ],
+  "platform_params": {
+    "temperature": { "min": 0, "max": 2, "default": 1, "source": "openapi-chat-openai.json" },
+    "top_p": { "min": 0, "max": 1, "default_m3": 0.95, "default_m2x": 0.9, "source": "openapi-chat-openai.json" },
+    "max_completion_tokens": {
+      "m3": { "recommended": 131072, "max": 524288 },
+      "m2x": { "recommended": 65536, "max": 204800 },
+      "source": "openapi-chat-openai.json"
+    },
+    "max_tokens": { "status": "deprecated", "note": "用max_completion_tokens替代" },
+    "service_tier": { "values": ["standard", "priority"], "default": "standard", "note": "priority=标准价1.5倍" },
+    "thinking": { "type_values": ["disabled", "adaptive"], "default": "adaptive", "note": "M2.x始终开启思考,不可disable", "source": "openapi-chat-openai.json" },
+    "reasoning_split": { "type": "boolean", "note": "拆分reasoning_content与reasoning_details" },
+    "stream": { "default": false },
+    "stream_options_include_usage": { "default": false },
+    "tools": { "type": "function", "note": "工具调用" }
+  },
+  "models": [
+    {
+      "model_id": "MiniMax-M3",
+      "display_name": "MiniMax-M3",
+      "modality": "原生多模态(text+image+video)",
+      "context_window": { "official_value": "1M", "parsed": 1000000, "source": "text-generation.md" },
+      "max_completion_tokens": { "recommended": 131072, "max": 524288 },
+      "top_p_default": 0.95,
+      "features": {
+        "function_calling": true,
+        "vision": { "value": true, "note": "image_url + video_url" },
+        "streaming": true,
+        "thinking_mode": { "value": true, "note": "thinking块 + interleaved thinking(Anthropic API)" },
+        "agent_reasoning": true,
+        "code": true
+      },
+      "pricing_cny_per_million": {
+        "standard": {
+          "le_512k_input": { "input": 2.10, "output": 8.40, "cache_read": 0.42, "note": "永久五折,原价4.20/16.80/0.84" },
+          "gt_512k_input": { "input": 4.20, "output": 16.80, "cache_read": 0.84, "note": "原价8.40/33.60/1.68" }
+        },
+        "priority": { "note": "标准价1.5倍" },
+        "source": "pricing-paygo.md"
+      },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 200, "tpm": 10000000 }, "source": "rate-limits.md" },
+      "benchmark_scores": { "status": "not_published" },
+      "gaps": ["system_prompt显式", "benchmark(官网未公布)"]
+    },
+    {
+      "model_id": "MiniMax-M2.7",
+      "display_name": "MiniMax-M2.7",
+      "modality": "text",
+      "context_window": { "official_value": "200K", "parsed": 204800 },
+      "max_completion_tokens": { "recommended": 65536, "max": 204800 },
+      "top_p_default": 0.9,
+      "features": { "streaming": true, "thinking_mode": { "value": true, "note": "始终开启" }, "tps": "~60" },
+      "pricing_cny_per_million": { "input": 2.10, "output": 8.40, "cache_read": 0.42, "cache_write": 2.625, "source": "pricing-paygo.md" },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 } },
+      "gaps": ["system_prompt显式", "benchmark"]
+    },
+    {
+      "model_id": "MiniMax-M2.7-highspeed",
+      "display_name": "MiniMax-M2.7-highspeed",
+      "modality": "text",
+      "context_window": { "official_value": "200K", "parsed": 204800 },
+      "top_p_default": 0.9,
+      "features": { "streaming": true, "thinking_mode": { "value": true }, "tps": "~100", "note": "效果同M2.7,更快" },
+      "pricing_cny_per_million": { "input": 4.20, "output": 16.80, "cache_read": 0.42, "cache_write": 2.625 },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 } },
+      "gaps": ["system_prompt显式", "benchmark"]
+    },
+    {
+      "model_id": "MiniMax-M2.5",
+      "display_name": "MiniMax-M2.5",
+      "modality": "text",
+      "context_window": { "official_value": "200K", "parsed": 204800 },
+      "top_p_default": 0.9,
+      "features": { "streaming": true, "thinking_mode": { "value": true }, "tps": "~60" },
+      "pricing_cny_per_million": { "input": 2.10, "output": 8.40, "cache_read": 0.21, "cache_write": 2.625 },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 } },
+      "gaps": ["system_prompt显式", "benchmark"]
+    },
+    {
+      "model_id": "MiniMax-M2.5-highspeed",
+      "display_name": "MiniMax-M2.5-highspeed",
+      "modality": "text",
+      "context_window": { "official_value": "200K", "parsed": 204800 },
+      "top_p_default": 0.9,
+      "features": { "streaming": true, "thinking_mode": { "value": true }, "tps": "~100" },
+      "pricing_cny_per_million": { "input": 4.20, "output": 16.80, "cache_read": 0.21, "cache_write": 2.625 },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 } },
+      "gaps": ["system_prompt显式", "benchmark"]
+    },
+    {
+      "model_id": "MiniMax-M2.1",
+      "display_name": "MiniMax-M2.1",
+      "modality": "text",
+      "context_window": { "official_value": "200K", "parsed": 204800 },
+      "top_p_default": 0.9,
+      "features": { "streaming": true, "thinking_mode": { "value": true }, "tps": "~60", "note": "强大多语言编程" },
+      "pricing_cny_per_million": { "input": 2.10, "output": 8.40, "cache_read": 0.21, "cache_write": 2.625 },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 } },
+      "gaps": ["system_prompt显式", "benchmark"]
+    },
+    {
+      "model_id": "MiniMax-M2.1-highspeed",
+      "display_name": "MiniMax-M2.1-highspeed",
+      "modality": "text",
+      "context_window": { "official_value": "200K", "parsed": 204800 },
+      "top_p_default": 0.9,
+      "features": { "streaming": true, "thinking_mode": { "value": true }, "tps": "~100" },
+      "pricing_cny_per_million": { "input": 4.20, "output": 16.80, "cache_read": 0.21, "cache_write": 2.625 },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 } },
+      "gaps": ["system_prompt显式", "benchmark"]
+    },
+    {
+      "model_id": "MiniMax-M2",
+      "display_name": "MiniMax-M2",
+      "modality": "text",
+      "context_window": { "official_value": "200K", "parsed": 204800 },
+      "top_p_default": 0.9,
+      "features": { "streaming": true, "thinking_mode": { "value": true }, "function_calling": true, "note": "专为高效编码与Agent工作流" },
+      "pricing_cny_per_million": { "input": 2.10, "output": 8.40, "cache_read": 0.21, "cache_write": 2.625 },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 } },
+      "gaps": ["system_prompt显式", "benchmark"]
+    },
+    {
+      "model_id": "M2-her",
+      "display_name": "M2-her",
+      "modality": "text",
+      "context_window": { "official_value": "64K", "parsed": 65536, "source": "text-generation.md" },
+      "note": "对话/角色扮演/多轮",
+      "features": { "streaming": true, "thinking_mode": { "value": true } },
+      "pricing_cny_per_million": null,
+      "rate_limits": null,
+      "gaps": ["pricing(未列出)", "rate_limits", "max_completion_tokens", "benchmark", "不在openai enum中(仅text-generation提及)"]
+    }
+  ],
+  "notes": [
+    "Text-01与abab系列在当前文档未列出(已下线/改名)",
+    "文本模型无并发限制,仅RPM/TPM;主子账号共享限额",
+    "M3计费按输入是否>512K分段;M2.7-highspeed等highspeed变体输入/输出价为标准版2倍"
+  ]
+}

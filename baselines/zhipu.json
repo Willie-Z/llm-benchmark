@@ -1,0 +1,597 @@
+{
+ "vendor": "zhipu",
+ "vendor_name": "智谱 / Zhipu (BigModel)",
+ "official_docs_base": "https://docs.bigmodel.cn/",
+ "pricing_page": "https://open.bigmodel.cn/pricing",
+ "pricing_source": "从 open.bigmodel.cn 前端 bundle(app.js)硬编码价格表抠出,非API、无需登录;已验证可见性",
+ "fetched_at": "2026-07-16",
+ "fetched_by": "WebFetch crawl + JS bundle reverse-engineer (价格表经全表核对核实)",
+ "sources": [
+  "https://docs.bigmodel.cn/cn/guide/start/model-overview",
+  "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2.md",
+  "https://docs.bigmodel.cn/api-reference/模型-api/对话补全.md",
+  "https://docs.bigmodel.cn/llms.txt",
+  "https://open.bigmodel.cn/pricing (bundle内嵌价格表)",
+  "https://open.bigmodel.cn/api/biz/model/getAiModelListForFlow?isShow=1 (能力flags,公开无需登录)"
+ ],
+ "platform_params": {
+  "temperature": {
+   "range": [
+    0,
+    1
+   ],
+   "precision": "2位小数",
+   "source": "对话补全.md"
+  },
+  "top_p": {
+   "range": [
+    0.01,
+    1
+   ],
+   "precision": "2位小数",
+   "source": "对话补全.md"
+  },
+  "max_tokens": {
+   "min": 1,
+   "max_by_family": "见各模型",
+   "example": 1024,
+   "source": "对话补全.md"
+  },
+  "stream": {
+   "default": false
+  },
+  "do_sample": {
+   "default": true,
+   "note": "false时temperature与top_p被忽略",
+   "source": "对话补全.md"
+  },
+  "response_format": {
+   "values": [
+    "text",
+    "json_object"
+   ],
+   "note": "仅文本模型"
+  },
+  "tools": {
+   "max_functions": 128,
+   "note": "GLM-4系列支持全部工具类型;GLM-4.5支持web_search与retrieval"
+  }
+ },
+ "model_enum": {
+  "text": [
+   "glm-5.2",
+   "glm-5.1",
+   "glm-5-turbo",
+   "glm-5",
+   "glm-4.7",
+   "glm-4.7-flash",
+   "glm-4.7-flashx",
+   "glm-4.6",
+   "glm-4.5-air",
+   "glm-4.5-airx",
+   "glm-4.5-flash",
+   "glm-4-flash-250414",
+   "glm-4-flashx-250414"
+  ],
+  "vision": [
+   "glm-5v-turbo",
+   "glm-4.6v",
+   "autoglm-phone",
+   "glm-4.6v-flash",
+   "glm-4.6v-flashx",
+   "glm-4v-flash",
+   "glm-4.1v-thinking-flashx",
+   "glm-4.1v-thinking-flash"
+  ],
+  "audio": [
+   "glm-4-voice"
+  ],
+  "humanoid": [
+   "charglm-4",
+   "emohaa"
+  ]
+ },
+ "pricing_unit_note": "价格单位: 元/百万tokens(CNY per 1M tokens);多数模型按输入长度分档,部分(G4.7)再按输出长度分档;hit=缓存命中输入价,storage=缓存存储费(限时免费);decode=缓存加速比标签(非价格)",
+ "models": [
+  {
+   "model_id": "glm-5.2",
+   "model_id_confirmed": true,
+   "display_name": "GLM-5.2",
+   "tier": "旗舰",
+   "modality": "text",
+   "context_window": {
+    "official_value": "1M tokens",
+    "parsed": 1000000,
+    "source": "glm-5.2.md"
+   },
+   "max_output_tokens": {
+    "official_value": "128K tokens",
+    "parsed": 131072,
+    "source": "glm-5.2.md"
+   },
+   "features": {
+    "function_calling": {
+     "value": true,
+     "source": "glm-5.2.md"
+    },
+    "vision": {
+     "value": false,
+     "note": "仅文本输入"
+    },
+    "streaming": {
+     "value": true
+    },
+    "system_prompt": {
+     "value": true
+    },
+    "thinking_mode": {
+     "value": true,
+     "note": "自动决定是否思考"
+    },
+    "structured_output": {
+     "value": true
+    },
+    "context_caching": {
+     "value": true
+    },
+    "mcp": {
+     "value": true
+    }
+   },
+   "temperature_default": 1,
+   "top_p_default": 0.95,
+   "max_tokens_max": 131072,
+   "reasoning_effort": {
+    "supported": true,
+    "note": "仅GLM-5.2支持;默认max;none/minimal关闭思考,low/medium→high,xhigh→max",
+    "source": "对话补全.md"
+   },
+   "tool_stream": {
+    "supported": true,
+    "default": false
+   },
+   "pricing_cny_per_million": {
+    "tiered_by_input": [
+     {
+      "input_band": "单一价(1M上下文)",
+      "input": 8,
+      "output": 28,
+      "cache_hit": 2
+     }
+    ],
+    "cache_storage": "限时免费",
+    "source": "open.bigmodel.cn/pricing bundle"
+   },
+   "benchmark_scores": {
+    "official_value": "开源SOTA能力(定性,无数值)",
+    "source": "model-overview"
+   },
+   "rate_limits": {
+    "concurrency": 10,
+    "type": "并发数(在途请求数)",
+    "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+    "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+   }
+  },
+  {
+   "model_id": "glm-5.1",
+   "model_id_confirmed": true,
+   "display_name": "GLM-5.1",
+   "modality": "text",
+   "context_window": {
+    "official_value": "200K tokens",
+    "parsed": 204800,
+    "source": "model-overview"
+   },
+   "max_output_tokens": {
+    "official_value": "128K tokens",
+    "parsed": 131072,
+    "source": "model-overview"
+   },
+   "temperature_default": 1,
+   "top_p_default": 0.95,
+   "max_tokens_max": 131072,
+   "thinking_mode": {
+    "value": true,
+    "note": "自动决定是否思考"
+   },
+   "tool_stream": {
+    "supported": true,
+    "default": false
+   },
+   "pricing_cny_per_million": {
+    "tiered_by_input_k": [
+     {
+      "input_band": "[0, 32)K",
+      "input": 6,
+      "output": 24,
+      "cache_hit": 1.3
+     },
+     {
+      "input_band": "[32+)K",
+      "input": 8,
+      "output": 28,
+      "cache_hit": 2
+     }
+    ],
+    "cache_storage": "限时免费",
+    "source": "open.bigmodel.cn/pricing bundle"
+   },
+   "benchmark_scores": {
+    "official_value": "Coding能力对齐Claude Opus 4.6(定性)"
+   },
+   "rate_limits": {
+    "concurrency": 10,
+    "type": "并发数(在途请求数)",
+    "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+    "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+   }
+  },
+  {
+   "model_id": "glm-5-turbo",
+   "model_id_confirmed": true,
+   "display_name": "GLM-5-Turbo",
+   "modality": "text",
+   "context_window": {
+    "official_value": "200K tokens",
+    "parsed": 204800
+   },
+   "max_output_tokens": {
+    "official_value": "128K tokens",
+    "parsed": 131072
+   },
+   "temperature_default": 1,
+   "top_p_default": 0.95,
+   "max_tokens_max": 131072,
+   "thinking_mode": {
+    "value": true,
+    "note": "自动决定是否思考"
+   },
+   "tool_stream": {
+    "supported": true,
+    "default": false
+   },
+   "pricing_cny_per_million": {
+    "tiered_by_input_k": [
+     {
+      "input_band": "[0, 32)K",
+      "input": 5,
+      "output": 22,
+      "cache_hit": 1.2
+     },
+     {
+      "input_band": "[32+)K",
+      "input": 7,
+      "output": 26,
+      "cache_hit": 1.8
+     }
+    ],
+    "cache_storage": "限时免费",
+    "decode_label": "40-60(缓存加速比)",
+    "source": "open.bigmodel.cn/pricing bundle"
+   },
+   "rate_limits": {
+    "concurrency": 1,
+    "type": "并发数(在途请求数)",
+    "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+    "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+   }
+  },
+  {
+   "model_id": "glm-5",
+   "model_id_confirmed": true,
+   "display_name": "GLM-5",
+   "modality": "text",
+   "context_window": {
+    "official_value": "200K tokens",
+    "parsed": 204800
+   },
+   "max_output_tokens": {
+    "official_value": "128K tokens",
+    "parsed": 131072
+   },
+   "temperature_default": 1,
+   "top_p_default": 0.95,
+   "max_tokens_max": 131072,
+   "thinking_mode": {
+    "value": true,
+    "note": "自动决定是否思考"
+   },
+   "tool_stream": {
+    "supported": true,
+    "default": false
+   },
+   "pricing_cny_per_million": {
+    "tiered_by_input_k": [
+     {
+      "input_band": "[0, 32)K",
+      "input": 4,
+      "output": 18,
+      "cache_hit": 1
+     },
+     {
+      "input_band": "[32+)K",
+      "input": 6,
+      "output": 22,
+      "cache_hit": 1.5
+     }
+    ],
+    "cache_storage": "限时免费",
+    "decode_label": "30-50(缓存加速比)",
+    "source": "open.bigmodel.cn/pricing bundle"
+   },
+   "benchmark_scores": {
+    "official_value": "编程能力对齐Claude Opus 4.5(定性)"
+   },
+   "rate_limits": {
+    "concurrency": 2,
+    "type": "并发数(在途请求数)",
+    "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+    "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+   }
+  },
+  {
+   "model_id": "glm-4.7",
+   "model_id_confirmed": true,
+   "display_name": "GLM-4.7",
+   "modality": "text",
+   "context_window": {
+    "official_value": "200K tokens",
+    "parsed": 204800
+   },
+   "max_output_tokens": {
+    "official_value": "128K tokens",
+    "parsed": 131072
+   },
+   "temperature_default": 1,
+   "top_p_default": 0.95,
+   "max_tokens_max": 131072,
+   "thinking_mode": {
+    "value": true,
+    "note": "强制思考"
+   },
+   "tool_stream": {
+    "supported": true,
+    "default": false
+   },
+   "pricing_cny_per_million": {
+    "tiered_by_input_and_output_k": [
+     {
+      "input_band": "[0, 32)K",
+      "output_band": "[0, 0.2)M",
+      "input": 2,
+      "output": 8,
+      "cache_hit": 0.4
+     },
+     {
+      "input_band": "[0, 32)K",
+      "output_band": "[0.2+)M",
+      "input": 3,
+      "output": 14,
+      "cache_hit": 0.6
+     },
+     {
+      "input_band": "[32, 200)K",
+      "input": 4,
+      "output": 16,
+      "cache_hit": 0.8
+     }
+    ],
+    "cache_storage": "限时免费",
+    "decode_label": "30-50(缓存加速比)",
+    "source": "open.bigmodel.cn/pricing bundle"
+   },
+   "rate_limits": {
+    "concurrency": 2,
+    "type": "并发数(在途请求数)",
+    "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+    "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+   }
+  },
+  {
+   "model_id": "glm-4.6",
+   "model_id_confirmed": true,
+   "display_name": "GLM-4.6",
+   "modality": "text",
+   "context_window": {
+    "official_value": "200K tokens",
+    "parsed": 204800
+   },
+   "max_output_tokens": {
+    "official_value": "128K tokens",
+    "parsed": 131072
+   },
+   "temperature_default": 1,
+   "top_p_default": 0.95,
+   "max_tokens_max": 131072,
+   "thinking_mode": {
+    "value": true,
+    "note": "自动决定是否思考"
+   },
+   "tool_stream": {
+    "supported": true,
+    "default": false
+   },
+   "function_calling": {
+    "value": true,
+    "note": "sceneType=MOE_TOOLS(平台能力API确认支持工具调用)"
+   },
+   "pricing_cny_per_million": {
+    "status": "NOT_ON_PUBLIC_PRICING_PAGE",
+    "finding": "公开价格页(open.bigmodel.cn/pricing bundle)无文本GLM-4.6价格行,也非免费模型;平台能力API(getAiModelListForFlow)标其为settlementType=TOKENS付费模型",
+    "note": "需登录智谱控制台查看实际价格;或确认GLM-4.6文本是否已被GLM-4.7取代",
+    "source": "open.bigmodel.cn/pricing bundle 全表核对(0次出现)",
+    "gaps": [
+     "price(公开页未列,需控制台登录)"
+    ]
+   },
+   "rate_limits": {
+    "concurrency": 3,
+    "type": "并发数(在途请求数)",
+    "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+    "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+   }
+  },
+  {
+   "model_id": "glm-5v-turbo",
+   "model_id_confirmed": true,
+   "display_name": "GLM-5V-Turbo",
+   "modality": "vision",
+   "tier_note": "智谱首个多模态Agent基座模型,视觉编程与复杂任务;支持图像/视频/文本/文件多模态输入",
+   "context_window": {
+    "official_value": "200K tokens",
+    "parsed": 204800
+   },
+   "max_output_tokens": {
+    "official_value": "128K tokens",
+    "parsed": 131072
+   },
+   "temperature_default": 0.8,
+   "top_p_default": 0.6,
+   "max_tokens_max": 131072,
+   "features": {
+    "vision": true,
+    "input_model1": "图片、视频",
+    "input_model2": "文件、文本",
+    "function_calling": {
+     "value": true,
+     "note": "适配Agent工作流"
+    }
+   },
+   "pricing_cny_per_million": {
+    "tiered_by_input_k": [
+     {
+      "input_band": "[0, 32)K",
+      "input": 5,
+      "output": 22,
+      "cache_hit": 1.2
+     },
+     {
+      "input_band": "[32+)K",
+      "input": 7,
+      "output": 26,
+      "cache_hit": 1.8
+     }
+    ],
+    "cache_storage": "限时免费",
+    "decode_label": "30-50(缓存加速比)",
+    "source": "open.bigmodel.cn/pricing bundle"
+   },
+   "rate_limits": {
+    "concurrency": 1,
+    "type": "并发数(在途请求数)",
+    "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+    "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+   }
+  },
+  {
+   "model_id": "glm-4.6v",
+   "model_id_confirmed": true,
+   "display_name": "GLM-4.6V",
+   "modality": "vision",
+   "context_window": {
+    "official_value": "128K tokens",
+    "parsed": 131072
+   },
+   "max_output_tokens": {
+    "official_value": "32K tokens",
+    "parsed": 32768
+   },
+   "temperature_default": 0.8,
+   "top_p_default": 0.6,
+   "max_tokens_max": 32768,
+   "features": {
+    "vision": true,
+    "function_calling": {
+     "value": true,
+     "note": "页面明确'原生支持工具调用'"
+    }
+   },
+   "pricing_cny_per_million": {
+    "tiered_by_input_k": [
+     {
+      "input_band": "[0, 32)K",
+      "input": 1,
+      "output": 3,
+      "cache_hit": 0.2
+     },
+     {
+      "input_band": "[32, 128)K",
+      "input": 2,
+      "output": 6,
+      "cache_hit": 0.4
+     }
+    ],
+    "cache_storage": "限时免费",
+    "decode_label": "30-50(缓存加速比)",
+    "source": "open.bigmodel.cn/pricing bundle"
+   },
+   "gaps": [],
+   "rate_limits": {
+    "concurrency": 10,
+    "type": "并发数(在途请求数)",
+    "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+    "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+   }
+  }
+ ],
+ "capability_flags_from_public_api": {
+  "source": "getAiModelListForFlow?isShow=1 (公开,无需登录,55个模型)",
+  "note": "提供官方能力分类,对对齐验证有用;但sequenceLen字段非上下文窗口(是内部部署配置,勿误用),且GLM-5.x不在该接口",
+  "sample_flags": {
+   "glm-4.6": {
+    "invokeSupport": "SYNC,ASYNC,SSE",
+    "sceneType": "MOE_TOOLS",
+    "settlementType": "TOKENS",
+    "userVisible": 1,
+    "trialStatus": 1
+   },
+   "sceneType_meaning": {
+    "MOE_TOOLS": "MoE工具调用(支持function calling)",
+    "TOOL": "支持工具调用",
+    "NO_TOOLS": "不支持工具调用",
+    "SSE_ALL_TOOLS": "流式全工具",
+    "VIDEO_TO_TEXT_MOE_TOOL": "视频理解+工具调用",
+    "CHARACTER": "角色扮演",
+    "AUDIO_TO_AUDIO": "语音"
+   },
+   "invokeSupport_meaning": "SYNC=同步, ASYNC=异步, SSE=流式;含SSE即支持流式输出"
+  }
+ },
+ "rate_limits_findings": {
+  "status": "已补全数值(用户登录控制台提供)",
+  "metric": "并发数(在途请求数),非RPM/TPM",
+  "applies_to": "余额消耗的API用户;GLM Coding套餐以套餐权益为准",
+  "per_model_concurrency": {
+   "GLM-4.6": 3,
+   "GLM-4.6V-FlashX": 3,
+   "GLM-4.7": 2,
+   "GLM-Image": 1,
+   "GLM-5-Turbo": 1,
+   "GLM-5V-Turbo": 1,
+   "GLM-5.1": 10,
+   "GLM-5.2": 10,
+   "GLM-Z1-Air": 30,
+   "GLM-4.5": 10,
+   "embedding-3-pro": 100,
+   "GLM-4.6V": 10,
+   "GLM-4.7-Flash": 1,
+   "GLM-4.7-FlashX": 3,
+   "GLM-OCR": 2,
+   "GLM-5": 2,
+   "GLM-4-Plus": 20,
+   "GLM-Z1-Flash": 30,
+   "GLM-Z1-AirX": 30
+  },
+  "note": "随用户权益等级变化;通用模型多数1-10,向量模型100,Z1系列30,图像类1",
+  "public_doc": "https://docs.bigmodel.cn/cn/api/rate-limit.md(仅定性说明并发限制,数值需登录控制台)",
+  "console_url": "https://bigmodel.cn/usercenter/proj-mgmt/rate-limits",
+  "conclusion": "智谱限速口径=并发数(与DeepSeek一致,均为并发而非RPM/TPM)"
+ },
+ "other_models_available": [
+  "文本: glm-4.7-flash, glm-4.7-flashx, glm-4.5-air, glm-4.5-airx, glm-4.5-flash, glm-4-flash-250414, glm-4-flashx-250414",
+  "视觉: autoglm-phone, glm-4.6v-flash, glm-4.6v-flashx, glm-4v-flash, glm-4.1v-thinking-flashx, glm-4.1v-thinking-flash",
+  "音频: glm-4-voice; 角色: charglm-4, emohaa; 向量: embedding-2/3; 图像: cogview-4, glm-image; 视频: cogvideox-3, vidu2, viduq1"
+ ],
+ "token_ratio_note": "GLM系列中英token比约1:1.6,因模型而异;实际token在响应usage字段返回"
+}

@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LLM 验收控制台 · Specs / Capabilities</title>
+<style>
+:root{
+  --bg:#F0EEE6; --surface:#FFFFFF; --surface-2:#FAF9F4;
+  --ink:#1F1E1D; --ink-2:#3F3D39; --muted:#76746C; --faint:#9B9A90;
+  --border:#E5E2D8; --border-strong:#D6D3C6;
+  --accent:#C96442; --accent-press:#B4553A; --accent-soft:#F3E2DA;
+  --ok:#3F7A55; --ok-soft:#E3EFE5; --fail:#B3402F; --fail-soft:#F6E2DD;
+  --warn:#A8742A; --warn-soft:#F3E9D5; --info:#3F6F8C; --info-soft:#E2ECF1;
+  --radius:16px; --radius-sm:10px; --radius-xs:7px;
+  --shadow:0 1px 2px rgba(31,30,29,.04),0 10px 30px rgba(31,30,29,.06);
+  --serif:"Tiempos Text",Georgia,"Songti SC","Noto Serif SC",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+header.topbar{position:sticky;top:0;z-index:20;background:rgba(240,238,230,.86);
+  backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid var(--border)}
+.topbar-inner{max-width:1120px;margin:auto;padding:16px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:11px}
+.brand .spark{width:22px;height:22px;border-radius:7px;background:var(--accent);position:relative;flex:0 0 auto;
+  box-shadow:0 2px 6px rgba(201,100,66,.35)}
+.brand .spark::before,.brand .spark::after{content:"";position:absolute;background:#fff;border-radius:2px}
+.brand .spark::before{width:2.5px;height:12px;left:9.5px;top:5px}
+.brand .spark::after{width:12px;height:2.5px;left:5px;top:9.5px}
+.brand h1{font-family:var(--serif);font-size:19px;font-weight:600;margin:0;letter-spacing:.1px}
+.brand .sub{color:var(--muted);font-size:12.5px;margin-top:1px}
+.topbar-spacer{flex:1}
+.tabs{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--border);padding:4px;border-radius:12px}
+.tab{appearance:none;border:0;background:transparent;font:inherit;font-size:13.5px;color:var(--muted);
+  padding:7px 15px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}
+.tab:hover{color:var(--ink)}
+.tab.active{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(31,30,29,.08);font-weight:550}
+.tab .count{font-size:11px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--border);
+  color:var(--ink-2);display:inline-flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+.tab.active .count{background:var(--accent-soft);color:var(--accent-press)}
+
+main{max-width:1120px;margin:auto;padding:26px 28px 64px}
+.view{display:none;animation:rise .25s ease}
+.view.active{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:22px 24px;margin-bottom:18px}
+.panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px}
+.panel h2{font-family:var(--serif);font-size:17px;font-weight:600;margin:0}
+.panel .hint{color:var(--muted);font-size:12.5px;margin:2px 0 18px}
+
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field-wide{grid-column:1/-1}
+.field label{font-size:12.5px;font-weight:600;color:var(--ink-2);letter-spacing:.2px}
+.field .note{font-size:11.5px;color:var(--faint)}
+input,select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface-2);
+  border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:10px 12px;width:100%;transition:.15s}
+input:focus,select:focus{outline:none;border-color:var(--accent);background:#fff;
+  box-shadow:0 0 0 3px var(--accent-soft)}
+input:disabled,input[readonly]{color:var(--muted);background:#F3F1E9;cursor:default}
+select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5L6 8l3-3.5' fill='none' stroke='%2376746C' stroke-width='1.4' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:30px}
+select:disabled{opacity:.6}
+
+.endpoint{display:flex;align-items:center;gap:8px;background:#F3F1E9;border:1px dashed var(--border-strong);
+  border-radius:var(--radius-sm);padding:10px 12px;font-family:var(--mono);font-size:12.5px;color:var(--ink-2);
+  word-break:break-all;min-height:42px}
+.endpoint .lk{color:var(--accent);flex:0 0 auto}
+
+.actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:22px;
+  padding-top:20px;border-top:1px solid var(--border)}
+.btn{appearance:none;font:inherit;font-size:14px;font-weight:600;border-radius:var(--radius-sm);
+  padding:10px 20px;cursor:pointer;border:1px solid transparent;transition:.15s;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(201,100,66,.28)}
+.btn-primary:hover{background:var(--accent-press)}
+.btn-ghost{background:var(--surface);color:var(--ink-2);border-color:var(--border-strong)}
+.btn-ghost:hover{background:var(--surface-2);border-color:var(--muted)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:7px 15px;font-size:13px}
+.btn-lg{padding:13px 34px;font-size:15px}
+.push-right{margin-left:auto}
+.actions-bottom{justify-content:center}
+.status-line{color:var(--muted);font-size:13px;min-height:18px}
+.status-line.err{color:var(--fail)}
+.status-line.good{color:var(--ok)}
+
+.plan-out{margin-top:18px;border:1px solid var(--border);border-radius:var(--radius-sm);display:none;background:var(--surface)}
+.plan-out.show{display:block}
+.plan-out .ph{background:var(--surface-2);padding:10px 16px;font-size:12.5px;color:var(--muted);
+  border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;
+  border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+.plan-item{padding:13px 16px;border-bottom:1px solid var(--border)}
+.plan-item:last-child{border-bottom:0}
+.pi-head{display:flex;align-items:center;gap:10px}
+.pi-name{font-size:14px;font-weight:600;color:var(--ink)}
+.pi-id{font-family:var(--mono);font-size:11.5px;color:var(--faint);background:var(--surface-2);
+  border:1px solid var(--border);border-radius:6px;padding:1px 6px}
+.pi-row{display:flex;gap:10px;margin-top:7px;font-size:13px;line-height:1.55}
+.pi-k{flex:0 0 auto;width:34px;color:var(--faint);font-size:11.5px;font-weight:600;padding-top:1px}
+.pi-v{color:var(--ink-2)}
+/* tip icon + source bubble */
+.tip{position:relative;margin-left:auto;display:inline-flex;cursor:pointer;outline:none}
+.tip-ico{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border-strong);color:var(--muted);
+  font-style:italic;font-family:var(--serif);font-size:12px;font-weight:600;line-height:15px;text-align:center;
+  display:inline-block;transition:.15s}
+.tip:hover .tip-ico,.tip:focus-within .tip-ico{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.bubble{position:absolute;top:27px;right:0;z-index:30;width:286px;background:var(--surface);
+  border:1px solid var(--border-strong);border-radius:var(--radius-sm);box-shadow:var(--shadow);
+  padding:11px 13px;display:none;flex-direction:column;gap:7px;text-align:left}
+.tip:hover .bubble,.tip:focus-within .bubble{display:flex}
+.bubble::after{content:"";position:absolute;top:-6px;right:6px;width:11px;height:11px;background:var(--surface);
+  border-left:1px solid var(--border-strong);border-top:1px solid var(--border-strong);transform:rotate(45deg)}
+.bubble-h{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.3px}
+.bubble .ref{font-size:12.5px;color:var(--accent);line-height:1.4}
+
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;
+  padding:3px 9px;border-radius:20px;letter-spacing:.2px;white-space:nowrap}
+.tag-spec{background:var(--info-soft);color:var(--info)}
+.tag-cap{background:var(--accent-soft);color:var(--accent-press)}
+.tag-run{background:var(--warn-soft);color:var(--warn)}
+.tag-done{background:var(--ok-soft);color:var(--ok)}
+.tag-part{background:#ECEAE0;color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 auto}
+.tag-run .dot{animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.run-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+.run-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:18px 20px;display:flex;flex-direction:column;gap:12px;transition:.15s}
+.run-card:hover{border-color:var(--border-strong);transform:translateY(-1px)}
+.run-card .rc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.run-card .rid{font-family:var(--mono);font-size:12px;color:var(--ink-2);word-break:break-all;line-height:1.4}
+.run-card .meta{display:flex;flex-wrap:wrap;gap:6px;font-size:11.5px}
+.run-card .chip{background:var(--surface-2);border:1px solid var(--border);border-radius:7px;
+  padding:3px 8px;color:var(--ink-2)}
+.run-card .chip b{color:var(--ink);font-weight:600}
+.counts{display:flex;gap:7px;flex-wrap:wrap}
+.cnt{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:7px;font-variant-numeric:tabular-nums}
+.cnt-pass{background:var(--ok-soft);color:var(--ok)}
+.cnt-fail{background:var(--fail-soft);color:var(--fail)}
+.cnt-inc{background:var(--warn-soft);color:var(--warn)}
+.cnt-skip{background:#ECEAE0;color:var(--muted)}
+.run-card .rc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px}
+.run-card .ts{font-size:11.5px;color:var(--faint)}
+
+.empty{text-align:center;padding:54px 20px;color:var(--muted)}
+.empty .ico{font-size:30px;margin-bottom:10px;opacity:.5}
+.empty p{margin:4px 0;font-size:13.5px}
+
+/* run detail (server-rendered) */
+.kv{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.kv .chip{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:5px 11px;font-size:12.5px;color:var(--ink-2)}
+.kv .chip b{color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:600}
+tbody tr:hover{background:var(--surface-2)}
+code{font-family:var(--mono);font-size:12px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:6px;padding:1px 6px}
+.st-PASS{color:var(--ok);font-weight:600}
+.st-FAIL{color:var(--fail);font-weight:600}
+.st-INCONCLUSIVE{color:var(--warn);font-weight:600}
+.st-SKIP{color:var(--muted);font-weight:600}
+pre{font-family:var(--mono);font-size:12px;white-space:pre-wrap;background:#FBFAF6;border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:14px;max-height:520px;overflow:auto;color:var(--ink-2)}
+.backlink{font-size:13px;color:var(--muted)}
+.backlink a{color:var(--accent)}
+</style></head>
+<body><header class="topbar"><div class="topbar-inner">
+<div class="brand"><div class="spark"></div>
+<div><h1>LLM 验收控制台</h1><div class="sub">Specifications · Capabilities 在线验证</div></div></div>
+<div class="topbar-spacer"></div>
+<nav class="tabs">
+<button class="tab active" data-tab="launch" onclick="switchTab('launch')">发起测试</button>
+<button class="tab" data-tab="running" onclick="switchTab('running')">进行中<span class="count" id="cnt-running" style="display:none">0</span></button>
+<button class="tab" data-tab="done" onclick="switchTab('done')">已完成<span class="count" id="cnt-done">3</span></button>
+</nav></div></header>
+<main>
+<!-- ============ 发起测试 ============ -->
+<section class="view active" id="view-launch">
+  <div class="panel">
+    <div class="panel-head"><h2>发起测试</h2></div>
+    <div class="hint">固定平台 BaseURL：<code>https://kspmas.ksyun.com</code>。选择模型与协议后将自动补全完整端点，所有选项均为受控下拉，不接受手动输入。<b>启动前必须先运行「规划 / Plan」；任何选项变更都会作废已生成的规划，需重新规划。</b></div>
+    <div class="form-grid">
+      <div class="field"><label>厂商</label>
+        <select id="vendor" onchange="onVendor()"></select></div>
+      <div class="field"><label>系列</label>
+        <select id="series" onchange="onSeries()"></select></div>
+      <div class="field"><label>版本</label>
+        <select id="version" onchange="onVersion()"></select></div>
+      <div class="field"><label>API 协议版本</label>
+        <select id="protocol" onchange="onProtocol()"></select>
+        <span class="note">可选范围随所选模型支持的协议动态变化</span></div>
+      <div class="field"><label>Profile 档位</label>
+        <select id="profile" onchange="resetPlan()">
+          <option value="smoke">smoke · 连通+主能力</option>
+          <option value="standard" selected>standard · 常规严格验收</option>
+          <option value="full">full · 1M 上下文边界</option>
+        </select></div>
+      <div class="field"><label>测试组</label>
+        <select id="group" onchange="resetPlan()">
+          <option value="">全部（规格 + 能力）</option>
+          <option value="Specifications">规格 / Specifications</option>
+          <option value="Capabilities">能力 / Capabilities</option>
+        </select></div>
+      <div class="field"><label>最大输出 Tokens</label>
+        <input id="max_output_tokens" type="number" readonly>
+        <span class="note">按所选模型原厂声明自动填充</span></div>
+      <div class="field"><label>请求/分钟 RPM</label>
+        <input id="rpm" type="number" readonly>
+        <span class="note">按平台容量自动填充</span></div>
+      <div class="field"><label>Token/分钟 TPM</label>
+        <input id="tpm" type="number" readonly>
+        <span class="note">按平台容量自动填充</span></div>
+      <div class="field field-wide"><label>API Key（可选）</label>
+        <input id="api_key" type="password" autocomplete="off" spellcheck="false"
+          placeholder="留空则使用服务器 .env 中的 LLM_API_KEY；填写则本次测试改用此 Key">
+        <span class="note">仅用于本次测试，经环境变量传入子进程，不写入命令行参数、不落盘、不回显</span></div>
+    </div>
+    <div class="field" style="margin-top:16px"><label>完整请求端点（自动补全）</label>
+      <div class="endpoint"><span class="lk">↳</span><span id="endpoint">—</span></div></div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="runPlan()">规划 / Plan</button>
+      <span class="status-line" id="start_status"></span>
+      <button class="btn btn-primary btn-sm js-start push-right" onclick="startRun()">启动测试</button>
+    </div>
+    <div class="plan-out" id="plan-out">
+      <div class="ph"><span>规划结果 · 将要执行的测试明细</span><span id="plan-count"></span></div>
+      <div id="plan-list"></div>
+    </div>
+    <div class="actions actions-bottom">
+      <button class="btn btn-primary btn-lg js-start" onclick="startRun()">启动测试</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 进行中 ============ -->
+<section class="view " id="view-running">
+  <div class="run-grid" id="running-grid"></div>
+</section>
+
+<!-- ============ 已完成 ============ -->
+<section class="view " id="view-done">
+  <div class="run-grid" id="done-grid"></div>
+</section>
+</main>
+
+<script>
+const CATALOG = [{"id": "zhipu", "name": "智谱 / Zhipu", "series": [{"id": "glm-5", "name": "GLM-5 系列", "versions": [{"id": "glm-5.2", "name": "GLM-5.2", "protocols": ["openai"], "maxOutput": 131072, "rpm": 500, "tpm": 1000000}]}]}, {"id": "deepseek", "name": "DeepSeek", "series": [{"id": "deepseek-v4", "name": "DeepSeek-V4 系列", "versions": [{"id": "deepseek-v4-pro", "name": "DeepSeek-V4-Pro", "protocols": ["openai", "anthropic"], "maxOutput": 384000, "rpm": 1000, "tpm": 150000}, {"id": "deepseek-v4-flash", "name": "DeepSeek-V4-Flash", "protocols": ["openai", "anthropic"], "maxOutput": 384000, "rpm": 1000, "tpm": 150000}]}]}, {"id": "kimi", "name": "Kimi / Moonshot AI", "series": [{"id": "kimi-k2", "name": "Kimi K2 系列", "versions": [{"id": "kimi-k2.6", "name": "Kimi-K2.6", "protocols": ["openai"], "maxOutput": 32768, "rpm": 1000, "tpm": 400000}, {"id": "kimi-k2.7-code", "name": "Kimi-K2.7-Code", "protocols": ["openai"], "maxOutput": 32768, "rpm": 1000, "tpm": 400000}]}]}, {"id": "minimax", "name": "MiniMax", "series": [{"id": "minimax-m3", "name": "MiniMax-M3 系列", "versions": [{"id": "minimax-m3", "name": "MiniMax-M3", "protocols": ["openai", "anthropic"], "maxOutput": 131072, "rpm": 100, "tpm": 1000000}]}]}, {"id": "mimo", "name": "Xiaomi MiMo", "series": [{"id": "mimo-v2.5", "name": "MiMo-V2.5 系列", "versions": [{"id": "mimo-v2.5", "name": "MiMo-V2.5", "protocols": ["openai", "anthropic"], "maxOutput": 128000, "rpm": 500, "tpm": 100000}, {"id": "mimo-v2.5-pro", "name": "MiMo-V2.5-Pro", "protocols": ["openai", "anthropic"], "maxOutput": 128000, "rpm": 500, "tpm": 100000}]}]}];
+const PROTOCOLS = {"openai": {"value": "openai", "path": "/v1/chat/completions", "label": "OpenAI Compatible（/v1/chat/completions）"}, "anthropic": {"value": "anthropic", "path": "/v1/messages", "label": "Anthropic（/v1/messages）"}};
+const PLATFORM = "https://kspmas.ksyun.com";
+
+function tok(){ return window.AUTH_TOKEN || new URLSearchParams(location.search).get('token') || ''; }
+async function api(path, opts){
+  opts = opts || {};
+  path = (window.BASE_PATH || '') + path;
+  const sep = path.includes('?') ? '&' : '?';
+  const url = path + sep + 'token=' + encodeURIComponent(tok());
+  const r = await fetch(url, opts);
+  if (!r.ok) throw new Error(await r.text());
+  return await r.json();
+}
+function el(id){ return document.getElementById(id); }
+function opt(value, label){ const o=document.createElement('option'); o.value=value; o.textContent=label; return o; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---- cascading model selects ---- */
+function curVendor(){ return CATALOG.find(v=>v.id===el('vendor').value); }
+function curSeries(){ const v=curVendor(); return v && v.series.find(s=>s.id===el('series').value); }
+function curVersion(){ const s=curSeries(); return s && s.versions.find(m=>m.id===el('version').value); }
+
+function fillVendors(){
+  const sel=el('vendor'); sel.innerHTML='';
+  CATALOG.forEach(v=>sel.append(opt(v.id, v.name)));
+  onVendor();
+}
+function onVendor(){
+  const sel=el('series'); sel.innerHTML='';
+  (curVendor().series).forEach(s=>sel.append(opt(s.id, s.name)));
+  onSeries();
+}
+function onSeries(){
+  const sel=el('version'); sel.innerHTML='';
+  (curSeries().versions).forEach(m=>sel.append(opt(m.id, m.name)));
+  onVersion();
+}
+function onVersion(){
+  const m=curVersion();
+  const sel=el('protocol'); sel.innerHTML='';
+  m.protocols.forEach(p=>sel.append(opt(p, PROTOCOLS[p].label)));
+  el('max_output_tokens').value = m.maxOutput;
+  el('rpm').value = m.rpm;
+  el('tpm').value = m.tpm;
+  onProtocol();
+  resetPlan();
+}
+function onProtocol(){
+  const p = PROTOCOLS[el('protocol').value];
+  el('endpoint').textContent = p ? (PLATFORM + p.path) : '—';
+  resetPlan();
+}
+
+/* ---- start / plan ---- */
+function gather(){
+  const m=curVersion(), p=PROTOCOLS[el('protocol').value];
+  return {
+    vendor: el('vendor').value,
+    model: m.id, base_url: PLATFORM, api_format: p.value,
+    profile: el('profile').value, group: el('group').value,
+    max_output_tokens: el('max_output_tokens').value,
+    rpm: el('rpm').value, tpm: el('tpm').value,
+    api_key: el('api_key').value.trim(),
+  };
+}
+/* ---- plan-gating: 未规划不可启动 ---- */
+let planDone=false;
+function setStartEnabled(on){
+  planDone=on;
+  document.querySelectorAll('.js-start').forEach(b=>{
+    b.disabled=!on;
+    b.title = on ? '' : '请先运行「规划 / Plan」';
+  });
+}
+async function startRun(){
+  const s=el('start_status');
+  if(!planDone){ s.className='status-line err'; s.textContent='请先运行「规划 / Plan」后再启动测试'; return; }
+  s.className='status-line'; s.textContent='正在启动…';
+  const btns=[...document.querySelectorAll('.js-start')]; btns.forEach(b=>b.disabled=true);
+  try{
+    const payload=gather(); delete payload.vendor; if(!payload.api_key) delete payload.api_key;
+    const j=await api('/api/runs', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    s.className='status-line good'; s.textContent='已启动 '+j.run_id+' → 切到「进行中」查看';
+    await loadRuns(); switchTab('running');
+  }catch(e){ s.className='status-line err'; s.textContent=String(e.message||e); }
+  finally{ btns.forEach(b=>b.disabled=!planDone); }
+}
+function resetPlan(){ el('plan-out').classList.remove('show'); setStartEnabled(false); }
+async function runPlan(){
+  const g=gather();
+  const q='/api/plan?profile='+encodeURIComponent(g.profile)+'&group='+encodeURIComponent(g.group)+'&vendor='+encodeURIComponent(g.vendor);
+  const s=el('start_status'); s.className='status-line'; s.textContent='正在规划…';
+  try{
+    const items=await api(q);
+    const list=el('plan-list'); list.innerHTML='';
+    items.forEach(it=>{
+      const spec=it.group==='Specifications';
+      const refs=(it.refs||[]).map(r=>'<a class="ref" href="'+esc(r.url)+'" target="_blank" rel="noopener">'+esc(r.label)+' ↗</a>').join('');
+      const row=document.createElement('div'); row.className='plan-item';
+      row.innerHTML=
+        '<div class="pi-head"><span class="pi-name">'+esc(it.name||it.id)+'</span>'
+          +'<span class="tag '+(spec?'tag-spec':'tag-cap')+'">'+(spec?'规格':'能力')+'</span>'
+          +'<code class="pi-id">'+esc(it.id)+'</code>'
+          +'<span class="tip" tabindex="0" role="button" aria-label="预期结果来源">'
+            +'<span class="tip-ico">i</span>'
+            +'<span class="bubble"><span class="bubble-h">预期结果来源 · 原厂文档</span>'+refs+'</span>'
+          +'</span></div>'
+        +'<div class="pi-row"><span class="pi-k">说明</span><span class="pi-v">'+esc(it.desc||it.description||'')+'</span></div>'
+        +'<div class="pi-row"><span class="pi-k">预期</span><span class="pi-v">'+esc(it.expected||'')+'</span></div>';
+      list.append(row);
+    });
+    el('plan-count').textContent='共 '+items.length+' 项';
+    el('plan-out').classList.add('show');
+    setStartEnabled(true);
+    s.className='status-line good'; s.textContent='规划完成，可以启动测试';
+  }catch(e){ setStartEnabled(false); s.className='status-line err'; s.textContent=String(e.message||e); }
+}
+
+/* ---- runs lists ---- */
+function statusTag(r){
+  if(r.running) return '<span class="tag tag-run"><span class="dot"></span>运行中</span>';
+  if(r.metadata && r.metadata.ended_at) return '<span class="tag tag-done"><span class="dot"></span>已完成</span>';
+  return '<span class="tag tag-part"><span class="dot"></span>部分</span>';
+}
+function countsHtml(c){
+  c=c||{};
+  return '<div class="counts">'
+    +'<span class="cnt cnt-pass">PASS '+(c.PASS||0)+'</span>'
+    +'<span class="cnt cnt-fail">FAIL '+(c.FAIL||0)+'</span>'
+    +'<span class="cnt cnt-inc">INC '+(c.INCONCLUSIVE||0)+'</span>'
+    +'<span class="cnt cnt-skip">SKIP '+(c.SKIP||0)+'</span></div>';
+}
+function runCard(r){
+  const m=r.metadata||{};
+  const detail=(window.BASE_PATH||'')+'/runs/'+r.run_id+'?token='+encodeURIComponent(tok());
+  const fmt = m.api_format ? ('<span class="chip"><b>'+m.api_format+'</b></span>') : '';
+  return '<div class="run-card"><div class="rc-top"><div class="rid">'+r.run_id+'</div>'+statusTag(r)+'</div>'
+    +'<div class="meta">'
+      +(m.model?'<span class="chip">模型 <b>'+m.model+'</b></span>':'')
+      +(m.profile?'<span class="chip">档位 <b>'+m.profile+'</b></span>':'')
+      +fmt
+    +'</div>'+countsHtml(r.counts)
+    +'<div class="rc-foot"><span class="ts">'+(m.ended_at||r.started_at||'')+'</span>'
+      +'<a href="'+detail+'">查看证据 →</a></div></div>';
+}
+function emptyState(text){
+  return '<div class="empty"><div class="ico">◍</div><p>'+text+'</p></div>';
+}
+async function loadRuns(){
+  let rows;
+  try{ rows=await api('/api/runs'); }catch(e){ return; }
+  const running=rows.filter(r=>r.running);
+  const done=rows.filter(r=>!r.running);
+  el('running-grid').innerHTML = running.length ? running.map(runCard).join('') : emptyState('当前没有进行中的测试。到「发起测试」启动一次。');
+  el('done-grid').innerHTML = done.length ? done.map(runCard).join('') : emptyState('还没有已完成的运行记录。');
+  const cr=el('cnt-running'), cd=el('cnt-done');
+  cr.textContent=running.length; cr.style.display=running.length?'':'none';
+  cd.textContent=done.length; cd.style.display=done.length?'':'none';
+}
+
+/* ---- tabs ---- */
+function switchTab(key){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===key));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  el('view-'+key).classList.add('active');
+  if(location.hash.slice(1)!==key) history.replaceState(null,'','#'+key);
+}
+window.addEventListener('hashchange',()=>{ const k=location.hash.slice(1); if(['launch','running','done'].includes(k)) switchTab(k); });
+
+fillVendors();
+const initial=['launch','running','done'].includes(location.hash.slice(1))?location.hash.slice(1):(window.ACTIVE||'launch');
+switchTab(initial);
+loadRuns(); setInterval(loadRuns, 5000);
+</script>
+
+<script>window.AUTH_TOKEN=""; window.BASE_PATH="/llm-benchmark"; window.ACTIVE="launch";</script>
+</body></html>

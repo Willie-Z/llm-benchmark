@@ -1,0 +1,721 @@
+[
+  {
+    "id": "spec_text_io",
+    "group": "Specifications",
+    "description": "Text input and output",
+    "profiles": [
+      "full",
+      "smoke",
+      "standard"
+    ],
+    "run": "test_text_io",
+    "priority": "P0",
+    "requirement": "返回内容正确性：content 非空、无异常并匹配指令",
+    "expected": "HTTP 200 且响应内容包含 SPEC_TEXT_OK → PASS；缺失哨兵 → FAIL。",
+    "source": "info.text",
+    "name": "文本输入 / 输出（Text I/O）",
+    "desc": "发送一条要求模型精确回复哨兵 SPEC_TEXT_OK 的纯文本请求，验证文本输入/输出通路。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "spec_context_window",
+    "group": "Specifications",
+    "description": "Context-window acceptance with measured API usage",
+    "profiles": [
+      "full",
+      "smoke",
+      "standard"
+    ],
+    "run": "test_context",
+    "priority": "P0",
+    "requirement": "最大上下文窗口：窗口内接受，full 档记录越界观察",
+    "expected": "HTTP 200 且响应含 CONTEXT_OK → PASS；接受但无哨兵 → INCONCLUSIVE；请求失败 → FAIL。",
+    "source": "info.text",
+    "name": "上下文窗口（Context Window）",
+    "desc": "构造接近上下文窗口规模的超长提示（smoke≈4K / standard≈64K / full≈999K 生成单元），以 API 返回的 prompt_tokens 为准；full 档额外发约 1.01M 越界观测。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "spec_max_output_parameter",
+    "group": "Specifications",
+    "description": "Documented max_tokens output-limit parameter acceptance",
+    "profiles": [
+      "full",
+      "smoke",
+      "standard"
+    ],
+    "run": "test_max_output_parameter",
+    "priority": "P0",
+    "requirement": "控制输出长度：max_tokens 支持情况与原厂一致",
+    "expected": "HTTP 200 且返回非空内容 → PASS；否则 FAIL。（仅验证参数被接受，不等于真生成到上限）",
+    "source": "info.text",
+    "name": "最大输出参数（Max Output）",
+    "desc": "以模型声明的最大输出上限作为 max_tokens 发请求，验证该参数被接受；full 档额外用 max+1 做越界边界观测。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "spec_max_completion_tokens_parameter",
+    "group": "Specifications",
+    "description": "max_completion_tokens output-limit parameter acceptance",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_max_completion_tokens_parameter",
+    "priority": "P0",
+    "requirement": "控制输出长度：max_completion_tokens 支持情况与原厂一致",
+    "expected": "OpenAI 协议下 HTTP 200 且返回哨兵 → PASS；Anthropic 协议 → SKIP；否则 FAIL。",
+    "source": "info.text",
+    "name": "最大输出参数（max_completion_tokens）",
+    "desc": "在 OpenAI-compatible Chat Completions 中使用 max_completion_tokens 控制输出长度，验证该参数是否按原厂语义被接受。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "spec_output_generation",
+    "group": "Specifications",
+    "description": "Measured output generation probe",
+    "profiles": [
+      "full",
+      "smoke",
+      "standard"
+    ],
+    "run": "test_output_generation",
+    "priority": "P0",
+    "requirement": "最大输出：区分参数接受和真实生成能力",
+    "expected": "completion_tokens ≥ 阈值 → PASS；产出不足 → INCONCLUSIVE；请求失败 → FAIL。",
+    "source": "info.text",
+    "name": "最大输出 · 实际生成（Max Output）",
+    "desc": "实际生成探测（smoke 512 / standard 4096 / full 8192 tokens），按 completion_tokens 度量真实产出量。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "spec_parameter_boundaries",
+    "group": "Specifications",
+    "description": "Documented parameter boundaries",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_parameter_boundaries",
+    "priority": "P0",
+    "requirement": "参数边界：最小 token、temperature 0/1 等边界",
+    "expected": "三个边界请求均 HTTP 200 → PASS；任一失败 → FAIL。",
+    "source": "info.text",
+    "name": "请求参数边界（Parameters）",
+    "desc": "探测文档化的参数边界：max_tokens=1、temperature=0、temperature=1 三种取值。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "spec_invalid_request_errors",
+    "group": "Specifications",
+    "description": "Invalid request and non-retryable error classification",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_invalid_request_errors",
+    "priority": "P0",
+    "requirement": "错误信息返回：400 类参数错误分类、不可重试",
+    "expected": "返回 4xx 且标准化为 invalid_request/not_found、retryable=false → PASS；否则 INCONCLUSIVE。",
+    "source": "info.text",
+    "name": "错误信息返回（Invalid Request）",
+    "desc": "发送空 messages、空 content、缺失必要 schema 的工具定义等非法请求，验证错误分类和不可重试策略。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "sec_auth_security",
+    "group": "Specifications",
+    "description": "Authentication rejection and redaction",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_auth_security",
+    "priority": "P0",
+    "requirement": "鉴权与安全：未传/错误 API Key 拒绝，鉴权信息不落盘",
+    "expected": "返回 401/403 且 request.json 中鉴权字段为 [REDACTED] → PASS；否则 FAIL。",
+    "source": "info.text",
+    "name": "鉴权与安全（Authentication）",
+    "desc": "分别使用空 Key 和随机错误 Key 发请求，验证鉴权失败和落盘请求脱敏。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "obs_usage_and_status_fields",
+    "group": "Specifications",
+    "description": "Usage, latency and response-state observability",
+    "profiles": [
+      "full",
+      "smoke",
+      "standard"
+    ],
+    "run": "test_usage_observability",
+    "priority": "P0",
+    "requirement": "线上观测覆盖率：usage、latency、status、finish_reason、retry 等字段",
+    "expected": "HTTP 200，standard_status=success，usage 与观测字段齐全 → PASS；否则 FAIL。",
+    "source": "info.text",
+    "name": "线上观测字段（Observability）",
+    "desc": "执行一次短请求，检查 metrics 中是否记录 model、endpoint、status、usage、TTFT/E2E、请求/响应大小、retry_count 等线上观测字段。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "cap_thinking_enabled",
+    "group": "Capabilities",
+    "description": "Thinking enabled and reasoning content",
+    "profiles": [
+      "full",
+      "smoke",
+      "standard"
+    ],
+    "run": "test_thinking_enabled",
+    "priority": "P0",
+    "requirement": "思考模式：开启方式和结果表现与原厂一致",
+    "expected": "返回非空 reasoning_content → PASS；成功但无 reasoning_content → INCONCLUSIVE。",
+    "source": "info.text",
+    "name": "深度思考（Thinking）",
+    "desc": "开启 thinking（reasoning_effort=high）做一道计算题，验证响应携带 reasoning_content 思维链。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "Thinking 能力文档",
+        "url": "https://docs.bigmodel.cn/cn/guide/capabilities/thinking"
+      }
+    ]
+  },
+  {
+    "id": "cap_thinking_disabled",
+    "group": "Capabilities",
+    "description": "Turn-level thinking disabled or documented rejection",
+    "profiles": [
+      "full",
+      "smoke",
+      "standard"
+    ],
+    "run": "test_thinking_disabled",
+    "priority": "P0",
+    "requirement": "思考模式：关闭方式或不可关闭约束与原厂一致",
+    "expected": "可关闭模型直接返回哨兵且无 reasoning_content → PASS；不可关闭模型返回 400/422 → PASS；否则 INCONCLUSIVE。",
+    "source": "info.text",
+    "name": "思考模式 · 关闭（Thinking Mode）",
+    "desc": "turn 级关闭 thinking；对 Kimi K2.7 Code 等原厂说明不可关闭的模型，改为验证 disabled 请求被拒绝。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "Thinking Mode 文档",
+        "url": "https://docs.bigmodel.cn/cn/guide/capabilities/thinking-mode"
+      }
+    ]
+  },
+  {
+    "id": "cap_multi_round_chat",
+    "group": "Capabilities",
+    "description": "Client-supplied multi-round chat",
+    "profiles": [
+      "full",
+      "smoke",
+      "standard"
+    ],
+    "run": "test_multi_round_chat",
+    "priority": "P0",
+    "requirement": "多轮对话：携带历史消息后上下文保持",
+    "expected": "第二轮回复包含 ORCHID-742 → PASS；否则 FAIL。",
+    "source": "info.text",
+    "name": "多轮对话（Multi-round Chat）",
+    "desc": "客户端拼接多轮 messages：第一轮埋入代号 ORCHID-742，第二轮验证模型据历史上下文回忆。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "cap_reasoning_effort",
+    "group": "Capabilities",
+    "description": "Reasoning effort minimal and max",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_reasoning_effort",
+    "priority": "P1",
+    "requirement": "模型特有 thinking 参数：reasoning_effort / effort 枚举",
+    "expected": "所有取值请求均 HTTP 200 → PASS；任一失败 → FAIL。",
+    "source": "info.text",
+    "name": "思考力度（Reasoning Effort）",
+    "desc": "遍历文档化的 reasoning_effort 取值（GLM: minimal/max；DeepSeek: high/max），验证均被接受。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "Thinking 能力文档",
+        "url": "https://docs.bigmodel.cn/cn/guide/capabilities/thinking"
+      }
+    ]
+  },
+  {
+    "id": "cap_streaming",
+    "group": "Capabilities",
+    "description": "SSE streaming",
+    "profiles": [
+      "full",
+      "smoke",
+      "standard"
+    ],
+    "run": "test_streaming",
+    "priority": "P0",
+    "requirement": "流式输出：chunk 拼接、[DONE]、usage 记录",
+    "expected": "HTTP 200 + 见到 [DONE] + 合并内容含 STREAM_OK → PASS；否则 FAIL。",
+    "source": "info.text",
+    "name": "流式输出（Streaming）",
+    "desc": "发起 SSE 流式请求，逐片解析增量并观测流结束标记 [DONE]。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "Streaming 文档",
+        "url": "https://docs.bigmodel.cn/cn/guide/capabilities/streaming"
+      }
+    ]
+  },
+  {
+    "id": "cap_function_calling",
+    "group": "Capabilities",
+    "description": "Function calling",
+    "profiles": [
+      "full",
+      "smoke",
+      "standard"
+    ],
+    "run": "test_function_calling",
+    "priority": "P0",
+    "requirement": "工具调用：协议结构和 tool_choice=auto",
+    "expected": "返回的 tool_calls 中包含 get_weather 调用 → PASS；否则 FAIL。",
+    "source": "info.text",
+    "name": "函数调用（Function Calling）",
+    "desc": "提供 get_weather 工具，要求模型对「北京」发起函数调用而非凭记忆作答。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "Function Calling 文档",
+        "url": "https://docs.bigmodel.cn/cn/guide/capabilities/function-calling"
+      }
+    ]
+  },
+  {
+    "id": "cap_stream_tool",
+    "group": "Capabilities",
+    "description": "Streaming function calls",
+    "profiles": [
+      "full",
+      "smoke",
+      "standard"
+    ],
+    "run": "test_stream_tool",
+    "priority": "P1",
+    "requirement": "工具调用：流式 FC 与 thinking 分离",
+    "expected": "合并后的 tool_calls 含 get_weather → PASS；否则 FAIL。",
+    "source": "info.text",
+    "name": "流式工具调用（Stream Tool）",
+    "desc": "流式 + 工具调用，重建流式 tool-call 增量分片（对「上海」）。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "Stream Tool 文档",
+        "url": "https://docs.bigmodel.cn/cn/guide/capabilities/stream-tool"
+      }
+    ]
+  },
+  {
+    "id": "cap_tool_no_false_positive",
+    "group": "Capabilities",
+    "description": "Tool hallucination guard",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_tool_no_false_positive",
+    "priority": "P1",
+    "requirement": "工具鲁棒性：闲聊不误触发工具",
+    "expected": "HTTP 200、返回普通内容且 tool_calls 为空 → PASS；否则 FAIL。",
+    "source": "info.text",
+    "name": "工具调用鲁棒性（No False Positive）",
+    "desc": "提供工具但要求普通闲聊，验证模型不会在无匹配需求时误触发工具。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "Function Calling 文档",
+        "url": "https://docs.bigmodel.cn/cn/guide/capabilities/function-calling"
+      }
+    ]
+  },
+  {
+    "id": "cap_tool_result_roundtrip",
+    "group": "Capabilities",
+    "description": "Tool result follow-up round",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_tool_result_roundtrip",
+    "priority": "P1",
+    "requirement": "工具能力深度：工具结果回传、多轮链路闭环",
+    "expected": "第二轮答案使用回填结果 → PASS；否则 FAIL。",
+    "source": "info.text",
+    "name": "工具结果回传（Tool Result）",
+    "desc": "第一轮要求工具调用，第二轮回填 tool result，验证工具结果能被模型识别并用于最终回答。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "Function Calling 文档",
+        "url": "https://docs.bigmodel.cn/cn/guide/capabilities/function-calling"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "cap_preserved_thinking",
+    "group": "Capabilities",
+    "description": "Interleaved and preserved thinking",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_preserved_thinking",
+    "priority": "P1",
+    "requirement": "Thinking 兼容：保留 reasoning_content 并回传",
+    "expected": "第二轮 HTTP 200 且有内容 → PASS；DeepSeek → SKIP。",
+    "source": "info.text",
+    "name": "保留思考（Thinking Mode · interleaved）",
+    "desc": "GLM 专项：开启 clear_thinking=false，在工具结果回填的下一轮验证原始 reasoning_content 被保留（DeepSeek 未文档化此语义，直接 SKIP）。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "Thinking Mode 文档",
+        "url": "https://docs.bigmodel.cn/cn/guide/capabilities/thinking-mode"
+      }
+    ]
+  },
+  {
+    "id": "cap_cache",
+    "group": "Capabilities",
+    "description": "Implicit context cache",
+    "profiles": [
+      "full",
+      "smoke",
+      "standard"
+    ],
+    "run": "test_cache",
+    "priority": "P1",
+    "requirement": "Cache 能力：重复上下文 cached_tokens 观测",
+    "expected": "第二次 cached_tokens 大于第一次或 >0 → PASS；缓存为零 → INCONCLUSIVE。",
+    "source": "info.text",
+    "name": "上下文缓存（Cache）",
+    "desc": "两次发送完全相同的超长上下文，以第二次的 cached_tokens 判断隐式缓存命中。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "Cache 文档",
+        "url": "https://docs.bigmodel.cn/cn/guide/capabilities/cache"
+      }
+    ]
+  },
+  {
+    "id": "cap_structured_output",
+    "group": "Capabilities",
+    "description": "JSON object structured output",
+    "profiles": [
+      "full",
+      "smoke",
+      "standard"
+    ],
+    "run": "test_structured_output",
+    "priority": "P0",
+    "requirement": "结构化输出：json_object 支持",
+    "expected": "内容可解析为 JSON 对象且 supported 为布尔值 → PASS；否则 FAIL。",
+    "source": "info.text",
+    "name": "结构化输出（Struct Output）",
+    "desc": "以 response_format=json_object 要求返回结构化 JSON（字段 name/supported/count）。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "结构化输出文档",
+        "url": "https://docs.bigmodel.cn/cn/guide/capabilities/struct-output"
+      }
+    ]
+  },
+  {
+    "id": "cap_json_schema_output",
+    "group": "Capabilities",
+    "description": "JSON Schema structured output",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_json_schema_output",
+    "priority": "P1",
+    "requirement": "结构化输出：json_schema 支持和 schema 遵循",
+    "expected": "OpenAI 协议下产出 schema-shaped JSON → PASS；成功但不符 → INCONCLUSIVE；Anthropic → SKIP。",
+    "source": "info.text",
+    "name": "结构化输出（JSON Schema）",
+    "desc": "以 response_format=json_schema 要求返回符合 schema 的 JSON，记录 schema 遵循情况。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "结构化输出文档",
+        "url": "https://docs.bigmodel.cn/cn/guide/capabilities/struct-output"
+      }
+    ]
+  },
+  {
+    "id": "cap_multimodal_image_input",
+    "group": "Capabilities",
+    "description": "OpenAI-style image input",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_multimodal_image_input",
+    "priority": "P1",
+    "requirement": "多模态能力：图片输入按模型说明验证",
+    "expected": "支持图片且 OpenAI 协议下 HTTP 200 且有内容 → PASS；不适用模型/协议 → SKIP。",
+    "source": "info.text",
+    "name": "多模态输入（Image Input）",
+    "desc": "对原厂文档声明支持图片输入的模型，发送 OpenAI-style image_url 内容数组做图片输入验收。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "cap_partial_mode",
+    "group": "Capabilities",
+    "description": "Assistant prefill Partial Mode",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_partial_mode",
+    "priority": "P1",
+    "requirement": "Partial Mode：assistant 预填和组合约束",
+    "expected": "支持 Partial Mode 的 OpenAI 协议模型接受预填并继续输出 → PASS；不适用模型 → SKIP。",
+    "source": "info.text",
+    "name": "Partial Mode",
+    "desc": "对文档声明支持 Partial Mode 的模型，使用 assistant partial prefill 验证续写模式。",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "cap_tool_choice_modes",
+    "group": "Capabilities",
+    "description": "Tool choice none and required modes",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_tool_choice_modes",
+    "priority": "P1",
+    "requirement": "工具调用：tool_choice none/required 模式与原厂一致",
+    "expected": "",
+    "source": "info.text",
+    "name": "cap_tool_choice_modes",
+    "desc": "",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "cap_tool_parallel_calls",
+    "group": "Capabilities",
+    "description": "Parallel tool calls in one turn",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_tool_parallel_calls",
+    "priority": "P1",
+    "requirement": "工具能力深度：并行工具调用",
+    "expected": "",
+    "source": "info.text",
+    "name": "cap_tool_parallel_calls",
+    "desc": "",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  },
+  {
+    "id": "cap_tool_error_recovery",
+    "group": "Capabilities",
+    "description": "Tool error result recovery",
+    "profiles": [
+      "full",
+      "standard"
+    ],
+    "run": "test_tool_error_recovery",
+    "priority": "P1",
+    "requirement": "工具鲁棒性：工具返回错误后模型合理回应",
+    "expected": "",
+    "source": "info.text",
+    "name": "cap_tool_error_recovery",
+    "desc": "",
+    "refs": [
+      {
+        "label": "GLM-5.2 产品说明（智谱原厂）",
+        "url": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2"
+      },
+      {
+        "label": "GLM 对话补全 API 文档",
+        "url": "https://docs.bigmodel.cn/cn/api/introduction"
+      }
+    ]
+  }
+]

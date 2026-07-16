@@ -1,0 +1,162 @@
+{
+  "vendor": "mimo",
+  "vendor_name": "小米 MiMo (Xiaomi)",
+  "official_open_platform": "https://mimo.mi.com",
+  "official_docs_base": "https://mimo.mi.com/docs/zh-CN",
+  "llms_index": "https://mimo.mi.com/llms.txt",
+  "api_base_url": {
+    "openai_compatible": "https://api.xiaomimimo.com/v1/chat/completions",
+    "anthropic": "OPENAI_ONLY(文档仅提供OpenAI兼容端点,无独立Anthropic端点)",
+    "auth": ["api-key header: api-key: $MIMO_API_KEY", "Authorization: Bearer $MIMO_API_KEY"]
+  },
+  "login_required": false,
+  "login_note": "文档页公开可读,无需登录;仅控制台/调用需API Key。WebFetch确认无登录墙",
+  "fetched_at": "2026-07-14",
+  "fetched_by": "WebFetch crawl",
+  "sources": [
+    "https://mimo.mi.com/llms.txt",
+    "https://mimo.mi.com/static/docs/quick-start/summary/model.md",
+    "https://mimo.mi.com/static/docs/api/guidance/model-hyperparameters.md",
+    "https://mimo.mi.com/static/docs/price/pay-as-you-go.md",
+    "https://mimo.mi.com/static/docs/api/guidance/rate-limit.md",
+    "https://mimo.mi.com/static/docs/api/chat/openai-api.md",
+    "https://mimo.mi.com/static/docs/updates/deprecate.md"
+  ],
+  "platform_params": {
+    "temperature": {
+      "mimo_v2_5_pro_and_v2_5": { "range": [0, 1.5], "default": 1.0 },
+      "tts_family": { "range": [0, 1.5], "default": 0.6 },
+      "thinking_mode_note": "思考模式下mimo-v2.5-pro与mimo-v2.5不支持自定义temperature/top_p,强制1.0与0.95",
+      "source": "model-hyperparameters.md"
+    },
+    "top_p": { "range": [0.01, 1.0], "default": 0.95, "all_models": true, "source": "model-hyperparameters.md" },
+    "max_completion_tokens": {
+      "mimo_v2_5_pro": { "default": 131072, "range": [1, 131072] },
+      "mimo_v2_5": { "default": 32768, "range": [1, 131072] },
+      "tts_family": { "default": 8192, "range": [1, 8192] },
+      "note": "无max_tokens参数,仅max_completion_tokens",
+      "source": "openai-api.md"
+    },
+    "stream": { "default": false, "note": "SSE", "source": "openai-api.md" },
+    "source": "https://mimo.mi.com/static/docs/api/guidance/model-hyperparameters.md"
+  },
+  "models": [
+    {
+      "model_id": "mimo-v2.5-pro",
+      "display_name": "MiMo-V2.5-Pro",
+      "modality": "text",
+      "context_window": { "official_value": "1M", "parsed": 1000000, "source": "model.md" },
+      "max_output_tokens": { "official_value": "128K", "parsed": 131072, "default": 131072, "source": "model.md + openai-api.md" },
+      "features": {
+        "text_generation": true,
+        "deep_thinking": true,
+        "streaming": true,
+        "function_calling": true,
+        "structured_output": true,
+        "web_search": true,
+        "system_prompt": { "value": true, "note": "OpenAI API页明确支持 system 与 developer role 消息", "source": "openai-api.md" },
+        "best_for": "复杂推理/深度分析/长文档处理"
+      },
+      "temperature_default": 1.0,
+      "top_p_default": 0.95,
+      "pricing": {
+        "domestic_cny_per_million": { "input_cache_hit": 0.025, "input_cache_miss": 3.0, "output": 6.0 },
+        "overseas_usd_per_million": { "input_cache_hit": 0.0036, "input_cache_miss": 0.435, "output": 0.87 },
+        "cache_write": "限时免费",
+        "source": "pay-as-you-go.md"
+      },
+      "rate_limits": { "rpm": 100, "tpm": 10000000, "source": "rate-limit.md" },
+      "benchmark_scores": { "status": "not_published_on_api_platform", "note": "API开放平台未公布数值benchmark;研究论文/博客(mimo.xiaomi.com/#paper)有,但属研究产物非API规格,且为JS渲染 → 基线不放benchmark项" },
+      "gaps": []
+    },
+    {
+      "model_id": "mimo-v2.5",
+      "display_name": "MiMo-V2.5",
+      "modality": "全模态(text+image+audio+video,全模态理解)",
+      "context_window": { "official_value": "1M", "parsed": 1000000, "source": "model.md" },
+      "max_output_tokens": { "official_value": "128K", "parsed": 131072, "default": 32768, "source": "model.md + openai-api.md" },
+      "features": {
+        "text_generation": true,
+        "full_modal_understanding": true,
+        "deep_thinking": true,
+        "streaming": true,
+        "function_calling": true,
+        "structured_output": true,
+        "web_search": true,
+        "system_prompt": { "value": true, "note": "OpenAI API页明确支持 system 与 developer role 消息", "source": "openai-api.md" },
+        "best_for": "图像/音频/视频内容理解"
+      },
+      "temperature_default": 1.0,
+      "top_p_default": 0.95,
+      "max_completion_tokens_default": 32768,
+      "pricing": {
+        "domestic_cny_per_million": { "input_cache_hit": 0.02, "input_cache_miss": 1.0, "output": 2.0 },
+        "overseas_usd_per_million": { "input_cache_hit": 0.0028, "input_cache_miss": 0.14, "output": 0.28 },
+        "cache_write": "限时免费",
+        "source": "pay-as-you-go.md"
+      },
+      "rate_limits": { "rpm": 100, "tpm": 10000000, "source": "rate-limit.md" },
+      "benchmark_scores": { "status": "not_published_on_api_platform", "note": "同v2.5-pro,API平台未公布;研究论文有" },
+      "gaps": []
+    },
+    {
+      "model_id": "mimo-v2.5-asr",
+      "display_name": "MiMo-V2.5-ASR",
+      "modality": "audio(语音转文本,中英)",
+      "context_window": { "official_value": "8K", "parsed": 8192 },
+      "max_output_tokens": { "official_value": "2K", "parsed": 2000 },
+      "features": { "speech_recognition": true, "languages": "中英" },
+      "pricing": { "domestic": "¥0.5/hour", "overseas": "$0.074/hour", "note": "按时长计费,精确到秒,折算小时", "source": "pay-as-you-go.md" },
+      "rate_limits": { "rpm": 100, "tpm": 10000, "source": "rate-limit.md" },
+      "gaps": ["非对话模型,对齐验证可跳过"]
+    },
+    {
+      "model_id": "mimo-v2.5-tts",
+      "display_name": "MiMo-V2.5-TTS",
+      "modality": "text-to-audio(标准预设音色)",
+      "context_window": { "official_value": "8K", "parsed": 8192 },
+      "max_output_tokens": { "official_value": "8K", "parsed": 8192, "default": 8192, "range": [1, 8192] },
+      "temperature_default": 0.6,
+      "pricing": { "status": "限时免费", "domestic": "免费", "overseas": "免费", "source": "pay-as-you-go.md" },
+      "rate_limits": { "rpm": 100, "tpm": 10000000 },
+      "gaps": ["非对话模型"]
+    },
+    {
+      "model_id": "mimo-v2.5-tts-voiceclone",
+      "display_name": "MiMo-V2.5-TTS-VoiceClone",
+      "modality": "text-to-audio(音色克隆,上传音频样本)",
+      "context_window": { "official_value": "8K", "parsed": 8192 },
+      "max_output_tokens": { "official_value": "8K", "parsed": 8192 },
+      "temperature_default": 0.6,
+      "pricing": { "status": "限时免费" },
+      "rate_limits": { "rpm": 100, "tpm": 10000000 }
+    },
+    {
+      "model_id": "mimo-v2.5-tts-voicedesign",
+      "display_name": "MiMo-V2.5-TTS-VoiceDesign",
+      "modality": "text-to-audio(自定义音色设计)",
+      "context_window": { "official_value": "8K", "parsed": 8192 },
+      "max_output_tokens": { "official_value": "8K", "parsed": 8192 },
+      "temperature_default": 0.6,
+      "pricing": { "status": "限时免费" },
+      "rate_limits": { "rpm": 100, "tpm": 10000000 }
+    }
+  ],
+  "deprecated_models": {
+    "date": "2026-06-30 00:00 已正式下线",
+    "items": ["mimo-v2-pro", "mimo-v2-omni", "mimo-v2-flash", "mimo-v2-tts"],
+    "note": "下线后无规格,需迁移至V2.5系列"
+  },
+  "web_search_plugin_pricing": { "domestic": "¥16/1000次", "overseas": "$5/1000次", "note": "按调用次数独立计费,不含在Token价内" },
+  "billing_modes": {
+    "two_modes": ["Token Plan(订阅)", "按量计费(pay-as-you-go)"],
+    "note": "两种计费各需独立Base URL与API Key,混用会401",
+    "source": "error-codes.md"
+  },
+  "important_alignment_note": {
+    "thinking_mode_override": "思考模式下mimo-v2.5-pro/mimo-v2.5强制temperature=1.0、top_p=0.95,自定义无效 → 对齐验证时若在思考模式测temp/top_p,任何传值都会被强制覆盖,该项应判SKIP或备注",
+    "anthropic_protocol": "参考站CATALOG标记mimo支持anthropic协议,但小米官方文档仅提供OpenAI兼容端点;anthropic支持可能是星流平台侧封装 → 需确认是小米原生还是平台封装",
+    "benchmark": "官网未公布数值benchmark → 不放benchmark测试项"
+  },
+  "correction_note": "本版推翻之前结论:此前误以为mimo.xiaomi.com(营销博客)是MiMo全部,实际开放平台为mimo.mi.com,文档完整公开可读"
+}

@@ -1,0 +1,2971 @@
+{
+ "deepseek": {
+  "id": "deepseek",
+  "name": "DeepSeek",
+  "api_base_url": {
+   "openai": "https://api.deepseek.com",
+   "anthropic": "https://api.deepseek.com/anthropic"
+  },
+  "versions": [
+   {
+    "id": "deepseek-v4-pro",
+    "name": "DeepSeek-V4-Pro",
+    "modality": "text",
+    "protocols": [
+     "openai",
+     "anthropic"
+    ],
+    "context": 1000000,
+    "maxOutput": 384000,
+    "temp": {
+     "min": 0,
+     "max": 2,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "concurrency": 500,
+     "note": "官网仅公布并发数"
+    },
+    "baseline": {
+     "model_id": "deepseek-v4-pro",
+     "display_name": "DeepSeek-V4-Pro",
+     "protocols": [
+      "openai",
+      "anthropic"
+     ],
+     "context_window": {
+      "official_value": "1M tokens",
+      "parsed": 1000000,
+      "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+     },
+     "max_output_tokens": {
+      "official_value": "384K tokens",
+      "parsed": 384000,
+      "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing",
+      "note": "384K=384000(十进制);若为二进制K则393216,需API实测确认"
+     },
+     "features": {
+      "streaming": {
+       "value": true,
+       "source": "https://api-docs.deepseek.com/zh-cn/"
+      },
+      "function_calling": {
+       "value": true,
+       "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+      },
+      "json_output": {
+       "value": true,
+       "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+      },
+      "fim": {
+       "value": true,
+       "note": "non-thinking mode only",
+       "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+      },
+      "chat_prefix_completion": {
+       "value": true,
+       "note": "Beta",
+       "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+      },
+      "thinking_mode": {
+       "value": true,
+       "source": "https://api-docs.deepseek.com/zh-cn/"
+      }
+     },
+     "pricing": {
+      "input_cache_hit_per_million": {
+       "value": 0.025,
+       "currency": "CNY"
+      },
+      "input_cache_miss_per_million": {
+       "value": 3,
+       "currency": "CNY"
+      },
+      "output_per_million": {
+       "value": 6,
+       "currency": "CNY"
+      },
+      "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+     },
+     "concurrency_limit": {
+      "value": 500,
+      "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+     },
+     "temperature_range": {
+      "min": 0,
+      "max": 2,
+      "default": 1,
+      "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion",
+      "note": "建议只改temp或top_p其一"
+     },
+     "top_p_range": {
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion"
+     },
+     "frequency_penalty": {
+      "status": "deprecated",
+      "note": "已不再支持,传了无效",
+      "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion"
+     },
+     "presence_penalty": {
+      "status": "deprecated",
+      "note": "已不再支持,传了无效",
+      "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion"
+     },
+     "stream": {
+      "default": false,
+      "note": "SSE,以 [DONE] 结尾",
+      "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion"
+     },
+     "rpm": "NOT_PUBLISHED(官网仅公布并发数,无RPM)",
+     "tpm": "NOT_PUBLISHED(官网仅公布并发数,无TPM)",
+     "benchmark_scores": {
+      "status": "not_published_as_text",
+      "note": "官网新闻页仅以图片(v4-benchmark.png)呈现,无文本数值"
+     },
+     "gaps": []
+    }
+   },
+   {
+    "id": "deepseek-v4-flash",
+    "name": "DeepSeek-V4-Flash",
+    "modality": "text",
+    "protocols": [
+     "openai",
+     "anthropic"
+    ],
+    "context": 1000000,
+    "maxOutput": 384000,
+    "temp": {
+     "min": 0,
+     "max": 2,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "concurrency": 2500,
+     "note": "官网仅公布并发数"
+    },
+    "baseline": {
+     "model_id": "deepseek-v4-flash",
+     "display_name": "DeepSeek-V4-Flash",
+     "protocols": [
+      "openai",
+      "anthropic"
+     ],
+     "context_window": {
+      "official_value": "1M tokens",
+      "parsed": 1000000,
+      "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+     },
+     "max_output_tokens": {
+      "official_value": "384K tokens",
+      "parsed": 384000,
+      "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing",
+      "note": "同v4-pro"
+     },
+     "features": {
+      "streaming": {
+       "value": true,
+       "source": "https://api-docs.deepseek.com/zh-cn/"
+      },
+      "function_calling": {
+       "value": true,
+       "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+      },
+      "json_output": {
+       "value": true,
+       "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+      },
+      "fim": {
+       "value": true,
+       "note": "non-thinking mode only",
+       "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+      },
+      "chat_prefix_completion": {
+       "value": true,
+       "note": "Beta",
+       "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+      },
+      "thinking_mode": {
+       "value": true,
+       "note": "默认思考模式;映射自弃用的deepseek-reasoner",
+       "source": "https://api-docs.deepseek.com/zh-cn/"
+      }
+     },
+     "pricing": {
+      "input_cache_hit_per_million": {
+       "value": 0.02,
+       "currency": "CNY"
+      },
+      "input_cache_miss_per_million": {
+       "value": 1,
+       "currency": "CNY"
+      },
+      "output_per_million": {
+       "value": 2,
+       "currency": "CNY"
+      },
+      "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+     },
+     "concurrency_limit": {
+      "value": 2500,
+      "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+     },
+     "temperature_range": {
+      "min": 0,
+      "max": 2,
+      "default": 1,
+      "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion"
+     },
+     "top_p_range": {
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion"
+     },
+     "frequency_penalty": {
+      "status": "deprecated",
+      "note": "已不再支持,传了无效",
+      "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion"
+     },
+     "presence_penalty": {
+      "status": "deprecated",
+      "note": "已不再支持,传了无效",
+      "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion"
+     },
+     "stream": {
+      "default": false,
+      "note": "SSE,以 [DONE] 结尾",
+      "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion"
+     },
+     "rpm": "NOT_PUBLISHED(官网仅公布并发数,无RPM)",
+     "tpm": "NOT_PUBLISHED(官网仅公布并发数,无TPM)",
+     "benchmark_scores": {
+      "status": "not_published_as_text",
+      "note": "官网新闻页仅以图片(v4-benchmark.png)呈现,无文本数值"
+     },
+     "gaps": []
+    }
+   }
+  ]
+ },
+ "kimi": {
+  "id": "kimi",
+  "name": "Kimi / Moonshot AI",
+  "api_base_url": {
+   "openai_compatible": "https://api.moonshot.cn/v1"
+  },
+  "versions": [
+   {
+    "id": "kimi-k2.7-code",
+    "name": "Kimi K2.7 Code",
+    "modality": "text(coding)",
+    "protocols": [
+     "openai_compatible"
+    ],
+    "context": 262144,
+    "maxOutput": "NOT_PUBLISHED",
+    "temp": {
+     "min": "NOT_PUBLISHED",
+     "max": "NOT_PUBLISHED",
+     "default": "NOT_PUBLISHED"
+    },
+    "topp": {
+     "min": "NOT_PUBLISHED",
+     "max": "NOT_PUBLISHED",
+     "default": "NOT_PUBLISHED"
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 6.5,
+     "output": 27,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "note": "账号档位"
+    },
+    "baseline": {
+     "model_id": "kimi-k2.7-code",
+     "display_name": "Kimi K2.7 Code",
+     "modality": "text(coding)",
+     "context_window": {
+      "official_value": "256K",
+      "parsed": 262144,
+      "source": "https://platform.kimi.com/docs/models"
+     },
+     "features": {
+      "thinking_mode": true,
+      "only_thinking_mode": true,
+      "streaming": true,
+      "system_prompt": true,
+      "coding_agent": true,
+      "tool_calls": true,
+      "json_mode": true,
+      "partial_mode": true,
+      "auto_context_caching": true,
+      "note": "对话与Agent任务"
+     },
+     "max_output_tokens": "NOT_PUBLISHED(已核实,见verification_notes)",
+     "pricing": {
+      "input_cache_hit": 1.3,
+      "input_cache_miss": 6.5,
+      "output": 27,
+      "currency": "CNY",
+      "source": "pricing/chat-k27-code.md"
+     },
+     "gaps": []
+    }
+   },
+   {
+    "id": "kimi-k2.7-code-highspeed",
+    "name": "Kimi K2.7 Code Highspeed",
+    "modality": "text(coding)",
+    "protocols": [
+     "openai_compatible"
+    ],
+    "context": 262144,
+    "maxOutput": "NOT_PUBLISHED",
+    "temp": {
+     "min": "NOT_PUBLISHED",
+     "max": "NOT_PUBLISHED",
+     "default": "NOT_PUBLISHED"
+    },
+    "topp": {
+     "min": "NOT_PUBLISHED",
+     "max": "NOT_PUBLISHED",
+     "default": "NOT_PUBLISHED"
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": null,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 13,
+     "output": 54,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "note": "账号档位"
+    },
+    "baseline": {
+     "model_id": "kimi-k2.7-code-highspeed",
+     "display_name": "Kimi K2.7 Code Highspeed",
+     "modality": "text(coding)",
+     "context_window": {
+      "official_value": "256K",
+      "parsed": 262144
+     },
+     "features": {
+      "thinking_mode": true,
+      "only_thinking_mode": true,
+      "streaming": true,
+      "system_prompt": true,
+      "note": "约180 Tokens/s,短上下文可达260 Token/s;效果同k2.7-code更快"
+     },
+     "max_output_tokens": "NOT_PUBLISHED(已核实,见verification_notes)",
+     "pricing": {
+      "input_cache_hit": 2.6,
+      "input_cache_miss": 13,
+      "output": 54,
+      "currency": "CNY",
+      "note": "标准版2倍价",
+      "source": "pricing/chat-k27-code.md"
+     },
+     "gaps": []
+    }
+   },
+   {
+    "id": "kimi-k2.6",
+    "name": "Kimi K2.6",
+    "modality": "text+vision",
+    "protocols": [
+     "openai_compatible"
+    ],
+    "context": 262144,
+    "maxOutput": "NOT_PUBLISHED",
+    "temp": {
+     "min": "NOT_PUBLISHED",
+     "max": "NOT_PUBLISHED",
+     "default": "NOT_PUBLISHED"
+    },
+    "topp": {
+     "min": "NOT_PUBLISHED",
+     "max": "NOT_PUBLISHED",
+     "default": "NOT_PUBLISHED"
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": true,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 6.5,
+     "output": 27,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "note": "账号档位"
+    },
+    "baseline": {
+     "model_id": "kimi-k2.6",
+     "display_name": "Kimi K2.6",
+     "modality": "text+vision",
+     "context_window": {
+      "official_value": "256K",
+      "parsed": 262144,
+      "source": "https://platform.kimi.com/docs/models"
+     },
+     "features": {
+      "thinking_mode": true,
+      "non_thinking_mode": true,
+      "streaming": true,
+      "system_prompt": true,
+      "vision": true,
+      "video_input": true,
+      "tool_calls": true,
+      "json_mode": true,
+      "web_search": true,
+      "note": "通用对话/Agent/视觉理解/复杂推理;升级自kimi-thinking-preview"
+     },
+     "max_output_tokens": "NOT_PUBLISHED(已核实,见verification_notes)",
+     "pricing": {
+      "input_cache_hit": 1.1,
+      "input_cache_miss": 6.5,
+      "output": 27,
+      "currency": "CNY",
+      "source": "pricing/chat-k26.md"
+     },
+     "gaps": []
+    }
+   },
+   {
+    "id": "kimi-k2.5",
+    "name": "Kimi K2.5",
+    "modality": "text+image+video",
+    "protocols": [
+     "openai_compatible"
+    ],
+    "context": 262144,
+    "maxOutput": "NOT_PUBLISHED",
+    "temp": {
+     "min": "NOT_PUBLISHED",
+     "max": "NOT_PUBLISHED",
+     "default": "NOT_PUBLISHED"
+    },
+    "topp": {
+     "min": "NOT_PUBLISHED",
+     "max": "NOT_PUBLISHED",
+     "default": "NOT_PUBLISHED"
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": true,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 4,
+     "output": 21,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "note": "账号档位"
+    },
+    "baseline": {
+     "model_id": "kimi-k2.5",
+     "display_name": "Kimi K2.5",
+     "modality": "text+image+video",
+     "context_window": {
+      "official_value": "256K",
+      "parsed": 262144,
+      "source": "pricing/chat-k25.md"
+     },
+     "features": {
+      "thinking_mode": true,
+      "non_thinking_mode": true,
+      "vision": true,
+      "video_input": true,
+      "tool_calls": true,
+      "json_mode": true,
+      "web_search": true,
+      "partial_mode": true,
+      "auto_context_caching": true,
+      "note": "对话与Agent任务,长思考深度推理",
+      "source": "pricing/chat-k25.md"
+     },
+     "max_output_tokens": "NOT_PUBLISHED(已核实,见verification_notes)",
+     "pricing": {
+      "input_cache_hit": 0.7,
+      "input_cache_miss": 4,
+      "output": 21,
+      "currency": "CNY",
+      "source": "pricing/chat-k25.md"
+     },
+     "gaps": []
+    }
+   },
+   {
+    "id": "moonshot-v1-8k",
+    "name": "Moonshot V1 8K",
+    "modality": "text",
+    "protocols": [
+     "openai_compatible"
+    ],
+    "context": 8192,
+    "maxOutput": "NOT_PUBLISHED",
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 0
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": false,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 2,
+     "output": 10,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "note": "账号档位"
+    },
+    "baseline": {
+     "model_id": "moonshot-v1-8k",
+     "display_name": "Moonshot V1 8K",
+     "modality": "text",
+     "context_window": {
+      "official_value": "8K",
+      "parsed": 8192,
+      "source": "https://platform.kimi.com/docs/models"
+     },
+     "note": "V1系列各型号仅最大上下文(输入+输出)不同,效果无差异",
+     "pricing": {
+      "input": 2,
+      "output": 10,
+      "currency": "CNY",
+      "source": "pricing/chat-v1.md",
+      "note": "无cache价格"
+     },
+     "gaps": []
+    }
+   },
+   {
+    "id": "moonshot-v1-32k",
+    "name": "Moonshot V1 32K",
+    "modality": "text",
+    "protocols": [
+     "openai_compatible"
+    ],
+    "context": 32768,
+    "maxOutput": "NOT_PUBLISHED",
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 0
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": false,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 5,
+     "output": 20,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "note": "账号档位"
+    },
+    "baseline": {
+     "model_id": "moonshot-v1-32k",
+     "display_name": "Moonshot V1 32K",
+     "modality": "text",
+     "context_window": {
+      "official_value": "32K",
+      "parsed": 32768
+     },
+     "pricing": {
+      "input": 5,
+      "output": 20,
+      "currency": "CNY"
+     },
+     "gaps": []
+    }
+   },
+   {
+    "id": "moonshot-v1-128k",
+    "name": "Moonshot V1 128K",
+    "modality": "text",
+    "protocols": [
+     "openai_compatible"
+    ],
+    "context": 131072,
+    "maxOutput": "NOT_PUBLISHED",
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 0
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": false,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 10,
+     "output": 30,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "note": "账号档位"
+    },
+    "baseline": {
+     "model_id": "moonshot-v1-128k",
+     "display_name": "Moonshot V1 128K",
+     "modality": "text",
+     "context_window": {
+      "official_value": "128K",
+      "parsed": 131072
+     },
+     "pricing": {
+      "input": 10,
+      "output": 30,
+      "currency": "CNY"
+     },
+     "gaps": []
+    }
+   },
+   {
+    "id": "moonshot-v1-8k-vision-preview",
+    "name": "Moonshot V1 8K Vision Preview",
+    "modality": "text+image",
+    "protocols": [
+     "openai_compatible"
+    ],
+    "context": 8192,
+    "maxOutput": "NOT_PUBLISHED",
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 0
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": true,
+     "thinking_mode": false,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 2,
+     "output": 10,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "note": "账号档位"
+    },
+    "baseline": {
+     "model_id": "moonshot-v1-8k-vision-preview",
+     "display_name": "Moonshot V1 8K Vision Preview",
+     "modality": "text+image",
+     "context_window": {
+      "official_value": "8K",
+      "parsed": 8192
+     },
+     "pricing": {
+      "input": 2,
+      "output": 10,
+      "currency": "CNY"
+     },
+     "gaps": []
+    }
+   },
+   {
+    "id": "moonshot-v1-32k-vision-preview",
+    "name": "Moonshot V1 32K Vision Preview",
+    "modality": "text+image",
+    "protocols": [
+     "openai_compatible"
+    ],
+    "context": 32768,
+    "maxOutput": "NOT_PUBLISHED",
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 0
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": true,
+     "thinking_mode": false,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 5,
+     "output": 20,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "note": "账号档位"
+    },
+    "baseline": {
+     "model_id": "moonshot-v1-32k-vision-preview",
+     "display_name": "Moonshot V1 32K Vision Preview",
+     "modality": "text+image",
+     "context_window": {
+      "official_value": "32K",
+      "parsed": 32768
+     },
+     "pricing": {
+      "input": 5,
+      "output": 20,
+      "currency": "CNY"
+     },
+     "gaps": []
+    }
+   },
+   {
+    "id": "moonshot-v1-128k-vision-preview",
+    "name": "Moonshot V1 128K Vision Preview",
+    "modality": "text+image",
+    "protocols": [
+     "openai_compatible"
+    ],
+    "context": 131072,
+    "maxOutput": "NOT_PUBLISHED",
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 0
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": true,
+     "thinking_mode": false,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 10,
+     "output": 30,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "note": "账号档位"
+    },
+    "baseline": {
+     "model_id": "moonshot-v1-128k-vision-preview",
+     "display_name": "Moonshot V1 128K Vision Preview",
+     "modality": "text+image",
+     "context_window": {
+      "official_value": "128K",
+      "parsed": 131072
+     },
+     "pricing": {
+      "input": 10,
+      "output": 30,
+      "currency": "CNY"
+     },
+     "gaps": []
+    }
+   }
+  ]
+ },
+ "mimo": {
+  "id": "mimo",
+  "name": "小米 MiMo (Xiaomi)",
+  "api_base_url": {
+   "openai_compatible": "https://api.xiaomimimo.com/v1/chat/completions",
+   "anthropic": "OPENAI_ONLY(文档仅提供OpenAI兼容端点,无独立Anthropic端点)",
+   "auth": [
+    "api-key header: api-key: $MIMO_API_KEY",
+    "Authorization: Bearer $MIMO_API_KEY"
+   ]
+  },
+  "platform_params": {
+   "temperature": {
+    "mimo_v2_5_pro_and_v2_5": {
+     "range": [
+      0,
+      1.5
+     ],
+     "default": 1
+    },
+    "tts_family": {
+     "range": [
+      0,
+      1.5
+     ],
+     "default": 0.6
+    },
+    "thinking_mode_note": "思考模式下mimo-v2.5-pro与mimo-v2.5不支持自定义temperature/top_p,强制1.0与0.95",
+    "source": "model-hyperparameters.md"
+   },
+   "top_p": {
+    "range": [
+     0.01,
+     1
+    ],
+    "default": 0.95,
+    "all_models": true,
+    "source": "model-hyperparameters.md"
+   },
+   "max_completion_tokens": {
+    "mimo_v2_5_pro": {
+     "default": 131072,
+     "range": [
+      1,
+      131072
+     ]
+    },
+    "mimo_v2_5": {
+     "default": 32768,
+     "range": [
+      1,
+      131072
+     ]
+    },
+    "tts_family": {
+     "default": 8192,
+     "range": [
+      1,
+      8192
+     ]
+    },
+    "note": "无max_tokens参数,仅max_completion_tokens",
+    "source": "openai-api.md"
+   },
+   "stream": {
+    "default": false,
+    "note": "SSE",
+    "source": "openai-api.md"
+   },
+   "source": "https://mimo.mi.com/static/docs/api/guidance/model-hyperparameters.md"
+  },
+  "versions": [
+   {
+    "id": "mimo-v2.5-pro",
+    "name": "MiMo-V2.5-Pro",
+    "modality": "text",
+    "protocols": [
+     "openai_compatible",
+     "anthropic",
+     "auth"
+    ],
+    "context": 1000000,
+    "maxOutput": 131072,
+    "temp": {
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 3,
+     "output": 6,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 100,
+     "tpm": 10000000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "mimo-v2.5-pro",
+     "display_name": "MiMo-V2.5-Pro",
+     "modality": "text",
+     "context_window": {
+      "official_value": "1M",
+      "parsed": 1000000,
+      "source": "model.md"
+     },
+     "max_output_tokens": {
+      "official_value": "128K",
+      "parsed": 131072,
+      "default": 131072,
+      "source": "model.md + openai-api.md"
+     },
+     "features": {
+      "text_generation": true,
+      "deep_thinking": true,
+      "streaming": true,
+      "function_calling": true,
+      "structured_output": true,
+      "web_search": true,
+      "system_prompt": {
+       "value": true,
+       "note": "OpenAI API页明确支持 system 与 developer role 消息",
+       "source": "openai-api.md"
+      },
+      "best_for": "复杂推理/深度分析/长文档处理"
+     },
+     "temperature_default": 1,
+     "top_p_default": 0.95,
+     "pricing": {
+      "domestic_cny_per_million": {
+       "input_cache_hit": 0.025,
+       "input_cache_miss": 3,
+       "output": 6
+      },
+      "overseas_usd_per_million": {
+       "input_cache_hit": 0.0036,
+       "input_cache_miss": 0.435,
+       "output": 0.87
+      },
+      "cache_write": "限时免费",
+      "source": "pay-as-you-go.md"
+     },
+     "rate_limits": {
+      "rpm": 100,
+      "tpm": 10000000,
+      "source": "rate-limit.md"
+     },
+     "benchmark_scores": {
+      "status": "not_published_on_api_platform",
+      "note": "API开放平台未公布数值benchmark;研究论文/博客(mimo.xiaomi.com/#paper)有,但属研究产物非API规格,且为JS渲染 → 基线不放benchmark项"
+     },
+     "gaps": []
+    }
+   },
+   {
+    "id": "mimo-v2.5",
+    "name": "MiMo-V2.5",
+    "modality": "全模态(text+image+audio+video,全模态理解)",
+    "protocols": [
+     "openai_compatible",
+     "anthropic",
+     "auth"
+    ],
+    "context": 1000000,
+    "maxOutput": 131072,
+    "temp": {
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": false,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 1,
+     "output": 2,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 100,
+     "tpm": 10000000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "mimo-v2.5",
+     "display_name": "MiMo-V2.5",
+     "modality": "全模态(text+image+audio+video,全模态理解)",
+     "context_window": {
+      "official_value": "1M",
+      "parsed": 1000000,
+      "source": "model.md"
+     },
+     "max_output_tokens": {
+      "official_value": "128K",
+      "parsed": 131072,
+      "default": 32768,
+      "source": "model.md + openai-api.md"
+     },
+     "features": {
+      "text_generation": true,
+      "full_modal_understanding": true,
+      "deep_thinking": true,
+      "streaming": true,
+      "function_calling": true,
+      "structured_output": true,
+      "web_search": true,
+      "system_prompt": {
+       "value": true,
+       "note": "OpenAI API页明确支持 system 与 developer role 消息",
+       "source": "openai-api.md"
+      },
+      "best_for": "图像/音频/视频内容理解"
+     },
+     "temperature_default": 1,
+     "top_p_default": 0.95,
+     "max_completion_tokens_default": 32768,
+     "pricing": {
+      "domestic_cny_per_million": {
+       "input_cache_hit": 0.02,
+       "input_cache_miss": 1,
+       "output": 2
+      },
+      "overseas_usd_per_million": {
+       "input_cache_hit": 0.0028,
+       "input_cache_miss": 0.14,
+       "output": 0.28
+      },
+      "cache_write": "限时免费",
+      "source": "pay-as-you-go.md"
+     },
+     "rate_limits": {
+      "rpm": 100,
+      "tpm": 10000000,
+      "source": "rate-limit.md"
+     },
+     "benchmark_scores": {
+      "status": "not_published_on_api_platform",
+      "note": "同v2.5-pro,API平台未公布;研究论文有"
+     },
+     "gaps": []
+    }
+   },
+   {
+    "id": "mimo-v2.5-asr",
+    "name": "MiMo-V2.5-ASR",
+    "modality": "audio(语音转文本,中英)",
+    "protocols": [
+     "openai_compatible",
+     "anthropic",
+     "auth"
+    ],
+    "context": 8192,
+    "maxOutput": 2000,
+    "temp": {
+     "default": null
+    },
+    "topp": {
+     "min": 0.01,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": false,
+     "function_calling": false,
+     "vision": false,
+     "thinking_mode": false,
+     "system_prompt": false
+    },
+    "pricing": {
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 100,
+     "tpm": 10000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "mimo-v2.5-asr",
+     "display_name": "MiMo-V2.5-ASR",
+     "modality": "audio(语音转文本,中英)",
+     "context_window": {
+      "official_value": "8K",
+      "parsed": 8192
+     },
+     "max_output_tokens": {
+      "official_value": "2K",
+      "parsed": 2000
+     },
+     "features": {
+      "speech_recognition": true,
+      "languages": "中英"
+     },
+     "pricing": {
+      "domestic": "¥0.5/hour",
+      "overseas": "$0.074/hour",
+      "note": "按时长计费,精确到秒,折算小时",
+      "source": "pay-as-you-go.md"
+     },
+     "rate_limits": {
+      "rpm": 100,
+      "tpm": 10000,
+      "source": "rate-limit.md"
+     },
+     "gaps": [
+      "非对话模型,对齐验证可跳过"
+     ]
+    }
+   },
+   {
+    "id": "mimo-v2.5-tts",
+    "name": "MiMo-V2.5-TTS",
+    "modality": "text-to-audio(标准预设音色)",
+    "protocols": [
+     "openai_compatible",
+     "anthropic",
+     "auth"
+    ],
+    "context": 8192,
+    "maxOutput": 8192,
+    "temp": {
+     "default": 0.6
+    },
+    "topp": {
+     "min": 0.01,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": false,
+     "function_calling": false,
+     "vision": false,
+     "thinking_mode": false,
+     "system_prompt": false
+    },
+    "pricing": {
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 100,
+     "tpm": 10000000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "mimo-v2.5-tts",
+     "display_name": "MiMo-V2.5-TTS",
+     "modality": "text-to-audio(标准预设音色)",
+     "context_window": {
+      "official_value": "8K",
+      "parsed": 8192
+     },
+     "max_output_tokens": {
+      "official_value": "8K",
+      "parsed": 8192,
+      "default": 8192,
+      "range": [
+       1,
+       8192
+      ]
+     },
+     "temperature_default": 0.6,
+     "pricing": {
+      "status": "限时免费",
+      "domestic": "免费",
+      "overseas": "免费",
+      "source": "pay-as-you-go.md"
+     },
+     "rate_limits": {
+      "rpm": 100,
+      "tpm": 10000000
+     },
+     "gaps": [
+      "非对话模型"
+     ]
+    }
+   },
+   {
+    "id": "mimo-v2.5-tts-voiceclone",
+    "name": "MiMo-V2.5-TTS-VoiceClone",
+    "modality": "text-to-audio(音色克隆,上传音频样本)",
+    "protocols": [
+     "openai_compatible",
+     "anthropic",
+     "auth"
+    ],
+    "context": 8192,
+    "maxOutput": 8192,
+    "temp": {
+     "default": 0.6
+    },
+    "topp": {
+     "min": 0.01,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": false,
+     "function_calling": false,
+     "vision": false,
+     "thinking_mode": false,
+     "system_prompt": false
+    },
+    "pricing": {
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 100,
+     "tpm": 10000000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "mimo-v2.5-tts-voiceclone",
+     "display_name": "MiMo-V2.5-TTS-VoiceClone",
+     "modality": "text-to-audio(音色克隆,上传音频样本)",
+     "context_window": {
+      "official_value": "8K",
+      "parsed": 8192
+     },
+     "max_output_tokens": {
+      "official_value": "8K",
+      "parsed": 8192
+     },
+     "temperature_default": 0.6,
+     "pricing": {
+      "status": "限时免费"
+     },
+     "rate_limits": {
+      "rpm": 100,
+      "tpm": 10000000
+     }
+    }
+   },
+   {
+    "id": "mimo-v2.5-tts-voicedesign",
+    "name": "MiMo-V2.5-TTS-VoiceDesign",
+    "modality": "text-to-audio(自定义音色设计)",
+    "protocols": [
+     "openai_compatible",
+     "anthropic",
+     "auth"
+    ],
+    "context": 8192,
+    "maxOutput": 8192,
+    "temp": {
+     "default": 0.6
+    },
+    "topp": {
+     "min": 0.01,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": false,
+     "function_calling": false,
+     "vision": false,
+     "thinking_mode": false,
+     "system_prompt": false
+    },
+    "pricing": {
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 100,
+     "tpm": 10000000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "mimo-v2.5-tts-voicedesign",
+     "display_name": "MiMo-V2.5-TTS-VoiceDesign",
+     "modality": "text-to-audio(自定义音色设计)",
+     "context_window": {
+      "official_value": "8K",
+      "parsed": 8192
+     },
+     "max_output_tokens": {
+      "official_value": "8K",
+      "parsed": 8192
+     },
+     "temperature_default": 0.6,
+     "pricing": {
+      "status": "限时免费"
+     },
+     "rate_limits": {
+      "rpm": 100,
+      "tpm": 10000000
+     }
+    }
+   }
+  ]
+ },
+ "minimax": {
+  "id": "minimax",
+  "name": "MiniMax",
+  "api_base_url": {
+   "anthropic_recommended": "https://api.minimaxi.com/anthropic",
+   "openai_compatible": "https://api.minimaxi.com/v1"
+  },
+  "platform_params": {
+   "temperature": {
+    "min": 0,
+    "max": 2,
+    "default": 1,
+    "source": "openapi-chat-openai.json"
+   },
+   "top_p": {
+    "min": 0,
+    "max": 1,
+    "default_m3": 0.95,
+    "default_m2x": 0.9,
+    "source": "openapi-chat-openai.json"
+   },
+   "max_completion_tokens": {
+    "m3": {
+     "recommended": 131072,
+     "max": 524288
+    },
+    "m2x": {
+     "recommended": 65536,
+     "max": 204800
+    },
+    "source": "openapi-chat-openai.json"
+   },
+   "max_tokens": {
+    "status": "deprecated",
+    "note": "用max_completion_tokens替代"
+   },
+   "service_tier": {
+    "values": [
+     "standard",
+     "priority"
+    ],
+    "default": "standard",
+    "note": "priority=标准价1.5倍"
+   },
+   "thinking": {
+    "type_values": [
+     "disabled",
+     "adaptive"
+    ],
+    "default": "adaptive",
+    "note": "M2.x始终开启思考,不可disable",
+    "source": "openapi-chat-openai.json"
+   },
+   "reasoning_split": {
+    "type": "boolean",
+    "note": "拆分reasoning_content与reasoning_details"
+   },
+   "stream": {
+    "default": false
+   },
+   "stream_options_include_usage": {
+    "default": false
+   },
+   "tools": {
+    "type": "function",
+    "note": "工具调用"
+   }
+  },
+  "versions": [
+   {
+    "id": "MiniMax-M3",
+    "name": "MiniMax-M3",
+    "modality": "原生多模态(text+image+video)",
+    "protocols": [
+     "anthropic_recommended",
+     "openai_compatible"
+    ],
+    "context": 1000000,
+    "maxOutput": 131072,
+    "temp": {
+     "min": 0,
+     "max": 2,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": true,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 2.1,
+     "output": 8.4,
+     "cache_hit": 0.42,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 200,
+     "tpm": 10000000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "MiniMax-M3",
+     "display_name": "MiniMax-M3",
+     "modality": "原生多模态(text+image+video)",
+     "context_window": {
+      "official_value": "1M",
+      "parsed": 1000000,
+      "source": "text-generation.md"
+     },
+     "max_completion_tokens": {
+      "recommended": 131072,
+      "max": 524288
+     },
+     "top_p_default": 0.95,
+     "features": {
+      "function_calling": true,
+      "vision": {
+       "value": true,
+       "note": "image_url + video_url"
+      },
+      "streaming": true,
+      "thinking_mode": {
+       "value": true,
+       "note": "thinking块 + interleaved thinking(Anthropic API)"
+      },
+      "agent_reasoning": true,
+      "code": true
+     },
+     "pricing_cny_per_million": {
+      "standard": {
+       "le_512k_input": {
+        "input": 2.1,
+        "output": 8.4,
+        "cache_read": 0.42,
+        "note": "永久五折,原价4.20/16.80/0.84"
+       },
+       "gt_512k_input": {
+        "input": 4.2,
+        "output": 16.8,
+        "cache_read": 0.84,
+        "note": "原价8.40/33.60/1.68"
+       }
+      },
+      "priority": {
+       "note": "标准价1.5倍"
+      },
+      "source": "pricing-paygo.md"
+     },
+     "rate_limits": {
+      "free": {
+       "rpm": 20,
+       "tpm": 1000000
+      },
+      "paid": {
+       "rpm": 200,
+       "tpm": 10000000
+      },
+      "source": "rate-limits.md"
+     },
+     "benchmark_scores": {
+      "status": "not_published"
+     },
+     "gaps": [
+      "system_prompt显式",
+      "benchmark(官网未公布)"
+     ]
+    }
+   },
+   {
+    "id": "MiniMax-M2.7",
+    "name": "MiniMax-M2.7",
+    "modality": "text",
+    "protocols": [
+     "anthropic_recommended",
+     "openai_compatible"
+    ],
+    "context": 204800,
+    "maxOutput": 65536,
+    "temp": {
+     "min": 0,
+     "max": 2,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.9
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 2.1,
+     "output": 8.4,
+     "cache_hit": 0.42,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 500,
+     "tpm": 20000000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "MiniMax-M2.7",
+     "display_name": "MiniMax-M2.7",
+     "modality": "text",
+     "context_window": {
+      "official_value": "200K",
+      "parsed": 204800
+     },
+     "max_completion_tokens": {
+      "recommended": 65536,
+      "max": 204800
+     },
+     "top_p_default": 0.9,
+     "features": {
+      "streaming": true,
+      "thinking_mode": {
+       "value": true,
+       "note": "始终开启"
+      },
+      "tps": "~60"
+     },
+     "pricing_cny_per_million": {
+      "input": 2.1,
+      "output": 8.4,
+      "cache_read": 0.42,
+      "cache_write": 2.625,
+      "source": "pricing-paygo.md"
+     },
+     "rate_limits": {
+      "free": {
+       "rpm": 20,
+       "tpm": 1000000
+      },
+      "paid": {
+       "rpm": 500,
+       "tpm": 20000000
+      }
+     },
+     "gaps": [
+      "system_prompt显式",
+      "benchmark"
+     ]
+    }
+   },
+   {
+    "id": "MiniMax-M2.7-highspeed",
+    "name": "MiniMax-M2.7-highspeed",
+    "modality": "text",
+    "protocols": [
+     "anthropic_recommended",
+     "openai_compatible"
+    ],
+    "context": 204800,
+    "maxOutput": 65536,
+    "temp": {
+     "min": 0,
+     "max": 2,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.9
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 4.2,
+     "output": 16.8,
+     "cache_hit": 0.42,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 500,
+     "tpm": 20000000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "MiniMax-M2.7-highspeed",
+     "display_name": "MiniMax-M2.7-highspeed",
+     "modality": "text",
+     "context_window": {
+      "official_value": "200K",
+      "parsed": 204800
+     },
+     "top_p_default": 0.9,
+     "features": {
+      "streaming": true,
+      "thinking_mode": {
+       "value": true
+      },
+      "tps": "~100",
+      "note": "效果同M2.7,更快"
+     },
+     "pricing_cny_per_million": {
+      "input": 4.2,
+      "output": 16.8,
+      "cache_read": 0.42,
+      "cache_write": 2.625
+     },
+     "rate_limits": {
+      "free": {
+       "rpm": 20,
+       "tpm": 1000000
+      },
+      "paid": {
+       "rpm": 500,
+       "tpm": 20000000
+      }
+     },
+     "gaps": [
+      "system_prompt显式",
+      "benchmark"
+     ]
+    }
+   },
+   {
+    "id": "MiniMax-M2.5",
+    "name": "MiniMax-M2.5",
+    "modality": "text",
+    "protocols": [
+     "anthropic_recommended",
+     "openai_compatible"
+    ],
+    "context": 204800,
+    "maxOutput": 65536,
+    "temp": {
+     "min": 0,
+     "max": 2,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.9
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 2.1,
+     "output": 8.4,
+     "cache_hit": 0.21,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 500,
+     "tpm": 20000000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "MiniMax-M2.5",
+     "display_name": "MiniMax-M2.5",
+     "modality": "text",
+     "context_window": {
+      "official_value": "200K",
+      "parsed": 204800
+     },
+     "top_p_default": 0.9,
+     "features": {
+      "streaming": true,
+      "thinking_mode": {
+       "value": true
+      },
+      "tps": "~60"
+     },
+     "pricing_cny_per_million": {
+      "input": 2.1,
+      "output": 8.4,
+      "cache_read": 0.21,
+      "cache_write": 2.625
+     },
+     "rate_limits": {
+      "free": {
+       "rpm": 20,
+       "tpm": 1000000
+      },
+      "paid": {
+       "rpm": 500,
+       "tpm": 20000000
+      }
+     },
+     "gaps": [
+      "system_prompt显式",
+      "benchmark"
+     ]
+    }
+   },
+   {
+    "id": "MiniMax-M2.5-highspeed",
+    "name": "MiniMax-M2.5-highspeed",
+    "modality": "text",
+    "protocols": [
+     "anthropic_recommended",
+     "openai_compatible"
+    ],
+    "context": 204800,
+    "maxOutput": 65536,
+    "temp": {
+     "min": 0,
+     "max": 2,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.9
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 4.2,
+     "output": 16.8,
+     "cache_hit": 0.21,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 500,
+     "tpm": 20000000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "MiniMax-M2.5-highspeed",
+     "display_name": "MiniMax-M2.5-highspeed",
+     "modality": "text",
+     "context_window": {
+      "official_value": "200K",
+      "parsed": 204800
+     },
+     "top_p_default": 0.9,
+     "features": {
+      "streaming": true,
+      "thinking_mode": {
+       "value": true
+      },
+      "tps": "~100"
+     },
+     "pricing_cny_per_million": {
+      "input": 4.2,
+      "output": 16.8,
+      "cache_read": 0.21,
+      "cache_write": 2.625
+     },
+     "rate_limits": {
+      "free": {
+       "rpm": 20,
+       "tpm": 1000000
+      },
+      "paid": {
+       "rpm": 500,
+       "tpm": 20000000
+      }
+     },
+     "gaps": [
+      "system_prompt显式",
+      "benchmark"
+     ]
+    }
+   },
+   {
+    "id": "MiniMax-M2.1",
+    "name": "MiniMax-M2.1",
+    "modality": "text",
+    "protocols": [
+     "anthropic_recommended",
+     "openai_compatible"
+    ],
+    "context": 204800,
+    "maxOutput": 65536,
+    "temp": {
+     "min": 0,
+     "max": 2,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.9
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 2.1,
+     "output": 8.4,
+     "cache_hit": 0.21,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 500,
+     "tpm": 20000000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "MiniMax-M2.1",
+     "display_name": "MiniMax-M2.1",
+     "modality": "text",
+     "context_window": {
+      "official_value": "200K",
+      "parsed": 204800
+     },
+     "top_p_default": 0.9,
+     "features": {
+      "streaming": true,
+      "thinking_mode": {
+       "value": true
+      },
+      "tps": "~60",
+      "note": "强大多语言编程"
+     },
+     "pricing_cny_per_million": {
+      "input": 2.1,
+      "output": 8.4,
+      "cache_read": 0.21,
+      "cache_write": 2.625
+     },
+     "rate_limits": {
+      "free": {
+       "rpm": 20,
+       "tpm": 1000000
+      },
+      "paid": {
+       "rpm": 500,
+       "tpm": 20000000
+      }
+     },
+     "gaps": [
+      "system_prompt显式",
+      "benchmark"
+     ]
+    }
+   },
+   {
+    "id": "MiniMax-M2.1-highspeed",
+    "name": "MiniMax-M2.1-highspeed",
+    "modality": "text",
+    "protocols": [
+     "anthropic_recommended",
+     "openai_compatible"
+    ],
+    "context": 204800,
+    "maxOutput": 65536,
+    "temp": {
+     "min": 0,
+     "max": 2,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.9
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 4.2,
+     "output": 16.8,
+     "cache_hit": 0.21,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 500,
+     "tpm": 20000000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "MiniMax-M2.1-highspeed",
+     "display_name": "MiniMax-M2.1-highspeed",
+     "modality": "text",
+     "context_window": {
+      "official_value": "200K",
+      "parsed": 204800
+     },
+     "top_p_default": 0.9,
+     "features": {
+      "streaming": true,
+      "thinking_mode": {
+       "value": true
+      },
+      "tps": "~100"
+     },
+     "pricing_cny_per_million": {
+      "input": 4.2,
+      "output": 16.8,
+      "cache_read": 0.21,
+      "cache_write": 2.625
+     },
+     "rate_limits": {
+      "free": {
+       "rpm": 20,
+       "tpm": 1000000
+      },
+      "paid": {
+       "rpm": 500,
+       "tpm": 20000000
+      }
+     },
+     "gaps": [
+      "system_prompt显式",
+      "benchmark"
+     ]
+    }
+   },
+   {
+    "id": "MiniMax-M2",
+    "name": "MiniMax-M2",
+    "modality": "text",
+    "protocols": [
+     "anthropic_recommended",
+     "openai_compatible"
+    ],
+    "context": 204800,
+    "maxOutput": 65536,
+    "temp": {
+     "min": 0,
+     "max": 2,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.9
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 2.1,
+     "output": 8.4,
+     "cache_hit": 0.21,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": 500,
+     "tpm": 20000000,
+     "concurrency": null,
+     "note": ""
+    },
+    "baseline": {
+     "model_id": "MiniMax-M2",
+     "display_name": "MiniMax-M2",
+     "modality": "text",
+     "context_window": {
+      "official_value": "200K",
+      "parsed": 204800
+     },
+     "top_p_default": 0.9,
+     "features": {
+      "streaming": true,
+      "thinking_mode": {
+       "value": true
+      },
+      "function_calling": true,
+      "note": "专为高效编码与Agent工作流"
+     },
+     "pricing_cny_per_million": {
+      "input": 2.1,
+      "output": 8.4,
+      "cache_read": 0.21,
+      "cache_write": 2.625
+     },
+     "rate_limits": {
+      "free": {
+       "rpm": 20,
+       "tpm": 1000000
+      },
+      "paid": {
+       "rpm": 500,
+       "tpm": 20000000
+      }
+     },
+     "gaps": [
+      "system_prompt显式",
+      "benchmark"
+     ]
+    }
+   },
+   {
+    "id": "M2-her",
+    "name": "M2-her",
+    "modality": "text",
+    "protocols": [
+     "anthropic_recommended",
+     "openai_compatible"
+    ],
+    "context": 65536,
+    "maxOutput": 65536,
+    "temp": {
+     "min": 0,
+     "max": 2,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": null,
+    "rate_limits": null,
+    "baseline": {
+     "model_id": "M2-her",
+     "display_name": "M2-her",
+     "modality": "text",
+     "context_window": {
+      "official_value": "64K",
+      "parsed": 65536,
+      "source": "text-generation.md"
+     },
+     "note": "对话/角色扮演/多轮",
+     "features": {
+      "streaming": true,
+      "thinking_mode": {
+       "value": true
+      }
+     },
+     "pricing_cny_per_million": null,
+     "rate_limits": null,
+     "gaps": [
+      "pricing(未列出)",
+      "rate_limits",
+      "max_completion_tokens",
+      "benchmark",
+      "不在openai enum中(仅text-generation提及)"
+     ]
+    }
+   }
+  ]
+ },
+ "zhipu": {
+  "id": "zhipu",
+  "name": "智谱 / Zhipu (BigModel)",
+  "platform_params": {
+   "temperature": {
+    "range": [
+     0,
+     1
+    ],
+    "precision": "2位小数",
+    "source": "对话补全.md"
+   },
+   "top_p": {
+    "range": [
+     0.01,
+     1
+    ],
+    "precision": "2位小数",
+    "source": "对话补全.md"
+   },
+   "max_tokens": {
+    "min": 1,
+    "max_by_family": "见各模型",
+    "example": 1024,
+    "source": "对话补全.md"
+   },
+   "stream": {
+    "default": false
+   },
+   "do_sample": {
+    "default": true,
+    "note": "false时temperature与top_p被忽略",
+    "source": "对话补全.md"
+   },
+   "response_format": {
+    "values": [
+     "text",
+     "json_object"
+    ],
+    "note": "仅文本模型"
+   },
+   "tools": {
+    "max_functions": 128,
+    "note": "GLM-4系列支持全部工具类型;GLM-4.5支持web_search与retrieval"
+   }
+  },
+  "versions": [
+   {
+    "id": "glm-5.2",
+    "name": "GLM-5.2",
+    "modality": "text",
+    "protocols": [
+     "openai"
+    ],
+    "context": 1000000,
+    "maxOutput": 131072,
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 8,
+     "output": 28,
+     "cache_hit": 2,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "concurrency": 10,
+     "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+    },
+    "baseline": {
+     "model_id": "glm-5.2",
+     "model_id_confirmed": true,
+     "display_name": "GLM-5.2",
+     "tier": "旗舰",
+     "modality": "text",
+     "context_window": {
+      "official_value": "1M tokens",
+      "parsed": 1000000,
+      "source": "glm-5.2.md"
+     },
+     "max_output_tokens": {
+      "official_value": "128K tokens",
+      "parsed": 131072,
+      "source": "glm-5.2.md"
+     },
+     "features": {
+      "function_calling": {
+       "value": true,
+       "source": "glm-5.2.md"
+      },
+      "vision": {
+       "value": false,
+       "note": "仅文本输入"
+      },
+      "streaming": {
+       "value": true
+      },
+      "system_prompt": {
+       "value": true
+      },
+      "thinking_mode": {
+       "value": true,
+       "note": "自动决定是否思考"
+      },
+      "structured_output": {
+       "value": true
+      },
+      "context_caching": {
+       "value": true
+      },
+      "mcp": {
+       "value": true
+      }
+     },
+     "temperature_default": 1,
+     "top_p_default": 0.95,
+     "max_tokens_max": 131072,
+     "reasoning_effort": {
+      "supported": true,
+      "note": "仅GLM-5.2支持;默认max;none/minimal关闭思考,low/medium→high,xhigh→max",
+      "source": "对话补全.md"
+     },
+     "tool_stream": {
+      "supported": true,
+      "default": false
+     },
+     "pricing_cny_per_million": {
+      "tiered_by_input": [
+       {
+        "input_band": "单一价(1M上下文)",
+        "input": 8,
+        "output": 28,
+        "cache_hit": 2
+       }
+      ],
+      "cache_storage": "限时免费",
+      "source": "open.bigmodel.cn/pricing bundle"
+     },
+     "benchmark_scores": {
+      "official_value": "开源SOTA能力(定性,无数值)",
+      "source": "model-overview"
+     },
+     "rate_limits": {
+      "concurrency": 10,
+      "type": "并发数(在途请求数)",
+      "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+      "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+     }
+    }
+   },
+   {
+    "id": "glm-5.1",
+    "name": "GLM-5.1",
+    "modality": "text",
+    "protocols": [
+     "openai"
+    ],
+    "context": 204800,
+    "maxOutput": 131072,
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 6,
+     "output": 24,
+     "cache_hit": 1.3,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "concurrency": 10,
+     "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+    },
+    "baseline": {
+     "model_id": "glm-5.1",
+     "model_id_confirmed": true,
+     "display_name": "GLM-5.1",
+     "modality": "text",
+     "context_window": {
+      "official_value": "200K tokens",
+      "parsed": 204800,
+      "source": "model-overview"
+     },
+     "max_output_tokens": {
+      "official_value": "128K tokens",
+      "parsed": 131072,
+      "source": "model-overview"
+     },
+     "temperature_default": 1,
+     "top_p_default": 0.95,
+     "max_tokens_max": 131072,
+     "thinking_mode": {
+      "value": true,
+      "note": "自动决定是否思考"
+     },
+     "tool_stream": {
+      "supported": true,
+      "default": false
+     },
+     "pricing_cny_per_million": {
+      "tiered_by_input_k": [
+       {
+        "input_band": "[0, 32)K",
+        "input": 6,
+        "output": 24,
+        "cache_hit": 1.3
+       },
+       {
+        "input_band": "[32+)K",
+        "input": 8,
+        "output": 28,
+        "cache_hit": 2
+       }
+      ],
+      "cache_storage": "限时免费",
+      "source": "open.bigmodel.cn/pricing bundle"
+     },
+     "benchmark_scores": {
+      "official_value": "Coding能力对齐Claude Opus 4.6(定性)"
+     },
+     "rate_limits": {
+      "concurrency": 10,
+      "type": "并发数(在途请求数)",
+      "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+      "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+     }
+    }
+   },
+   {
+    "id": "glm-5-turbo",
+    "name": "GLM-5-Turbo",
+    "modality": "text",
+    "protocols": [
+     "openai"
+    ],
+    "context": 204800,
+    "maxOutput": 131072,
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 5,
+     "output": 22,
+     "cache_hit": 1.2,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "concurrency": 1,
+     "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+    },
+    "baseline": {
+     "model_id": "glm-5-turbo",
+     "model_id_confirmed": true,
+     "display_name": "GLM-5-Turbo",
+     "modality": "text",
+     "context_window": {
+      "official_value": "200K tokens",
+      "parsed": 204800
+     },
+     "max_output_tokens": {
+      "official_value": "128K tokens",
+      "parsed": 131072
+     },
+     "temperature_default": 1,
+     "top_p_default": 0.95,
+     "max_tokens_max": 131072,
+     "thinking_mode": {
+      "value": true,
+      "note": "自动决定是否思考"
+     },
+     "tool_stream": {
+      "supported": true,
+      "default": false
+     },
+     "pricing_cny_per_million": {
+      "tiered_by_input_k": [
+       {
+        "input_band": "[0, 32)K",
+        "input": 5,
+        "output": 22,
+        "cache_hit": 1.2
+       },
+       {
+        "input_band": "[32+)K",
+        "input": 7,
+        "output": 26,
+        "cache_hit": 1.8
+       }
+      ],
+      "cache_storage": "限时免费",
+      "decode_label": "40-60(缓存加速比)",
+      "source": "open.bigmodel.cn/pricing bundle"
+     },
+     "rate_limits": {
+      "concurrency": 1,
+      "type": "并发数(在途请求数)",
+      "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+      "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+     }
+    }
+   },
+   {
+    "id": "glm-5",
+    "name": "GLM-5",
+    "modality": "text",
+    "protocols": [
+     "openai"
+    ],
+    "context": 204800,
+    "maxOutput": 131072,
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 4,
+     "output": 18,
+     "cache_hit": 1,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "concurrency": 2,
+     "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+    },
+    "baseline": {
+     "model_id": "glm-5",
+     "model_id_confirmed": true,
+     "display_name": "GLM-5",
+     "modality": "text",
+     "context_window": {
+      "official_value": "200K tokens",
+      "parsed": 204800
+     },
+     "max_output_tokens": {
+      "official_value": "128K tokens",
+      "parsed": 131072
+     },
+     "temperature_default": 1,
+     "top_p_default": 0.95,
+     "max_tokens_max": 131072,
+     "thinking_mode": {
+      "value": true,
+      "note": "自动决定是否思考"
+     },
+     "tool_stream": {
+      "supported": true,
+      "default": false
+     },
+     "pricing_cny_per_million": {
+      "tiered_by_input_k": [
+       {
+        "input_band": "[0, 32)K",
+        "input": 4,
+        "output": 18,
+        "cache_hit": 1
+       },
+       {
+        "input_band": "[32+)K",
+        "input": 6,
+        "output": 22,
+        "cache_hit": 1.5
+       }
+      ],
+      "cache_storage": "限时免费",
+      "decode_label": "30-50(缓存加速比)",
+      "source": "open.bigmodel.cn/pricing bundle"
+     },
+     "benchmark_scores": {
+      "official_value": "编程能力对齐Claude Opus 4.5(定性)"
+     },
+     "rate_limits": {
+      "concurrency": 2,
+      "type": "并发数(在途请求数)",
+      "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+      "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+     }
+    }
+   },
+   {
+    "id": "glm-4.7",
+    "name": "GLM-4.7",
+    "modality": "text",
+    "protocols": [
+     "openai"
+    ],
+    "context": 204800,
+    "maxOutput": 131072,
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 2,
+     "output": 8,
+     "cache_hit": 0.4,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "concurrency": 2,
+     "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+    },
+    "baseline": {
+     "model_id": "glm-4.7",
+     "model_id_confirmed": true,
+     "display_name": "GLM-4.7",
+     "modality": "text",
+     "context_window": {
+      "official_value": "200K tokens",
+      "parsed": 204800
+     },
+     "max_output_tokens": {
+      "official_value": "128K tokens",
+      "parsed": 131072
+     },
+     "temperature_default": 1,
+     "top_p_default": 0.95,
+     "max_tokens_max": 131072,
+     "thinking_mode": {
+      "value": true,
+      "note": "强制思考"
+     },
+     "tool_stream": {
+      "supported": true,
+      "default": false
+     },
+     "pricing_cny_per_million": {
+      "tiered_by_input_and_output_k": [
+       {
+        "input_band": "[0, 32)K",
+        "output_band": "[0, 0.2)M",
+        "input": 2,
+        "output": 8,
+        "cache_hit": 0.4
+       },
+       {
+        "input_band": "[0, 32)K",
+        "output_band": "[0.2+)M",
+        "input": 3,
+        "output": 14,
+        "cache_hit": 0.6
+       },
+       {
+        "input_band": "[32, 200)K",
+        "input": 4,
+        "output": 16,
+        "cache_hit": 0.8
+       }
+      ],
+      "cache_storage": "限时免费",
+      "decode_label": "30-50(缓存加速比)",
+      "source": "open.bigmodel.cn/pricing bundle"
+     },
+     "rate_limits": {
+      "concurrency": 2,
+      "type": "并发数(在途请求数)",
+      "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+      "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+     }
+    }
+   },
+   {
+    "id": "glm-4.6",
+    "name": "GLM-4.6",
+    "modality": "text",
+    "protocols": [
+     "openai"
+    ],
+    "context": 204800,
+    "maxOutput": 131072,
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 1
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.95
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": false,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "concurrency": 3,
+     "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+    },
+    "baseline": {
+     "model_id": "glm-4.6",
+     "model_id_confirmed": true,
+     "display_name": "GLM-4.6",
+     "modality": "text",
+     "context_window": {
+      "official_value": "200K tokens",
+      "parsed": 204800
+     },
+     "max_output_tokens": {
+      "official_value": "128K tokens",
+      "parsed": 131072
+     },
+     "temperature_default": 1,
+     "top_p_default": 0.95,
+     "max_tokens_max": 131072,
+     "thinking_mode": {
+      "value": true,
+      "note": "自动决定是否思考"
+     },
+     "tool_stream": {
+      "supported": true,
+      "default": false
+     },
+     "function_calling": {
+      "value": true,
+      "note": "sceneType=MOE_TOOLS(平台能力API确认支持工具调用)"
+     },
+     "pricing_cny_per_million": {
+      "status": "NOT_ON_PUBLIC_PRICING_PAGE",
+      "finding": "公开价格页(open.bigmodel.cn/pricing bundle)无文本GLM-4.6价格行,也非免费模型;平台能力API(getAiModelListForFlow)标其为settlementType=TOKENS付费模型",
+      "note": "需登录智谱控制台查看实际价格;或确认GLM-4.6文本是否已被GLM-4.7取代",
+      "source": "open.bigmodel.cn/pricing bundle 全表核对(0次出现)",
+      "gaps": [
+       "price(公开页未列,需控制台登录)"
+      ]
+     },
+     "rate_limits": {
+      "concurrency": 3,
+      "type": "并发数(在途请求数)",
+      "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+      "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+     }
+    }
+   },
+   {
+    "id": "glm-5v-turbo",
+    "name": "GLM-5V-Turbo",
+    "modality": "vision",
+    "protocols": [
+     "openai"
+    ],
+    "context": 204800,
+    "maxOutput": 131072,
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.8
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.6
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": true,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 5,
+     "output": 22,
+     "cache_hit": 1.2,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "concurrency": 1,
+     "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+    },
+    "baseline": {
+     "model_id": "glm-5v-turbo",
+     "model_id_confirmed": true,
+     "display_name": "GLM-5V-Turbo",
+     "modality": "vision",
+     "tier_note": "智谱首个多模态Agent基座模型,视觉编程与复杂任务;支持图像/视频/文本/文件多模态输入",
+     "context_window": {
+      "official_value": "200K tokens",
+      "parsed": 204800
+     },
+     "max_output_tokens": {
+      "official_value": "128K tokens",
+      "parsed": 131072
+     },
+     "temperature_default": 0.8,
+     "top_p_default": 0.6,
+     "max_tokens_max": 131072,
+     "features": {
+      "vision": true,
+      "input_model1": "图片、视频",
+      "input_model2": "文件、文本",
+      "function_calling": {
+       "value": true,
+       "note": "适配Agent工作流"
+      }
+     },
+     "pricing_cny_per_million": {
+      "tiered_by_input_k": [
+       {
+        "input_band": "[0, 32)K",
+        "input": 5,
+        "output": 22,
+        "cache_hit": 1.2
+       },
+       {
+        "input_band": "[32+)K",
+        "input": 7,
+        "output": 26,
+        "cache_hit": 1.8
+       }
+      ],
+      "cache_storage": "限时免费",
+      "decode_label": "30-50(缓存加速比)",
+      "source": "open.bigmodel.cn/pricing bundle"
+     },
+     "rate_limits": {
+      "concurrency": 1,
+      "type": "并发数(在途请求数)",
+      "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+      "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+     }
+    }
+   },
+   {
+    "id": "glm-4.6v",
+    "name": "GLM-4.6V",
+    "modality": "vision",
+    "protocols": [
+     "openai"
+    ],
+    "context": 131072,
+    "maxOutput": 32768,
+    "temp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.8
+    },
+    "topp": {
+     "min": 0,
+     "max": 1,
+     "default": 0.6
+    },
+    "features": {
+     "streaming": true,
+     "function_calling": true,
+     "vision": true,
+     "thinking_mode": true,
+     "system_prompt": true
+    },
+    "pricing": {
+     "input": 1,
+     "output": 3,
+     "cache_hit": 0.2,
+     "currency": "CNY"
+    },
+    "rate_limits": {
+     "rpm": null,
+     "tpm": null,
+     "concurrency": 10,
+     "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+    },
+    "baseline": {
+     "model_id": "glm-4.6v",
+     "model_id_confirmed": true,
+     "display_name": "GLM-4.6V",
+     "modality": "vision",
+     "context_window": {
+      "official_value": "128K tokens",
+      "parsed": 131072
+     },
+     "max_output_tokens": {
+      "official_value": "32K tokens",
+      "parsed": 32768
+     },
+     "temperature_default": 0.8,
+     "top_p_default": 0.6,
+     "max_tokens_max": 32768,
+     "features": {
+      "vision": true,
+      "function_calling": {
+       "value": true,
+       "note": "页面明确'原生支持工具调用'"
+      }
+     },
+     "pricing_cny_per_million": {
+      "tiered_by_input_k": [
+       {
+        "input_band": "[0, 32)K",
+        "input": 1,
+        "output": 3,
+        "cache_hit": 0.2
+       },
+       {
+        "input_band": "[32, 128)K",
+        "input": 2,
+        "output": 6,
+        "cache_hit": 0.4
+       }
+      ],
+      "cache_storage": "限时免费",
+      "decode_label": "30-50(缓存加速比)",
+      "source": "open.bigmodel.cn/pricing bundle"
+     },
+     "gaps": [],
+     "rate_limits": {
+      "concurrency": 10,
+      "type": "并发数(在途请求数)",
+      "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16)",
+      "note": "随用户权益等级变化;GLM Coding套餐用户以套餐权益为准"
+     }
+    }
+   }
+  ]
+ }
+}

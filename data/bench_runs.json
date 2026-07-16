@@ -1,0 +1,89 @@
+[
+  {
+    "run_id": "20260630_091848_web",
+    "metadata": {
+      "run_id": "20260630_091848_web",
+      "started_at": "2026-06-30T09:18:48.352+00:00",
+      "ended_at": "2026-06-30T09:31:11.265+00:00",
+      "model": "glm-5.2",
+      "api_format": "openai",
+      "endpoint": "https://kspmas.ksyun.com/v1/chat/completions",
+      "endpoint_path": "",
+      "profile": "full",
+      "rpm_limit": 500,
+      "tpm_limit": 1000000,
+      "max_output_tokens": 131072,
+      "force_128k_output": false,
+      "host": "vm10-0-0-5",
+      "authorization_persisted": false
+    },
+    "counts": {
+      "PASS": 22,
+      "FAIL": 2,
+      "INCONCLUSIVE": 2,
+      "SKIP": 2
+    },
+    "running": false,
+    "returncode": 1,
+    "started_at": "2026-06-30T09:18:48+00:00",
+    "mtime": 1782811871.2671459
+  },
+  {
+    "run_id": "20260626_113236_c4888b06",
+    "metadata": {
+      "run_id": "20260626_113236_c4888b06",
+      "started_at": "2026-06-26T03:32:36.656+00:00",
+      "ended_at": "2026-06-26T03:44:46.625+00:00",
+      "model": "deepseek-v4-pro",
+      "api_format": "anthropic",
+      "endpoint": "https://kspmas.ksyun.com/v1/messages",
+      "endpoint_path": "",
+      "profile": "full",
+      "rpm_limit": 1000,
+      "tpm_limit": 150000,
+      "max_output_tokens": 384000,
+      "force_128k_output": false,
+      "host": "vm10-0-0-5",
+      "authorization_persisted": false
+    },
+    "counts": {
+      "PASS": 21,
+      "FAIL": 0,
+      "INCONCLUSIVE": 2,
+      "SKIP": 5
+    },
+    "running": false,
+    "returncode": null,
+    "started_at": null,
+    "mtime": 1782445486.6265934
+  },
+  {
+    "run_id": "20260625_231443_web",
+    "metadata": {
+      "run_id": "20260625_231443_web",
+      "started_at": "2026-06-25T23:14:43.783+00:00",
+      "ended_at": "2026-06-25T23:23:41.278+00:00",
+      "model": "deepseek-v4-pro",
+      "api_format": "anthropic",
+      "endpoint": "https://kspmas.ksyun.com/v1/messages",
+      "endpoint_path": "",
+      "profile": "full",
+      "rpm_limit": 1000,
+      "tpm_limit": 150000,
+      "max_output_tokens": 384000,
+      "force_128k_output": false,
+      "host": "vm10-0-0-5",
+      "authorization_persisted": false
+    },
+    "counts": {
+      "PASS": 16,
+      "FAIL": 1,
+      "INCONCLUSIVE": 2,
+      "SKIP": 5
+    },
+    "running": false,
+    "returncode": 1,
+    "started_at": "2026-06-25T23:14:43+00:00",
+    "mtime": 1782429821.2797058
+  }
+]
