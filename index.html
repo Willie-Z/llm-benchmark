@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>星流 · LLM 多路验收对比工具（原型）</title>
+<style>
+:root{
+  --bg:#F0EEE6; --surface:#FFFFFF; --surface-2:#FAF9F4;
+  --ink:#1F1E1D; --ink-2:#3F3D39; --muted:#76746C; --faint:#9B9A90;
+  --border:#E5E2D8; --border-strong:#D6D3C6;
+  --accent:#C96442; --accent-press:#B4553A; --accent-soft:#F3E2DA;
+  --ok:#3F7A55; --ok-soft:#E3EFE5; --fail:#B3402F; --fail-soft:#F6E2DE;
+  --warn:#9A7B2E; --warn-soft:#F4ECD7; --skip:#8A8A8A; --skip-soft:#EDEDEA;
+  --radii:10px;
+  font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:14px}
+a{color:var(--accent);text-decoration:none}
+/* 顶栏 */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border-strong);padding:0 22px;display:flex;align-items:center;gap:24px;height:54px;position:sticky;top:0;z-index:10}
+.brand{font-weight:700;letter-spacing:.3px;font-size:15.5px}
+.brand .sub{color:var(--muted);font-weight:400;font-size:12px;margin-left:8px}
+.tabs{display:flex;gap:4px}
+.tab{padding:8px 16px;border-radius:8px;cursor:pointer;color:var(--ink-2);font-weight:600;font-size:13.5px;border:1px solid transparent}
+.tab:hover{background:var(--surface-2)}
+.tab.active{background:var(--accent-soft);color:var(--accent-press);border-color:var(--accent-soft)}
+.topbar .sp{flex:1}
+.note-top{font-size:11.5px;color:var(--faint)}
+main{max-width:1240px;margin:0 auto;padding:22px}
+.view{display:none}.view.show{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radii);padding:18px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+h2{margin:0 0 4px;font-size:17px}
+h3{margin:18px 0 8px;font-size:14.5px;color:var(--ink-2)}
+.hint{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+/* 表单 */
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:160px}
+.field label{font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.field .note{font-size:11.5px;color:var(--faint)}
+input,select,textarea{font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface-2);
+  border:1px solid var(--border-strong);border-radius:8px;padding:8px 10px;width:100%}
+textarea{min-height:70px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);background:#fff}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-weight:600;font-size:13.5px;cursor:pointer}
+.btn:hover{background:var(--accent-press)}
+.btn.ghost{background:transparent;color:var(--ink-2);border:1px solid var(--border-strong)}
+.btn.sm{padding:5px 12px;font-size:12.5px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600}
+.b-pass{background:var(--ok-soft);color:var(--ok)} .b-fail{background:var(--fail-soft);color:var(--fail)}
+.b-inc{background:var(--warn-soft);color:var(--warn)} .b-skip{background:var(--skip-soft);color:var(--skip)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:2px}
+.d-pass{background:var(--ok)}.d-fail{background:var(--fail)}.d-inc{background:var(--warn)}.d-skip{background:#fff;border:1.5px dashed var(--skip)}
+/* 通道 */
+.channels{display:flex;gap:12px;flex-wrap:wrap}
+.channel{flex:1;min-width:240px;border:1px solid var(--border-strong);border-radius:var(--radii);padding:14px;background:var(--surface-2)}
+.channel .ch-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.channel .ch-head b{font-size:13px}
+.ch-actions{display:flex;gap:6px}
+.keyrow{display:flex;gap:6px;align-items:center}
+.keyrow input{flex:1}
+/* 基线展示 */
+.baseline-box{background:var(--surface-2);border:1px dashed var(--border-strong);border-radius:8px;padding:12px;margin-top:10px;font-size:12.5px}
+.baseline-box .bk{display:inline-block;background:#fff;border:1px solid var(--border);border-radius:6px;padding:3px 8px;margin:3px}
+.baseline-box .bk b{color:var(--ink-2)}
+.np{color:var(--warn)}
+/* 验证卡 */
+.runcard{border:1px solid var(--border);border-radius:var(--radii);overflow:hidden;margin-bottom:12px;background:var(--surface)}
+.rc-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.rc-head .ttl{font-weight:700;font-size:14.5px}
+.rc-head .meta{font-size:12px;color:var(--muted)}
+.rc-summary{padding:10px 16px;background:var(--surface-2);font-size:12.5px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.rc-groups{padding:8px 16px 14px}
+.case{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px;font-size:13px;border-bottom:1px solid var(--surface-2)}
+.case:hover{background:var(--surface-2)}
+.case .cttl{flex:1}
+.case .cdesc{font-size:11.5px;color:var(--faint);margin-top:2px}
+.case .ref{font-size:11px}
+.expanded{padding:8px 28px;font-size:12px;color:var(--ink-2);background:var(--surface-2);border-radius:6px;margin:2px 8px}
+.grouphdr{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin:12px 8px 4px;text-transform:uppercase}
+.compare-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.compare-table th,.compare-table td{border:1px solid var(--border);padding:7px 9px;text-align:left}
+.compare-table th{background:var(--surface-2);font-weight:600}
+.compare-table .rc{text-align:center;font-weight:700}
+.empty{text-align:center;padding:40px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.channel{min-width:100%}}
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;background:var(--surface-2);border:1px solid var(--border);color:var(--ink-2)}
+.warn-box{background:var(--warn-soft);border:1px solid var(--warn);color:var(--warn);padding:8px 12px;border-radius:8px;font-size:12px;margin-top:8px}
+.flash{animation:f .4s}@keyframes f{0%{background:var(--accent-soft)}100%{}}
+small{color:var(--faint)}
+.stage-banner{background:#FFF3D6;border-bottom:2px solid #E0B400;color:#7a5b00;padding:9px 22px;font-size:12.5px;line-height:1.5}
+.stage-banner b{color:#a83400}
+</style>
+</head>
+<body>
+<div class="stage-banner">
+  ⚠️ <b>原型演示稿 · 非可交付成品</b> —— 验收结果为<b>模拟值</b>（未真实调用 LLM），<b>未连接后端</b>。
+  多路对比/验证卡的判定均为前端模拟，仅演示 UI 与交互。要出真实结果需<b>后端配合接入</b>（见仓库 README「当前阶段」）。
+</div>
+<div class="topbar">
+  <div class="brand">星流 LLM 多路验收对比 <span class="sub">Specs / Capabilities · 原型</span></div>
+  <div class="tabs">
+    <div class="tab active" data-v="launch">发起测试</div>
+    <div class="tab" data-v="running">进行中</div>
+    <div class="tab" data-v="done">已完成</div>
+  </div>
+  <div class="sp"></div>
+  <div class="note-top">直连现有后端 / 基线各自独立 / ✅❌⚠️⏭️ 四态</div>
+</div>
+<main>
+  <!-- ===== 发起测试 ===== -->
+  <section class="view show" id="v-launch">
+    <div class="card">
+      <h2>多路配置工作台</h2>
+      <p class="hint">同一界面配置多路 Endpoint（官网直连 / 中转 / 自建网关），发同一份 Prompt + 超参，对比各路返回参数、性能、文本行为是否一致；每路独立对照官方基线做对齐验证。最少 2 路，建议最多 4 路。</p>
+
+      <div class="row" style="margin-bottom:12px">
+        <div class="field" style="max-width:260px">
+          <label>模型选择（选定后自动加载官方基线）</label>
+          <select id="modelSelect"></select>
+        </div>
+        <div class="field" style="max-width:160px">
+          <label>API 协议</label>
+          <select id="protoSelect"></select>
+        </div>
+        <div class="field" style="max-width:160px">
+          <label>Profile 档位</label>
+          <select id="profileSelect"><option value="smoke">smoke 冒烟(≈4K)</option><option value="standard" selected>standard(≈64K)</option><option value="full">full 全量(≈999K)</option></select>
+        </div>
+      </div>
+
+      <div class="row" style="margin-bottom:6px">
+        <div class="field" style="max-width:120px"><label>Temperature</label><input id="gTemp" value="1" type="number" step="0.1"></div>
+        <div class="field" style="max-width:120px"><label>Top_p</label><input id="gTopP" value="0.95" type="number" step="0.01"></div>
+        <div class="field" style="max-width:140px"><label>Max_Tokens</label><input id="gMax" value="1024" type="number"></div>
+        <div class="field" style="flex:2"><label>统一 Prompt（哨兵指令，所有通道共用）</label><input id="gPrompt" value="请精确回复哨兵 SPEC_TEXT_OK，不要输出其他内容。"></div>
+      </div>
+      <small style="display:block;margin:4px 0 10px">超参全局统一 → 测试变量唯一；与官方基线不符的项各通道自动标 SKIP（如 Kimi K2 不暴露采样参数、思考模式覆盖 temp/top_p）。</small>
+
+      <div class="baseline-box" id="baselineBox"><b>官方基线：</b> 请先选择模型以加载其官方参数基线。</div>
+
+      <h3>对比通道 <button class="btn ghost sm" id="addCh">+ 增加通道</button></h3>
+      <div class="channels" id="channels"></div>
+
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+        <button class="btn" id="launchBtn">启动多路验收</button>
+        <span class="pill" id="launchNote"></span>
+      </div>
+    </div>
+
+    <!-- 增量2：客户标准生成用例 -->
+    <div class="card">
+      <h2>按客户测试标准生成新用例 <span class="pill">增量 · 参考站点没有</span></h2>
+      <p class="hint">客户给出测试标准，框架结合所选模型基线 + 四类对齐维度（能力存在性/参数边界/默认值/参数生效），生成符合标准用例结构的新用例，并入用例树。</p>
+      <div class="grid">
+        <div class="field"><label>目标模型</label><select id="genModel"></select></div>
+        <div class="field"><label>对齐维度</label><select id="genDim"><option value="A">A 能力存在性</option><option value="B">B 参数边界一致性</option><option value="C">C 默认值一致性</option><option value="D">D 参数生效一致性</option></select></div>
+      </div>
+      <div class="field" style="margin-top:8px"><label>客户测试标准（自然语言描述）</label>
+        <textarea id="genStd" placeholder="例：要求模型在 temperature=0 时对同一问题两次回答完全一致；且传入 temperature=5 时应报错拒绝。"></textarea></div>
+      <div style="margin-top:8px"><button class="btn" id="genBtn">生成用例</button> <button class="btn ghost sm" id="clearGen">清空</button></div>
+      <div id="genOut" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- ===== 进行中 ===== -->
+  <section class="view" id="v-running">
+    <h2 style="margin-bottom:4px">进行中</h2>
+    <p class="hint">每 5 秒自动刷新（复刻参考站点轮询）。原型演示用本地模拟，未连真实后端。</p>
+    <div id="runningGrid"></div>
+  </section>
+
+  <!-- ===== 已完成 ===== -->
+  <section class="view" id="v-done">
+    <h2 style="margin-bottom:4px">已完成</h2>
+    <p class="hint">每路一张验证卡（官方对齐），下方为多路并排对比表（一致性）。</p>
+    <div id="doneGrid"></div>
+    <h3 style="margin-top:18px">多路并排对比表</h3>
+    <div id="compareView"></div>
+  </section>
+</main>
+
+<script src="_data.js"></script>
+<script>
+// PLAN 兼容：若是 {0:..} 对象则转数组
+const PLAN_ARR = (function(){ try{ return Object.keys(PLAN).some(k=>/^\d+$/.test(k)) ? Object.values(PLAN) : (Array.isArray(PLAN)?PLAN:[]); }catch(e){ return []; } })();
+
+// ====== 模型树扁平化(厂商→版本) ======
+const MODELS = [];
+for (const vid of Object.keys(CATALOG)) {
+  const v = CATALOG[vid];
+  for (const ver of (v.versions||[])) {
+    MODELS.push({ vendor:v.name, vendorId:vid, ...ver,
+      api_base: v.api_base_url,
+      platform_params: v.platform_params });
+  }
+}
+const $ = s => document.querySelector(s);
+const el = (t,c,h)=>{const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e;};
+
+// ====== 基线提取助手(适配 catalog 归一化字段) ======
+function bl(m){ return {
+  ctx: m.context, maxOut: m.maxOutput,
+  temp: m.temp, topp: m.topp,
+  feat: m.features || {},
+  pricing: m.pricing, rl: m.rate_limits,
+  protos: m.protocols||[],
+  notpub: m.maxOutput === "NOT_PUBLISHED"
+};}
+
+// ====== 初始化下拉 ======
+function initSelects(){
+  const ms=$("#modelSelect"), gm=$("#genModel");
+  MODELS.forEach((m,i)=>{
+    const o=document.createElement("option"); o.value=i;
+    o.textContent=`${m.vendor} · ${m.name}`; ms.appendChild(o); gm.appendChild(o.cloneNode(true));
+  });
+  ms.addEventListener("change",()=>{ renderBaseline(+ms.value); syncProto(); });
+  $("#protoSelect").addEventListener("change",()=>{ /* 可留 */ });
+  ms.value=0; gm.value=0; renderBaseline(0); syncProto();
+}
+function syncProto(){
+  const m=MODELS[+$("#modelSelect").value]; const ps=$("#protoSelect"); ps.innerHTML="";
+  const list=(m.protocols&&m.protocols.length)?m.protocols:["openai"];
+  list.forEach(p=>{const o=document.createElement("option");o.value=p;o.textContent=p;ps.appendChild(o);});
+}
+
+// ====== 基线渲染(满足"各模型基线各自独立/官网未公布显示⚠️") ======
+function renderBaseline(i){
+  const m=MODELS[i]; const b=bl(m);
+  let h='<b>官方基线（'+m.vendor+' · '+m.name+'）</b> —— 各自独立，不强套统一模板<br>';
+  h+=chip('上下文', b.ctx?(b.ctx>=1e6?(b.ctx/1e6)+'M':(b.ctx/1e3)+'K'):'⚠️未公布');
+  h+=chip('最大输出', b.notpub?'⚠️官网未公布→不测':(b.maxOut?(b.maxOut>=1e3?(b.maxOut/1e3)+'K':b.maxOut):'⚠️未公布'));
+  h+=chip('Temp', b.temp?`[${b.temp.min??b.temp[0]}~${b.temp.max??b.temp[1]}] 默认${b.temp.default??'—'}`:'⚠️未公布');
+  h+=chip('Top_p', b.topp?`[${b.topp.min??b.topp[0]}~${b.topp[1]??b.topp.max}]`:'⚠️未公布');
+  const feat=(b.feat||{});
+  const fc=(k,n)=>{ const v=feat[k]; const on=(v===true); const off=(v===false); return chip(n, on?'✅支持':(off?'❌不支持':'—未公布')); };
+  h+=fc('streaming','流式')+fc('function_calling','工具调用')+fc('vision','视觉')+fc('thinking_mode','思考')+fc('system_prompt','系统提示');
+  let rl=''; if(b.rl){ if(b.rl.rpm!=null)rl+=`RPM ${b.rl.rpm} `; if(b.rl.tpm!=null)rl+=`TPM ${formatTPM(b.rl.tpm)} `; if(b.rl.concurrency!=null)rl+=`并发 ${b.rl.concurrency} `; if(b.rl.note)rl+=b.rl.note; }
+  h+=chip('限速', rl||'⚠️未公布');
+  if(b.pricing){ h+=chip('价格(入/出)', `${b.pricing.input??'—'}/${b.pricing.output??'—'} 元/M`+(b.pricing.cache_hit!=null?` (缓存${b.pricing.cache_hit})`:'')); }
+  $("#baselineBox").innerHTML=h;
+}
+function formatTPM(tpm){ return tpm>=1e6?(tpm/1e6)+'M':tpm>=1e3?(tpm/1e3)+'K':tpm; }
+function chip(k,v){ const np=/未公布|⚠️/.test(String(v)); return `<span class="bk"><b>${k}</b> ${np?'<span class="np">'+v+'</span>':v}</span>`; }
+
+// ====== 通道管理(增量1:多路) ======
+let channels=[];
+function addChannel(preset){
+  if(channels.length>=4){ $("#launchNote").textContent='最多4路'; return; }
+  const id=Date.now()+Math.random();
+  const m=MODELS[+$("#modelSelect").value];
+  const ch={id, name:'通道'+(channels.length+1), proto:$('#protoSelect').value,
+    base:m.api_base?(typeof m.api_base==='string'?m.api_base:Object.values(m.api_base)[0]||''):'',
+    key:'', headers:'', model:m.id, modelIdx:+$("#modelSelect").value};
+  channels.push(ch); renderChannels();
+}
+function rmChannel(id){ channels=channels.filter(c=>c.id!==id); if(channels.length<2&&channels.length>0){} renderChannels(); }
+function renderChannels(){
+  const wrap=$("#channels"); wrap.innerHTML='';
+  if(channels.length===0){ wrap.appendChild(el('div','empty','点击「增加通道」添加至少 2 路对比通道')); return; }
+  channels.forEach((c,idx)=>{
+    const d=el('div','channel');
+    d.innerHTML=`
+      <div class="ch-head"><b>${c.name}</b>
+        <div class="ch-actions"><button class="btn ghost sm" data-up>↑</button><button class="btn ghost sm" data-rm>删</button></div></div>
+      <div class="field"><label>模型</label><select data-m></select></div>
+      <div class="field"><label>API 协议</label><select data-pr><option value="openai">openai</option><option value="anthropic">anthropic</option></select></div>
+      <div class="field"><label>Base URL / Endpoint</label><input data-base value="${c.base||''}" placeholder="https://..."></div>
+      <div class="field"><label>API Key（仅存浏览器）</label>
+        <div class="keyrow"><input type="password" data-key value="${c.key||''}" placeholder="留空走后端默认Key"><button class="btn ghost sm" data-toggle>👁</button></div></div>
+      <div class="field"><label>自定义 Headers（可选）</label><input data-hdr value="${c.headers||''}" placeholder='{"X-GW":"..."}'></div>`;
+    const ms=d.querySelector('[data-m]'); MODELS.forEach((mm,i)=>{const o=document.createElement('option');o.value=i;o.textContent=mm.vendor+'·'+mm.name;if(mm.id===c.model)o.selected=true;ms.appendChild(o);});
+    ms.onchange=e=>{c.modelIdx=+e.target.value;c.model=MODELS[c.modelIdx].id;};
+    d.querySelector('[data-pr]').value=c.proto;
+    d.querySelector('[data-pr]').onchange=e=>c.proto=e.target.value;
+    d.querySelector('[data-base]').oninput=e=>c.base=e.target.value;
+    d.querySelector('[data-key]').oninput=e=>c.key=e.target.value;
+    d.querySelector('[data-hdr]').oninput=e=>c.headers=e.target.value;
+    d.querySelector('[data-toggle]').onclick=e=>{const i=d.querySelector('[data-key]');i.type=i.type==='password'?'text':'password';};
+    d.querySelector('[data-rm]').onclick=()=>rmChannel(c.id);
+    d.querySelector('[data-up]').onclick=()=>{ if(idx>0){[channels[idx-1],channels[idx]]=[channels[idx],channels[idx-1]];renderChannels();} };
+    wrap.appendChild(d);
+  });
+}
+$("#addCh").onclick=()=>addChannel();
+// 默认2路
+addChannel(); addChannel();
+
+// ====== 启动验收(模拟) ======
+$("#launchBtn").onclick=()=>{
+  if(channels.length<2){ $("#launchNote").textContent='需至少2路'; return; }
+  // 构造一个多路run,模拟每个用例在每路的判定
+  const profile=$("#profileSelect").value;
+  const gtemp=+$("#gTemp").value, gtopp=+$("#gTopP").value, gmax=+$("#gMax").value;
+  const run={
+    run_id:'sim_'+Date.now(), multi:true, profile, params:{temp:gtemp,topp:gtopp,max:gmax,prompt:$("#gPrompt").value},
+    started_at:new Date().toISOString(), running:true,
+    channels:channels.map(c=>({model:MODELS[c.modelIdx],base:c.base,proto:c.proto}))
+  };
+  // 逐用例逐路生成判定(基于基线规则)
+  run.results = simulateMulti(run.channels, {temp:gtemp,topp:gtopp,max:gmax}, profile);
+  SIM_RUNS.unshift(run);
+  $("#launchNote").textContent='已加入「已完成」（原型模拟，未连真实后端）';
+  switchTab('done'); renderDone(); renderCompare();
+};
+
+// ====== 模拟判定:单模型单用例→四态 ======
+function judgeOne(m, p, profile){
+  const b=bl(m); const cases=PLAN_ARR;
+  // 该模型是否支持该用例? SKIP 规则
+  if(p==='cap_multimodal_image_input' && !(b.feat&&b.feat.vision===true)) return 'SKIP';
+  if(p==='cap_thinking_disabled' && b.feat&&b.feat.thinking_mode===true && /强制|强制思考/.test((b.feat.thinking_mode&&b.feat.thinking_mode.note)||'')) return 'SKIP';
+  if((p==='spec_context_window'||p==='spec_max_output_parameter') && b.notpub && p==='spec_max_output_parameter') return 'INCONCLUSIVE';
+  // 未公布字段相关
+  if(p==='spec_max_output_parameter' && b.notpub) return 'INCONCLUSIVE';
+  if((p==='spec_parameter_boundaries') && (!b.temp)) return 'INCONCLUSIVE';
+  // Kimi K2 不暴露采样参数
+  if(/kimi-k2/.test(m.id) && (p==='spec_parameter_boundaries')) return 'SKIP';
+  // 模拟:大多数PASS,少量FAIL/INC
+  const seed=(m.id+p).length;
+  if(seed%7===0) return 'FAIL';
+  if(seed%11===0) return 'INCONCLUSIVE';
+  if(seed%13===0 && profile==='smoke') return 'SKIP';
+  return 'PASS';
+}
+function simulateMulti(chans, params, profile){
+  return PLAN_ARR.map(c=>({ case:c, perChannel: chans.map(ch=>({ch, status:judgeOne(ch.model,c.id,profile)})) }));
+}
+
+// ====== 进行中/已完成渲染 ======
+function rcBadge(s){return {PASS:'<span class="badge b-pass">✅ PASS</span>',FAIL:'<span class="badge b-fail">❌ FAIL</span>',INCONCLUSIVE:'<span class="badge b-inc">⚠️ INC</span>',SKIP:'<span class="badge b-skip">⏭ SKIP</span>'}[s];}
+function rdots(arr){return arr.map(s=>`<span class="dot d-${s.toLowerCase()}"></span>`).join('');}
+function overall(counts){
+  if(counts.FAIL>0) return {t:'❌ 未对齐',c:'b-fail'};
+  if(counts.INCONCLUSIVE>0) return {t:'⚠️ 部分对齐',c:'b-inc'};
+  return {t:'✅ 对齐',c:'b-pass'};
+}
+function runCard(run, multi){
+  const c=el('div','runcard'); const head=el('div','rc-head');
+  const ttl=multi?`多路验收 · ${run.channels.length}路 · profile=${run.profile}`:`${run.metadata?.model||''} · ${run.metadata?.api_format||''}`;
+  head.innerHTML=`<div><div class="ttl">${ttl}</div><div class="meta">${run.run_id} · ${run.started_at}</div></div>`;
+  if(multi){
+    const counts=multiCounts(run.results);
+    const ov=overall(counts);
+    head.innerHTML+=`<span class="badge ${ov.c}">${ov.t}</span> <span class="badge b-pass">PASS ${counts.PASS}</span><span class="badge b-fail">FAIL ${counts.FAIL}</span><span class="badge b-inc">INC ${counts.INCONCLUSIVE}</span><span class="badge b-skip">SKIP ${counts.SKIP}</span>`;
+  }
+  c.appendChild(head);
+  if(!multi) return c;
+  // 每路一张子卡
+  run.channels.forEach((ch,i)=>{
+    const per=run.results.map(r=>r.perChannel[i].status);
+    const counts=cnt(per);
+    const sub=el('div'); sub.style.padding='8px 16px'; sub.style.borderTop='1px solid var(--border)';
+    sub.innerHTML=`<b>${ch.model.name}</b> <span style="color:var(--muted);font-size:12px">${ch.proto} · ${ch.base||'—'}</span> ${rdots(per)} <span class="badge ${overall(counts).c}">${overall(counts).t}</span>`;
+    c.appendChild(sub);
+    // 用例明细(可展开)
+    const grp=el('div','rc-groups');
+    ['Specifications','Capabilities'].forEach(g=>{
+      const items=run.results.filter(r=>r.case.group===g);
+      if(!items.length)return;
+      grp.appendChild(el('div','grouphdr',g));
+      items.forEach(r=>{
+        const st=r.perChannel[i].status; const cs=el('div','case');
+        cs.innerHTML=`<span class="dot d-${st.toLowerCase()}"></span><div class="cttl">${r.case.name} <div class="cdesc">${r.case.desc||''}</div></div>${rcBadge(st)}`;
+        cs.onclick=function(){ const nx=this.nextElementSibling; if(nx&&nx.classList.contains('expanded')){nx.remove();return;} const ex=el('div','expanded'); ex.innerHTML=`<b>expected:</b> ${r.case.expected||''}<br><b>requirement:</b> ${r.case.requirement||''}<br><b>refs:</b> ${(r.case.refs||[]).map(r=>`<a href="${r.url}" target="_blank">${r.label}</a>`).join(' · ')}`; this.after(ex); };
+        grp.appendChild(cs);
+      });
+    });
+    c.appendChild(grp);
+  });
+  return c;
+}
+function cnt(arr){return arr.reduce((a,s)=>{a[s]=(a[s]||0)+1;return a;},{});}
+function multiCounts(results){
+  const all=results.flatMap(r=>r.perChannel.map(p=>p.status)); return cnt(all);
+}
+
+function renderRunning(){ const g=$("#runningGrid"); g.innerHTML='';
+  const r=SIM_RUNS.filter(r=>r.running); if(!r.length){g.appendChild(el('div','empty','无进行中的任务'));return;}
+  r.forEach(run=>g.appendChild(runCard(run,true))); }
+function renderDone(){ const g=$("#doneGrid"); g.innerHTML='';
+  if(!SIM_RUNS.length){ g.appendChild(el('div','empty','还没有验收结果。去「发起测试」启动一次多路验收。')); return; }
+  SIM_RUNS.forEach(run=>g.appendChild(runCard(run,true))); }
+function renderCompare(){ const v=$("#compareView");
+  if(!SIM_RUNS.length){v.innerHTML='<div class="empty">启动验收后此处显示多路并排对比</div>';return;}
+  const run=SIM_RUNS[0];
+  let h='<table class="compare-table"><thead><tr><th>用例</th>';
+  run.channels.forEach(ch=>h+=`<th class="rc">${ch.model.name}</th>`);
+  h+=`<th class="rc">一致?</th></tr></thead><tbody>`;
+  run.results.forEach(r=>{
+    const sts=r.perChannel.map(p=>p.status);
+    const uniq=[...new Set(sts)];
+    const consistent = uniq.length===1 && uniq[0]!=='SKIP' ? '✅一致' : (uniq.length===1?'⏭️全跳过':'❌不一致');
+    h+=`<tr><td>${r.case.name}<div style="font-size:11px;color:var(--faint)">${r.case.id}</div></td>`;
+    sts.forEach(s=>h+=`<td class="rc">${rcBadge(s)}</td>`);
+    h+=`<td class="rc">${consistent}</td></tr>`;
+  });
+  h+='</tbody></table>';
+  v.innerHTML=h;
+}
+
+// ====== 增量2: 客户标准生成用例 ======
+$("#genBtn").onclick=()=>{
+  const m=MODELS[+$("#genModel").value]; const dim=$("#genDim").value; const std=$("#genStd").value.trim();
+  if(!std){$("#genOut").innerHTML='<div class="warn-box">请输入客户测试标准描述</div>';return;}
+  const b=bl(m);
+  const dimName={A:'能力存在性',B:'参数边界一致性',C:'默认值一致性',D:'参数生效一致性'}[dim];
+  let expected='', req='', refs=[{label:m.vendor+' 官方文档',url:'https://'+(m.vendorId==='deepseek'?'api-docs.deepseek.com':m.vendorId==='zhipu'?'docs.bigmodel.cn':m.vendorId==='kimi'?'platform.kimi.com':m.vendorId==='minimax'?'platform.minimaxi.com':m.vendorId==='mimo'?'mimo.mi.com':'')}];
+  if(dim==='B'){ const t=b.temp?`[${b.temp.min??b.temp[0]}~${b.temp.max??b.temp[1]}]`:'(官网未公布)'; expected=`超界传值与官方同样报错→PASS；若未公布则→INCONCLUSIVE`; req=`参数边界: temperature ${t} 等`; }
+  else if(dim==='C'){ expected=`不传时默认值与官方一致→PASS`; req=`默认值: temp=${b.temp?.default??'未公布'} top_p=${b.topp?.default??'未公布'}`; }
+  else if(dim==='A'){ expected=`官方支持的能力星流也支持→PASS`; req=`能力: ${(b.feat&&Object.keys(b.feat).join(','))||'—'}`; }
+  else { expected=`合法传值行为与官方一致→PASS（含思考模式覆盖情形）`; req=`参数生效一致性`; }
+  const c={ id:'custom_'+Date.now(), group:'Capabilities', priority:'P1', profiles:['full','standard'], name:'客户标准·'+dimName, desc:std, description:std, requirement:req, expected, run:'test_custom', source:'customer.standard', refs };
+  const out=el('div','runcard'); out.style.cursor='default';
+  out.innerHTML=`<div class="rc-head"><div class="ttl">已生成用例：${c.name}</div><span class="badge b-inc">草稿</span></div>
+    <div class="rc-groups"><div class="grouphdr">结构化输出（符合标准用例 schema）</div>
+    <div class="expanded" style="margin:8px">
+      <b>id</b>: ${c.id}<br><b>group</b>: ${c.group} · <b>priority</b>: ${c.priority} · <b>profiles</b>: ${c.profiles.join('|')}<br>
+      <b>desc</b>: ${c.desc}<br><b>requirement</b>: ${req}<br><b>expected</b>: ${expected}<br>
+      <b>refs</b>: ${refs.map(r=>`<a href="${r.url}" target="_blank">${r.label}</a>`).join(' · ')}<br>
+      <small>→ 此用例可并入用例树，单独跑或随标准27条一起跑。</small>
+    </div></div>`;
+  $("#genOut").innerHTML=''; $("#genOut").appendChild(out);
+};
+$("#clearGen").onclick=()=>{ $("#genStd").value=''; $("#genOut").innerHTML=''; };
+
+// ====== Tab 切换 ======
+function switchTab(v){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.v===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('show',s.id==='v-'+v));
+  if(v==='running')renderRunning(); if(v==='done'){renderDone();renderCompare();}
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchTab(t.dataset.v));
+
+// ====== 演示种子数据(基于真实SAMPLE_RUNS) ======
+const SIM_RUNS=[];
+(function seed(){
+  SAMPLE_RUNS.forEach(r=>{
+    // 用真实counts造一张单模型展示卡(已完成页底部)
+  });
+})();
+
+initSelects();
+renderChannels();
+</script>
+</body>
+</html>
