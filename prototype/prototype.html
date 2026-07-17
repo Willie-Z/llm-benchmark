@@ -91,9 +91,15 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 .warn-box{background:var(--warn-soft);border:1px solid var(--warn);color:var(--warn);padding:8px 12px;border-radius:8px;font-size:12px;margin-top:8px}
 .flash{animation:f .4s}@keyframes f{0%{background:var(--accent-soft)}100%{}}
 small{color:var(--faint)}
+.stage-banner{background:#FFF3D6;border-bottom:2px solid #E0B400;color:#7a5b00;padding:9px 22px;font-size:12.5px;line-height:1.5}
+.stage-banner b{color:#a83400}
 </style>
 </head>
 <body>
+<div class="stage-banner">
+  ⚠️ <b>原型演示稿 · 非可交付成品</b> —— 验收结果为<b>模拟值</b>（未真实调用 LLM），<b>未连接后端</b>。
+  多路对比/验证卡的判定均为前端模拟，仅演示 UI 与交互。要出真实结果需<b>后端配合接入</b>（见仓库 README「当前阶段」）。
+</div>
 <div class="topbar">
   <div class="brand">星流 LLM 多路验收对比 <span class="sub">Specs / Capabilities · 原型</span></div>
   <div class="tabs">
