@@ -42,7 +42,7 @@
   - 计数徽章：`PASS / FAIL / INCONCLUSIVE / SKIP`（用绿/红/灰/虚线区分）。
   - 底：run_id + 操作（查看明细/删除）。
 
-### 2.4 验证卡（单个 run 明细）—— 复刻 + 增强可读性
+### 2.4 验证卡（单个 run 明细），复刻 + 增强可读性
 - 分两组展示：**Specifications（9） / Capabilities（18）**。
 - 每项一行：用例名 + 判定徽章(✅❌⚠️⏭️) + 可展开看 `expected vs 实测` + `refs` 官网链接。
 - 顶部摘要：`整体 ⚠️ 部分对齐 · 规格 ●●●○○ · 能力 ●●●●●`（进度点直观）。
@@ -78,7 +78,7 @@
 
 ## 4. 数据资产（前端打包或外挂，AI 直接用）
 
-### 4.1 CATALOG（模型树）—— 用增强版
+### 4.1 CATALOG（模型树），用增强版
 参考站点 `CATALOG` 较简；用我提供的 `baselines/*.json` 补全后构建，结构保持：
 ```json
 [{ "id":"zhipu","name":"智谱","series":[{ "id":"glm-5","name":"GLM-5系列",
@@ -87,16 +87,16 @@
 ```
 增强：每版本挂 `baseline` 指向 §4.2 对应条目（带 temp/top_p 范围、功能开关、官网来源、价格、NOT_PUBLISHED 标记）。
 
-### 4.2 官方参数基线 —— `baselines/*.json`（5 家，已就绪）
+### 4.2 官方参数基线，`baselines/*.json`（5 家，已就绪）
 - `deepseek.json / zhipu.json / minimax.json / kimi.json / mimo.json`
-- 每条带 `source`（官网 URL）、`verification_notes`、"官网未公布"标 `NOT_PUBLISHED`。
+- 每条带 `source`（官网 URL）、`verification_notes`、官网未公布标 `NOT_PUBLISHED`。
 - 基线各自独立，不强套统一模板。
-- AI 用法：选模型后渲染基线；驱动用例 expected；未公布项前端显示"⚠️ 官网未公布 → 不测"。
+- AI 用法：选模型后渲染基线；驱动用例 expected；未公布项前端显示⚠️ 官网未公布 → 不测。
 
-### 4.3 标准用例 —— `bench_plan.json`（27 条，已就绪）
+### 4.3 标准用例，`bench_plan.json`（27 条，已就绪）
 直接用 `/api/plan` 拉取或前端内置此 JSON 兜底。含 expected/requirement/refs。
 
-### 4.4 实测样本 —— `bench_runs.json`（3 个真实 run，已就绪）
+### 4.4 实测样本，`bench_runs.json`（3 个真实 run，已就绪）
 开发期可作 mock 数据，验证渲染逻辑。
 
 ---
@@ -125,7 +125,7 @@
 ## 6. 增量2：按客户测试标准生成新用例
 
 ### 6.1 交互
-- 一个"用例生成器"面板：输入客户测试标准（结构化表 + 自然语言描述）。
+- 一个用例生成器面板：输入客户测试标准（结构化表 + 自然语言描述）。
 - 选定目标模型后，结合该模型基线 + 四类对齐维度，生成符合 §3.1 用例结构的新用例（含 expected/refs）。
 
 ### 6.2 生成规则
