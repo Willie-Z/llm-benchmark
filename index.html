@@ -153,6 +153,22 @@ small{color:var(--faint)}
 
     <!-- 增量2：客户标准生成用例 -->
     <div class="card">
+      <h2>直连通断测试 <span class="pill">真发请求 · 确认能否直连星流中转</span></h2>
+      <p class="hint">填星流中转 Endpoint、模型、Key，点按钮真发一条请求。看是通了还是被浏览器跨域(CORS)挡住。Key 仅存浏览器，不发往任何第三方。</p>
+      <div class="row">
+        <div class="field" style="flex:3"><label>Endpoint 完整地址</label><input id="probeUrl" placeholder="https://你的星流地址/v1/chat/completions"></div>
+        <div class="field" style="flex:1"><label>模型 ID</label><input id="probeModel" placeholder="如 deepseek-v4-pro 或 kimi-k2.5"></div>
+      </div>
+      <div class="field" style="margin-top:8px"><label>API Key（仅存浏览器）</label>
+        <div class="keyrow"><input type="password" id="probeKey" placeholder="sk-..."><button class="btn ghost sm" id="probeKeyToggle">👁</button></div></div>
+      <div style="margin-top:10px;display:flex;gap:10px;align-items:center">
+        <button class="btn" id="probeBtn">发送测试请求</button>
+        <span class="pill" id="probeStatus"></span>
+      </div>
+      <div id="probeOut" style="margin-top:12px;font-size:12.5px;white-space:pre-wrap;word-break:break-all;display:none"></div>
+    </div>
+
+    <div class="card">
       <h2>按客户测试标准生成新用例 <span class="pill">增量 · 参考站点没有</span></h2>
       <p class="hint">客户给出测试标准，框架结合所选模型基线 + 四类对齐维度（能力存在性/参数边界/默认值/参数生效），生成符合标准用例结构的新用例，并入用例树。</p>
       <div class="grid">
@@ -427,6 +443,37 @@ $("#genBtn").onclick=()=>{
   $("#genOut").innerHTML=''; $("#genOut").appendChild(out);
 };
 $("#clearGen").onclick=()=>{ $("#genStd").value=''; $("#genOut").innerHTML=''; };
+
+// ====== 直连通断测试: 真发一条请求看能否直连 ======
+$("#probeKeyToggle").onclick=()=>{const i=$("#probeKey");i.type=i.type==='password'?'text':'password';};
+$("#probeBtn").onclick=async()=>{
+  const url=$("#probeUrl").value.trim(), model=$("#probeModel").value.trim(), key=$("#probeKey").value.trim();
+  const out=$("#probeOut"), st=$("#probeStatus");
+  if(!url||!model||!key){st.textContent='请填全三项';return;}
+  out.style.display='block'; out.textContent='发送中...'; st.textContent='请求中';
+  const body=JSON.stringify({model,messages:[{role:"user",content:"请精确回复 SPEC_TEXT_OK"}],max_tokens:64,temperature:1,stream:false});
+  const t0=performance.now();
+  try{
+    const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},body});
+    const dt=(performance.now()-t0).toFixed(0);
+    const text=await r.text();
+    let parsed=""; try{parsed=JSON.stringify(JSON.parse(text),null,1).slice(0,800);}catch{parsed=text.slice(0,800);}
+    if(r.ok){
+      st.textContent='✅ 直连成功 '+dt+'ms';
+      out.innerHTML='<span class="badge b-pass">HTTP '+r.status+' · '+dt+'ms</span>\n'+parsed;
+    }else{
+      // 非2xx: 看是CORS/鉴权/参数问题
+      const cors = /CORS|Failed to fetch|NetworkError/i.test(text) || !text;
+      st.textContent='❌ 返回 '+r.status+' '+dt+'ms';
+      out.innerHTML='<span class="badge '+(cors?'b-inc':'b-fail')+'">HTTP '+r.status+' · '+(cors?'可能跨域/网络':'业务错误')+' · '+dt+'ms</span>\n'+parsed;
+    }
+  }catch(e){
+    const dt=(performance.now()-t0).toFixed(0);
+    // fetch 直接抛错通常是 CORS 或网络不通
+    st.textContent='❌ 请求失败(多半是跨域CORS)';
+    out.innerHTML='<span class="badge b-inc">未拿到响应 · '+(e.message||e)+' · '+dt+'ms</span>\n这说明浏览器跨域拦了,或地址/网络不通。纯前端直连此 Endpoint 不可行,需后端代理或浏览器插件放行跨域。';
+  }
+};
 
 // ====== Tab 切换 ======
 function switchTab(v){
