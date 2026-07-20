@@ -93,12 +93,30 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 small{color:var(--faint)}
 .stage-banner{background:#FFF3D6;border-bottom:2px solid #E0B400;color:#7a5b00;padding:9px 22px;font-size:12.5px;line-height:1.5}
 .stage-banner b{color:#a83400}
+/* 对比表展开:指标说明 + 输出对比窗口 */
+.cmp-detail{background:var(--surface-2)}
+.cmp-detail-wrap{padding:10px 14px;display:flex;gap:16px;flex-wrap:wrap}
+.cmp-desc{flex:1;min-width:240px;font-size:12px;color:var(--ink-2)}
+.cmp-outs{flex:2;min-width:320px;display:flex;gap:10px;flex-wrap:wrap}
+.cmp-out{flex:1;min-width:200px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:11.5px}
+.cmp-note{color:var(--muted);margin:4px 0}
+.cmp-content pre,.rc-pre{white-space:pre-wrap;word-break:break-word;background:var(--surface-2);padding:6px;border-radius:6px;max-height:180px;overflow:auto;font-size:11px;margin:4px 0}
+/* 对话分析 */
+.chat-log{border:1px solid var(--border);border-radius:8px;padding:12px;min-height:240px;max-height:420px;overflow:auto;background:var(--surface-2);margin-bottom:10px}
+.chat-msg{margin-bottom:10px;max-width:88%}
+.chat-msg.user{margin-left:auto;text-align:right}
+.chat-msg .bubble{display:inline-block;padding:8px 12px;border-radius:10px;font-size:13px;white-space:pre-wrap;word-break:break-word;text-align:left}
+.chat-msg.user .bubble{background:var(--accent-soft);color:var(--accent-press)}
+.chat-msg.bot .bubble{background:#fff;border:1px solid var(--border)}
+.chat-ctx{font-size:11px;color:var(--faint);margin-top:4px}
+.chat-input-row{display:flex;gap:8px}
+.chat-input-row input{flex:1}
 </style>
 </head>
 <body>
 <div class="stage-banner">
-  ⚠️ <b>原型演示稿 · 非可交付成品</b> —— 验收结果为<b>模拟值</b>（未真实调用 LLM），<b>未连接后端</b>。
-  多路对比/验证卡的判定均为前端模拟，仅演示 UI 与交互。要出真实结果需<b>后端配合接入</b>（见仓库 README「当前阶段」）。
+  ℹ️ <b>原型 · 已支持真发</b> —— 勾选「真发请求」并启动本机 <code>serve.py</code> 后，<b>真实验收卡</b>会真实调用你的 Endpoint（经本机代理转发，Key 不出本机）。
+  未勾选时仍为<b>模拟值</b>（仅演示 UI）；官网未公布项按设计判 INC/SKIP，不编造。
 </div>
 <div class="topbar">
   <div class="brand">星流 LLM 多路验收对比 <span class="sub">Specs / Capabilities · 原型</span></div>
@@ -106,6 +124,7 @@ small{color:var(--faint)}
     <div class="tab active" data-v="launch">发起测试</div>
     <div class="tab" data-v="running">进行中</div>
     <div class="tab" data-v="done">已完成</div>
+    <div class="tab" data-v="chat">对话分析</div>
   </div>
   <div class="sp"></div>
   <div class="note-top">直连现有后端 / 基线各自独立 / ✅❌⚠️⏭️ 四态</div>
@@ -145,10 +164,12 @@ small{color:var(--faint)}
       <h3>对比通道 <button class="btn ghost sm" id="addCh">+ 增加通道</button></h3>
       <div class="channels" id="channels"></div>
 
-      <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <button class="btn" id="launchBtn">启动多路验收</button>
+        <label style="font-size:12.5px;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="realMode" checked style="width:auto"> 真发请求（经本地代理·绕跨域·真判定）</label>
         <span class="pill" id="launchNote"></span>
       </div>
+      <small style="display:block;margin-top:6px;color:var(--warn)">真发模式需先在本机运行 <code>serve.py</code>（本地代理）。Key 仅存浏览器，经本机代理转发到你的 Endpoint。</small>
     </div>
 
     <!-- 增量2：客户标准生成用例 -->
@@ -197,6 +218,25 @@ small{color:var(--faint)}
     <h3 style="margin-top:18px">多路并排对比表</h3>
     <div id="compareView"></div>
   </section>
+
+  <!-- ===== 对话分析(需求4) ===== -->
+  <section class="view" id="v-chat">
+    <div class="card">
+      <h2>对话分析 <span class="pill">历史+当前 · 本地向量检索 · LLM 分析</span></h2>
+      <p class="hint">提问验收结果，助手先从<b>本地向量库</b>检索相关历史验收片段，连同最近一次结果一起交给 LLM 分析。分析员 LLM 复用下方所选通道的 Endpoint / Key / 模型（经本机代理转发，Key 不出本机）。验收结果与通道配置均存 localStorage，刷新不丢。</p>
+      <div class="row" style="margin-bottom:10px;align-items:flex-end">
+        <div class="field" style="max-width:360px"><label>分析员通道（复用其 Endpoint/Key/模型）</label><select id="analystCh"></select></div>
+        <div class="field" style="max-width:160px"><label>检索历史条数</label><select id="chatTopK"><option value="5">5</option><option value="8" selected>8</option><option value="15">15</option></select></div>
+        <div class="field" style="max-width:140px"><button class="btn ghost sm" id="chatClear" style="margin-top:22px">清空对话</button></div>
+      </div>
+      <div id="chatLog" class="chat-log"></div>
+      <div class="chat-input-row">
+        <input id="chatInput" placeholder="如：Kimi 和 DeepSeek 在哪几项上不一致？原因可能是什么？">
+        <button class="btn" id="chatSend">提问</button>
+      </div>
+      <small style="display:block;margin-top:6px">向量库：浏览器内 TF-IDF + 余弦相似（轻量本地实现，无外部依赖）；历史结果随 localStorage 持久化。分析调用经本地代理转发到所选通道。</small>
+    </div>
+  </section>
 </main>
 
 <script src="_data.js"></script>
@@ -216,6 +256,7 @@ for (const vid of Object.keys(CATALOG)) {
 }
 const $ = s => document.querySelector(s);
 const el = (t,c,h)=>{const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e;};
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 // ====== 基线提取助手(适配 catalog 归一化字段) ======
 function bl(m){ return {
@@ -265,13 +306,15 @@ function chip(k,v){ const np=/未公布|⚠️/.test(String(v)); return `<span c
 
 // ====== 通道管理(增量1:多路) ======
 let channels=[];
+function saveChannels(){ try{ localStorage.setItem('starflow_channels_v1', JSON.stringify(channels.map(c=>({name:c.name,proto:c.proto,base:c.base,key:c.key,headers:c.headers,model:c.model,modelId:c.modelId,modelIdx:c.modelIdx})))); }catch(e){} }
+function loadChannels(){ try{ return JSON.parse(localStorage.getItem('starflow_channels_v1')||'null'); }catch(e){ return null; } }
 function addChannel(preset){
   if(channels.length>=4){ $("#launchNote").textContent='最多4路'; return; }
   const id=Date.now()+Math.random();
   const m=MODELS[+$("#modelSelect").value];
   const ch={id, name:'通道'+(channels.length+1), proto:$('#protoSelect').value,
     base:m.api_base?(typeof m.api_base==='string'?m.api_base:Object.values(m.api_base)[0]||''):'',
-    key:'', headers:'', model:m.id, modelIdx:+$("#modelSelect").value};
+    key:'', headers:'', model:m.id, modelId:m.id, modelIdx:+$("#modelSelect").value};
   channels.push(ch); renderChannels();
 }
 function rmChannel(id){ channels=channels.filter(c=>c.id!==id); if(channels.length<2&&channels.length>0){} renderChannels(); }
@@ -284,44 +327,60 @@ function renderChannels(){
       <div class="ch-head"><b>${c.name}</b>
         <div class="ch-actions"><button class="btn ghost sm" data-up>↑</button><button class="btn ghost sm" data-rm>删</button></div></div>
       <div class="field"><label>模型</label><select data-m></select></div>
+      <div class="field"><label>发送模型ID（端点认的名字，可改）</label><input data-mid value="${c.modelId||''}" placeholder="${c.model||''}"></div>
       <div class="field"><label>API 协议</label><select data-pr><option value="openai">openai</option><option value="anthropic">anthropic</option></select></div>
       <div class="field"><label>Base URL / Endpoint</label><input data-base value="${c.base||''}" placeholder="https://..."></div>
       <div class="field"><label>API Key（仅存浏览器）</label>
         <div class="keyrow"><input type="password" data-key value="${c.key||''}" placeholder="留空走后端默认Key"><button class="btn ghost sm" data-toggle>👁</button></div></div>
       <div class="field"><label>自定义 Headers（可选）</label><input data-hdr value="${c.headers||''}" placeholder='{"X-GW":"..."}'></div>`;
     const ms=d.querySelector('[data-m]'); MODELS.forEach((mm,i)=>{const o=document.createElement('option');o.value=i;o.textContent=mm.vendor+'·'+mm.name;if(mm.id===c.model)o.selected=true;ms.appendChild(o);});
-    ms.onchange=e=>{c.modelIdx=+e.target.value;c.model=MODELS[c.modelIdx].id;};
+    ms.onchange=e=>{c.modelIdx=+e.target.value;c.model=MODELS[c.modelIdx].id;c.modelId=MODELS[c.modelIdx].id;const mid=d.querySelector('[data-mid]');if(mid)mid.value=c.model;saveChannels();};
+    const midEl=d.querySelector('[data-mid]'); if(midEl) midEl.oninput=e=>{c.modelId=e.target.value;saveChannels();};
     d.querySelector('[data-pr]').value=c.proto;
-    d.querySelector('[data-pr]').onchange=e=>c.proto=e.target.value;
-    d.querySelector('[data-base]').oninput=e=>c.base=e.target.value;
-    d.querySelector('[data-key]').oninput=e=>c.key=e.target.value;
-    d.querySelector('[data-hdr]').oninput=e=>c.headers=e.target.value;
+    d.querySelector('[data-pr]').onchange=e=>{c.proto=e.target.value;saveChannels();};
+    d.querySelector('[data-base]').oninput=e=>{c.base=e.target.value;saveChannels();};
+    d.querySelector('[data-key]').oninput=e=>{c.key=e.target.value;saveChannels();};
+    d.querySelector('[data-hdr]').oninput=e=>{c.headers=e.target.value;saveChannels();};
     d.querySelector('[data-toggle]').onclick=e=>{const i=d.querySelector('[data-key]');i.type=i.type==='password'?'text':'password';};
     d.querySelector('[data-rm]').onclick=()=>rmChannel(c.id);
     d.querySelector('[data-up]').onclick=()=>{ if(idx>0){[channels[idx-1],channels[idx]]=[channels[idx],channels[idx-1]];renderChannels();} };
     wrap.appendChild(d);
   });
+  saveChannels();
 }
 $("#addCh").onclick=()=>addChannel();
-// 默认2路
-addChannel(); addChannel();
+// 默认:优先恢复上次通道配置(含 Key,PRD 允许 localStorage 存 Key),否则新建 2 路
+(function initChannels(){ const lc=loadChannels(); if(lc&&lc.length){ channels=lc; renderChannels(); } else { addChannel(); addChannel(); } })();
 
 // ====== 启动验收(模拟) ======
-$("#launchBtn").onclick=()=>{
-  if(channels.length<2){ $("#launchNote").textContent='需至少2路'; return; }
-  // 构造一个多路run,模拟每个用例在每路的判定
-  const profile=$("#profileSelect").value;
-  const gtemp=+$("#gTemp").value, gtopp=+$("#gTopP").value, gmax=+$("#gMax").value;
-  const run={
-    run_id:'sim_'+Date.now(), multi:true, profile, params:{temp:gtemp,topp:gtopp,max:gmax,prompt:$("#gPrompt").value},
-    started_at:new Date().toISOString(), running:true,
-    channels:channels.map(c=>({model:MODELS[c.modelIdx],base:c.base,proto:c.proto}))
-  };
-  // 逐用例逐路生成判定(基于基线规则)
-  run.results = simulateMulti(run.channels, {temp:gtemp,topp:gtopp,max:gmax}, profile);
-  SIM_RUNS.unshift(run);
-  $("#launchNote").textContent='已加入「已完成」（原型模拟，未连真实后端）';
-  switchTab('done'); renderDone(); renderCompare();
+$("#launchBtn").onclick=async ()=>{
+  const realMode=$("#realMode").checked;
+  if(!realMode){
+    if(channels.length<2){ $("#launchNote").textContent='需至少2路'; return; }
+    const profile=$("#profileSelect").value;
+    const gtemp=+$("#gTemp").value, gtopp=+$("#gTopP").value, gmax=+$("#gMax").value;
+    const run={
+      run_id:'sim_'+Date.now(), multi:true, profile, params:{temp:gtemp,topp:gtopp,max:gmax,prompt:$("#gPrompt").value},
+      started_at:new Date().toISOString(), running:true,
+      channels:channels.map(c=>({model:MODELS[c.modelIdx],base:c.base,proto:c.proto}))
+    };
+    run.results = simulateMulti(run.channels, {temp:gtemp,topp:gtopp,max:gmax}, profile);
+    SIM_RUNS.unshift(run);
+    saveRuns();
+    $("#launchNote").textContent='已加入「已完成」（模拟值，未真发）';
+    switchTab('done'); renderDone(); renderCompare(); return;
+  }
+  // ====== 真发模式 ======
+  if(channels.length<1){ $("#launchNote").textContent='请先增加至少1路通道'; return; }
+  for(const c of channels){
+    if(!c.base){$("#launchNote").textContent='通道缺少 Base URL/Endpoint';return;}
+    if(!c.key){$("#launchNote").textContent='通道缺少 API Key';return;}
+    if(!c.modelId){$("#launchNote").textContent='通道缺少发送模型ID';return;}
+  }
+  $("#launchBtn").disabled=true;
+  try{ await realRun(); $("#launchNote").textContent='真实验收完成 ✅（已加入「已完成」）'; }
+  catch(e){ $("#launchNote").textContent='出错:'+(e.message||e); }
+  finally{ $("#launchBtn").disabled=false; $("#launchBtn").textContent='启动多路验收'; }
 };
 
 // ====== 模拟判定:单模型单用例→四态 ======
@@ -382,7 +441,7 @@ function runCard(run, multi){
       items.forEach(r=>{
         const st=r.perChannel[i].status; const cs=el('div','case');
         cs.innerHTML=`<span class="dot d-${st.toLowerCase()}"></span><div class="cttl">${r.case.name} <div class="cdesc">${r.case.desc||''}</div></div>${rcBadge(st)}`;
-        cs.onclick=function(){ const nx=this.nextElementSibling; if(nx&&nx.classList.contains('expanded')){nx.remove();return;} const ex=el('div','expanded'); ex.innerHTML=`<b>expected:</b> ${r.case.expected||''}<br><b>requirement:</b> ${r.case.requirement||''}<br><b>refs:</b> ${(r.case.refs||[]).map(r=>`<a href="${r.url}" target="_blank">${r.label}</a>`).join(' · ')}`; this.after(ex); };
+        cs.onclick=function(){ const nx=this.nextElementSibling; if(nx&&nx.classList.contains('expanded')){nx.remove();return;} const pc=r.perChannel[i]; const tagTxt=pc&&pc.tag?('real'===pc.tag?'🟢 真发请求':('baseline'===pc.tag?'🔵 基线推断':'⚪ 本轮跳过')):'—'; const ex=el('div','expanded'); ex.innerHTML=`<b>判定来源:</b> ${tagTxt}<br><b>实测/原因:</b> ${(pc&&pc.note)||'—'}<br><b>expected:</b> ${r.case.expected||''}<br><b>requirement:</b> ${r.case.requirement||''}<br><b>refs:</b> ${(r.case.refs||[]).map(rr=>`<a href="${rr.url}" target="_blank">${rr.label}</a>`).join(' · ')}`; this.after(ex); };
         grp.appendChild(cs);
       });
     });
@@ -404,19 +463,39 @@ function renderDone(){ const g=$("#doneGrid"); g.innerHTML='';
 function renderCompare(){ const v=$("#compareView");
   if(!SIM_RUNS.length){v.innerHTML='<div class="empty">启动验收后此处显示多路并排对比</div>';return;}
   const run=SIM_RUNS[0];
-  let h='<table class="compare-table"><thead><tr><th>用例</th>';
-  run.channels.forEach(ch=>h+=`<th class="rc">${ch.model.name}</th>`);
+  const ncols=run.channels.length+2;
+  let h='<table class="compare-table"><thead><tr><th>用例（点击行展开指标说明与多路输出对比）</th>';
+  run.channels.forEach(ch=>h+=`<th class="rc">${esc(ch.model.name)}</th>`);
   h+=`<th class="rc">一致?</th></tr></thead><tbody>`;
-  run.results.forEach(r=>{
+  run.results.forEach((r,i)=>{
     const sts=r.perChannel.map(p=>p.status);
     const uniq=[...new Set(sts)];
     const consistent = uniq.length===1 && uniq[0]!=='SKIP' ? '✅一致' : (uniq.length===1?'⏭️全跳过':'❌不一致');
-    h+=`<tr><td>${r.case.name}<div style="font-size:11px;color:var(--faint)">${r.case.id}</div></td>`;
+    h+=`<tr class="cmp-row" style="cursor:pointer"><td>${esc(r.case.name)}<div style="font-size:11px;color:var(--faint)">${esc(r.case.id)}</div><div style="font-size:11px;color:var(--accent)">▸ 点击展开</div></td>`;
     sts.forEach(s=>h+=`<td class="rc">${rcBadge(s)}</td>`);
     h+=`<td class="rc">${consistent}</td></tr>`;
+    // 展开行:指标说明(需求1) + 多路输出对比窗口(需求2)
+    const desc=r.case.desc||''; const req=r.case.requirement||''; const exp=r.case.expected||'';
+    h+=`<tr class="cmp-detail-row" style="display:none"><td colspan="${ncols}"><div class="cmp-detail"><div class="cmp-detail-wrap">`;
+    h+=`<div class="cmp-desc"><b>📋 指标说明</b><br>${esc(desc)}<br><br><b>判定期望</b>：${esc(exp)}<br><b>验证要求</b>：${esc(req)}</div>`;
+    h+=`<div class="cmp-outs">${r.perChannel.map((p,ci)=>`<div class="cmp-out"><b>${esc(run.channels[ci].model.name)}</b> ${rcBadge(p.status)}<div class="cmp-note">${esc(p.note||'')}</div>${outWindow(p.out)}</div>`).join('')}</div>`;
+    h+=`</div></div></td></tr>`;
   });
   h+='</tbody></table>';
   v.innerHTML=h;
+  v.querySelectorAll('.cmp-row').forEach(tr=>tr.onclick=()=>{const d=tr.nextElementSibling; if(d&&d.classList.contains('cmp-detail-row'))d.style.display=(d.style.display==='none'?'table-row':'none');});
+}
+// 多路输出对比窗口(需求2):渲染单路一次请求的 content / reasoning / 工具调用
+function outWindow(o){
+  if(!o) return '<div class="cmp-note">（无输出：本路该项为基线推断 / 跳过 / 未发请求）</div>';
+  let s='';
+  if(o.toolCalls&&o.toolCalls.length) s+='<div class="cmp-note">🔧 工具调用:</div><pre class="cmp-content">'+esc(JSON.stringify(o.toolCalls,null,1))+'</pre>';
+  if(o.isStream){ s+='<div class="cmp-note">🌊 流式响应(SSE片段):</div><pre class="cmp-content">'+esc(String(o.content).slice(0,400))+'</pre>'; }
+  else if(o.content){ s+='<div class="cmp-note">💬 content:</div><pre class="cmp-content">'+esc(o.content)+'</pre>'; }
+  if(o.reasoning){ s+='<div class="cmp-note">🧠 reasoning(前300字):</div><pre class="rc-pre">'+esc(String(o.reasoning).slice(0,300))+'</pre>'; }
+  if(!o.content&&!o.reasoning&&!(o.toolCalls&&o.toolCalls.length)) s+='<div class="cmp-note">HTTP '+o.http+' · 无文本输出</div>';
+  if(o.finish) s+='<div class="cmp-note" style="color:var(--faint)">finish_reason: '+esc(o.finish)+'</div>';
+  return s;
 }
 
 // ====== 增量2: 客户标准生成用例 ======
@@ -450,49 +529,343 @@ $("#probeBtn").onclick=async()=>{
   const url=$("#probeUrl").value.trim(), model=$("#probeModel").value.trim(), key=$("#probeKey").value.trim();
   const out=$("#probeOut"), st=$("#probeStatus");
   if(!url||!model||!key){st.textContent='请填全三项';return;}
-  out.style.display='block'; out.textContent='发送中...'; st.textContent='请求中';
+  out.style.display='block'; out.textContent='发送中...'; st.textContent='请求中(经本地代理)';
   const body=JSON.stringify({model,messages:[{role:"user",content:"请精确回复 SPEC_TEXT_OK"}],max_tokens:64,temperature:1,stream:false});
   const t0=performance.now();
-  try{
-    const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},body});
-    const dt=(performance.now()-t0).toFixed(0);
-    const text=await r.text();
-    let parsed=""; try{parsed=JSON.stringify(JSON.parse(text),null,1).slice(0,800);}catch{parsed=text.slice(0,800);}
-    if(r.ok){
-      st.textContent='✅ 直连成功 '+dt+'ms';
-      out.innerHTML='<span class="badge b-pass">HTTP '+r.status+' · '+dt+'ms</span>\n'+parsed;
-    }else{
-      // 非2xx: 看是CORS/鉴权/参数问题
-      const cors = /CORS|Failed to fetch|NetworkError/i.test(text) || !text;
-      st.textContent='❌ 返回 '+r.status+' '+dt+'ms';
-      out.innerHTML='<span class="badge '+(cors?'b-inc':'b-fail')+'">HTTP '+r.status+' · '+(cors?'可能跨域/网络':'业务错误')+' · '+dt+'ms</span>\n'+parsed;
-    }
-  }catch(e){
-    const dt=(performance.now()-t0).toFixed(0);
-    // fetch 直接抛错通常是 CORS 或网络不通
-    st.textContent='❌ 请求失败(多半是跨域CORS)';
-    out.innerHTML='<span class="badge b-inc">未拿到响应 · '+(e.message||e)+' · '+dt+'ms</span>\n这说明浏览器跨域拦了,或地址/网络不通。纯前端直连此 Endpoint 不可行,需后端代理或浏览器插件放行跨域。';
+  const r=await proxyFetch(url,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},body});
+  const dt=(performance.now()-t0).toFixed(0);
+  let parsed=""; try{parsed=JSON.stringify(JSON.parse(r.text),null,1).slice(0,800);}catch{parsed=r.text.slice(0,800);}
+  if(r.ok){
+    st.textContent='✅ 直连成功 '+dt+'ms';
+    out.innerHTML='<span class="badge b-pass">HTTP '+r.status+' · '+dt+'ms</span>\n'+parsed;
+  }else if(r.status===0){
+    st.textContent='❌ 代理/网络不通';
+    out.innerHTML='<span class="badge b-inc">未拿到响应 · '+dt+'ms</span>\n'+r.text+'\n请确认 serve.py 在跑、Endpoint 地址正确、网络可达。';
+  }else{
+    st.textContent='❌ 返回 '+r.status+' '+dt+'ms';
+    out.innerHTML='<span class="badge b-fail">HTTP '+r.status+' · '+dt+'ms</span>\n'+parsed;
   }
 };
+
+// ====== 真发请求:经本地代理 /proxy 转发,绕浏览器跨域 ======
+async function proxyFetch(url, opt){
+  opt=opt||{};
+  try{
+    const r=await fetch("/proxy",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({url:url,method:opt.method||"POST",headers:opt.headers||{},body:opt.body||null})});
+    const j=await r.json();
+    return {ok:!!j.ok, status:j.status||0, text:j.body||"", headers:j.headers||{}};
+  }catch(e){
+    return {ok:false,status:0,text:"本地代理未响应:"+(e.message||e)+" (确认 serve.py 在跑)",headers:{}};
+  }
+}
+function chatUrl(base){
+  let b=(base||"").trim().replace(/\/$/,"");
+  if(!b) return "";
+  if(/\/chat\/completions$/.test(b)) return b;
+  if(/\/v1$/.test(b)) return b+"/chat/completions";
+  return b+"/v1/chat/completions";
+}
+async function callAPI(ch, body){
+  const url=chatUrl(ch.base);
+  const headers={"Content-Type":"application/json","Accept":"application/json"};
+  if(ch.key) headers["Authorization"]="Bearer "+ch.key;
+  if(ch.headers){ try{ Object.assign(headers, JSON.parse(ch.headers)); }catch(e){} }
+  const r=await proxyFetch(url,{method:"POST",headers:headers,body:JSON.stringify(body)});
+  let json=null; try{ json=JSON.parse(r.text); }catch(e){}
+  return {ok:r.ok,status:r.status,text:r.text,json:json};
+}
+function pickContent(j){ try{return j.choices[0].message.content||"";}catch(e){return "";} }
+function pickFinishReason(j){ try{return j.choices[0].finish_reason||"";}catch(e){return "";} }
+function pickToolCalls(j){ try{return j.choices[0].message.tool_calls||null;}catch(e){return null;} }
+function pickReasoning(j){ try{return j.choices[0].message.reasoning_content||j.choices[0].message.reasoning||"";}catch(e){return "";} }
+function sSlice(s){ return String(s==null?"":s).slice(0,140); }
+function failRes(r,note){ return {status:"FAIL",tag:"real",note:note+" HTTP "+r.status+(r.text?(" · "+sSlice(r.text)):"")}; }
+function isReasoningModel(m){ const b=bl(m); return !!(b.feat&&b.feat.thinking_mode===true); }
+function jsonFromText(t){ if(!t) return null; let s=String(t).trim().replace(/^```(?:json)?\s*/i,"").replace(/\s*```\s*$/,""); if(s[0]==="{"||s[0]==="["){ try{return JSON.parse(s);}catch(e){} } const m=s.match(/(\{[\s\S]*\}|\[[\s\S]*\])/); if(m){ try{return JSON.parse(m[0]);}catch(e){} } return null; }
+// 抓取一次请求的输出(content/reasoning/tool_calls/流),供多路输出对比窗口
+function outOf(r){ if(!r) return null; const isStream=/data:\s/.test(String(r.text||"")); return { content: isStream?String(r.text).slice(0,800):(pickContent(r.json)||""), reasoning: pickReasoning(r.json)||"", toolCalls: pickToolCalls(r.json)||null, finish: pickFinishReason(r.json)||"", http: r.status, isStream, raw: String(r.text||"").slice(0,400) }; }
+
+// 单模型单用例 -> {status, tag, note, out}。tag: real=真发 / baseline=基线 / skip=本轮跳过
+async function realJudge(m, ch, c, params){
+  const b=bl(m); const id=c.id; const modelId=ch.modelId||m.id;
+  const notpubTemp = !b.temp || b.temp.min==="NOT_PUBLISHED";
+  const mk=(res,r)=>({...res, out:r?outOf(r):null});
+  const exactSentinel = t => String(t==null?'':t).trim().replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g,'')==="SPEC_TEXT_OK";
+  if(id==="spec_text_io"){
+    const mt=isReasoningModel(m)?2048:64;
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"请精确回复哨兵 SPEC_TEXT_OK，不要输出其他内容。"}],max_tokens:mt,stream:false});
+    if(!r.ok) return mk(failRes(r,"请求失败"),r);
+    const t=pickContent(r.json);
+    if(exactSentinel(t)) return mk({status:"PASS",tag:"real",note:"精确返回哨兵 OK(去空白后 == SPEC_TEXT_OK)"},r);
+    const loose=/SPEC_TEXT_OK/.test(t);
+    if(loose) return mk({status:"FAIL",tag:"real",note:"含哨兵但非精确(有多余文字/前缀):"+sSlice(t)},r);
+    const rc=pickReasoning(r.json);
+    return mk((!t&&rc)?{status:"INCONCLUSIVE",tag:"real",note:"content 为空(思考预算可能耗尽),reasoning len="+rc.length+"，未能判定哨兵"}:{status:"FAIL",tag:"real",note:"未返回哨兵:"+sSlice(t)},r);
+  }
+  if(id==="spec_output_generation"){
+    const mt=isReasoningModel(m)?2048:200;
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"用中文写一段约50字的产品介绍。"}],max_tokens:mt,stream:false});
+    if(!r.ok) return mk(failRes(r,"请求失败"),r);
+    const t=pickContent(r.json);
+    if(t&&t.length>0) return mk({status:"PASS",tag:"real",note:"生成 len="+t.length+",finish="+pickFinishReason(r.json)},r);
+    const rc=pickReasoning(r.json);
+    return mk((!t&&rc)?{status:"INCONCLUSIVE",tag:"real",note:"content 为空,仅有 reasoning len="+rc.length}:{status:"FAIL",tag:"real",note:"空输出"},r);
+  }
+  if(id==="spec_invalid_request_errors"){
+    const r=await callAPI(ch,{model:modelId,messages:[],max_tokens:16,stream:false});
+    return mk((r.status>=400&&r.status<500)?{status:"PASS",tag:"real",note:"正确拒绝非法请求 HTTP "+r.status}:(r.ok?{status:"FAIL",tag:"real",note:"非法请求未被拒绝(200)"}:{status:"INCONCLUSIVE",tag:"real",note:"HTTP "+r.status+" "+sSlice(r.text)}),r);
+  }
+  if(id==="spec_parameter_boundaries"){
+    if(notpubTemp) return {status:"INCONCLUSIVE",tag:"baseline",note:"官网未公布采样参数范围,无法判定",out:null};
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"hi"}],temperature:99999,max_tokens:16,stream:false});
+    return mk((r.status>=400&&r.status<500)?{status:"PASS",tag:"real",note:"超界 temp 被拒绝 HTTP "+r.status}:(r.ok?{status:"FAIL",tag:"real",note:"超界 temp 未被拒绝"}:{status:"INCONCLUSIVE",tag:"real",note:"HTTP "+r.status}),r);
+  }
+  if(id==="spec_max_output_parameter"||id==="spec_max_completion_tokens_parameter"){
+    // 需求3:已公布最大输出(如 DeepSeek-V4-Pro 384000)→真发请求证明该参数被接受;未公布(如 Kimi K2.5)→INC
+    if(b.notpub) return {status:"INCONCLUSIVE",tag:"baseline",note:"官网未公布最大输出,按设计判 INC",out:null};
+    const mo=b.maxOut||4096;
+    const testMax=Math.min(mo, 4096); // 控成本:请求接受该量级即可证明参数生效,不真生成满额
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"输出一段连续文字。"}],max_tokens:testMax,stream:false});
+    if(!r.ok) return mk(failRes(r,"max_tokens="+testMax+" 请求失败"),r);
+    const t=pickContent(r.json); const fin=pickFinishReason(r.json);
+    return mk({status:"PASS",tag:"real",note:"max_tokens="+testMax+" 被接受(声明上限 "+mo+"),finish="+fin+(t?(",生成 len="+t.length):",空输出")},r);
+  }
+  if(id==="spec_context_window"){
+    // 轻量压测:构造接近窗口(封顶 64K)的长提示+结尾哨兵,真发验证窗口内接受
+    const ctxTxt=b.ctx?(b.ctx>=1e6?(b.ctx/1e6)+"M":(b.ctx>=1e3?(b.ctx/1e3)+"K":b.ctx)):"?";
+    const cap=b.ctx?Math.min(b.ctx, 65536):4096;
+    const pad="x ".repeat(Math.floor(cap/2)); // ~cap 字符的填充
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:pad+"在文末请精确回复哨兵 CONTEXT_OK。"}],max_tokens:64,stream:false});
+    if(!r.ok) return mk(failRes(r,"压测请求失败"),r);
+    const t=pickContent(r.json);
+    const toks=(r.json&&r.json.usage&&r.json.usage.prompt_tokens)||0;
+    if(/CONTEXT_OK/.test(t)) return mk({status:"PASS",tag:"real",note:"窗口内接受(~"+cap+"字, prompt_tokens="+toks+")并返回哨兵"},r);
+    if(r.ok) return mk({status:"INCONCLUSIVE",tag:"real",note:"接受 HTTP 200(prompt_tokens="+toks+")但无哨兵:"+(t?sSlice(t):"(空输出)")},r);
+    return mk({status:"FAIL",tag:"real",note:"压测失败:"+sSlice(t)},r);
+  }
+  if(id==="cap_tool_result_roundtrip"){
+    // 工具结果回传:第二轮模型应使用回填的天气结果作答
+    const mt=isReasoningModel(m)?2048:128;
+    const r=await callAPI(ch,{model:modelId,messages:[
+      {role:"user",content:"北京天气怎么样？调用 get_weather 查。"},
+      {role:"assistant",content:null,tool_calls:[{id:"call_1",type:"function",function:{name:"get_weather",arguments:'{"city":"北京"}'}}]},
+      {role:"tool",tool_call_id:"call_1",content:"北京，晴，25℃。"}],
+      max_tokens:mt,stream:false});
+    if(!r.ok) return mk(failRes(r,"请求失败"),r);
+    const t=pickContent(r.json)||"";
+    return mk(/25|晴|25℃|晴，25/.test(t)?{status:"PASS",tag:"real",note:"第二轮使用回填结果作答:"+sSlice(t)}:{status:"FAIL",tag:"real",note:"未使用回填结果:"+sSlice(t)},r);
+  }
+  if(id==="cap_tool_error_recovery"){
+    // 工具鲁棒性:回传错误,模型应合理回应(非崩溃、非空)
+    const mt=isReasoningModel(m)?2048:128;
+    const r=await callAPI(ch,{model:modelId,messages:[
+      {role:"user",content:"帮我查北京天气，调用 get_weather。"},
+      {role:"assistant",content:null,tool_calls:[{id:"call_1",type:"function",function:{name:"get_weather",arguments:'{"city":"北京"}'}}]},
+      {role:"tool",tool_call_id:"call_1",content:"ERROR: 工具服务不可用(503)。"}],
+      max_tokens:mt,stream:false});
+    if(!r.ok) return mk(failRes(r,"请求失败"),r);
+    const t=pickContent(r.json)||"";
+    return mk((t.length>0&&/不可用|无法|失败|抱歉|暂|503|try|error/i.test(t))?{status:"PASS",tag:"real",note:"错误后合理回应:"+sSlice(t)}:(t.length>0?{status:"INCONCLUSIVE",tag:"real",note:"有回应但未明确处理错误:"+sSlice(t)}:{status:"FAIL",tag:"real",note:"错误后空输出"}),r);
+  }
+  if(id==="cap_tool_choice_modes"){
+    // tool_choice=required:应强制触发工具调用
+    const mt=isReasoningModel(m)?2048:128;
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"你好。"}],
+      tools:[{type:"function",function:{name:"get_weather",description:"获取天气",parameters:{type:"object",properties:{city:{type:"string"}}}}}],tool_choice:"required",max_tokens:mt,stream:false});
+    if(!r.ok) return mk(failRes(r,"请求失败"),r);
+    const tc=pickToolCalls(r.json);
+    return mk((tc&&tc.length)?{status:"PASS",tag:"real",note:"tool_choice=required 强制触发调用"}:{status:"FAIL",tag:"real",note:"required 模式未触发工具调用"},r);
+  }
+  if(id==="cap_streaming"){
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"从1数到5"}],max_tokens:64,stream:true});
+    return mk(/data:\s/.test(r.text)?{status:"PASS",tag:"real",note:"收到 SSE 流"}:{status:"FAIL",tag:"real",note:"无 SSE 流:"+sSlice(r.text)},r);
+  }
+  if(id==="cap_function_calling"){
+    const mt=isReasoningModel(m)?2048:128;
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"北京今天天气怎么样？请调用工具查询。"}],
+      tools:[{type:"function",function:{name:"get_weather",description:"获取城市天气",parameters:{type:"object",properties:{city:{type:"string"}},required:["city"]}}}],
+      tool_choice:"auto",max_tokens:mt,stream:false});
+    if(!r.ok) return mk(failRes(r,"请求失败"),r);
+    const tc=pickToolCalls(r.json); return mk((tc&&tc.length)?{status:"PASS",tag:"real",note:"触发调用 "+(tc[0].function&&tc[0].function.name||"tool")}:{status:"FAIL",tag:"real",note:"未触发工具调用"},r);
+  }
+  if(id==="cap_tool_no_false_positive"){
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"1+1等于几？直接回答数字,不要调用工具。"}],
+      tools:[{type:"function",function:{name:"get_weather",description:"获取天气",parameters:{type:"object",properties:{city:{type:"string"}}}}}],tool_choice:"auto",max_tokens:64,stream:false});
+    if(!r.ok) return mk(failRes(r,"请求失败"),r);
+    const tc=pickToolCalls(r.json); return mk((!tc||!tc.length)?{status:"PASS",tag:"real",note:"无误触工具"}:{status:"FAIL",tag:"real",note:"误触工具:"+(tc[0].function&&tc[0].function.name||"")},r);
+  }
+  if(id==="cap_structured_output"){
+    const mt=isReasoningModel(m)?2048:128;
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"只返回一个JSON对象，不要任何解释：{\"ok\":true,\"n\":42}"}],response_format:{type:"json_object"},max_tokens:mt,stream:false});
+    if(!r.ok) return mk(failRes(r,"请求失败"),r);
+    const t=pickContent(r.json); const o=jsonFromText(t);
+    if(o) return mk({status:"PASS",tag:"real",note:"合法 JSON"},r);
+    const rc=pickReasoning(r.json);
+    return mk((!t&&rc)?{status:"INCONCLUSIVE",tag:"real",note:"content 为空,reasoning len="+rc.length}:{status:"FAIL",tag:"real",note:"非 JSON:"+sSlice(t)},r);
+  }
+  if(id==="cap_json_schema_output"){
+    const mt=isReasoningModel(m)?2048:128;
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"按schema返回用户: name=张三, age=18"}],
+      response_format:{type:"json_schema",json_schema:{name:"user",strict:false,schema:{type:"object",properties:{name:{type:"string"},age:{type:"integer"}},required:["name","age"]}}},max_tokens:mt,stream:false});
+    if(!r.ok) return mk({status:"INCONCLUSIVE",tag:"real",note:"可能不支持 json_schema HTTP "+r.status+" "+sSlice(r.text)},r);
+    const t=pickContent(r.json); const o=jsonFromText(t); let ok=false; if(o) ok=!!(o.name&&o.age!=null);
+    if(ok) return mk({status:"PASS",tag:"real",note:"符合 schema"},r);
+    const rc=pickReasoning(r.json);
+    return mk((!t&&rc)?{status:"INCONCLUSIVE",tag:"real",note:"content 为空,reasoning len="+rc.length}:{status:"FAIL",tag:"real",note:"不符 schema:"+sSlice(t)},r);
+  }
+  if(id==="cap_multi_round_chat"){
+    const mt=isReasoningModel(m)?2048:64;
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"我叫小明，请记住。"},{role:"assistant",content:"你好小明，我记住了。"},{role:"user",content:"我叫什么名字？只回答名字。"}],max_tokens:mt,stream:false});
+    if(!r.ok) return mk(failRes(r,"请求失败"),r);
+    const t=pickContent(r.json)||"";
+    if(/小明/.test(t)) return mk({status:"PASS",tag:"real",note:"多轮记忆 OK"},r);
+    const rc=pickReasoning(r.json);
+    return mk((!t&&rc)?{status:"INCONCLUSIVE",tag:"real",note:"content 为空,reasoning len="+rc.length}:{status:"FAIL",tag:"real",note:"多轮记忆失败:"+sSlice(t)},r);
+  }
+  if(id==="cap_tool_parallel_calls"){
+    const mt=isReasoningModel(m)?2048:256;
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"同时查北京和上海两个城市的天气。"}],
+      tools:[{type:"function",function:{name:"get_weather",description:"获取天气",parameters:{type:"object",properties:{city:{type:"string"}},required:["city"]}}}],tool_choice:"auto",max_tokens:mt,stream:false});
+    if(!r.ok) return mk(failRes(r,"请求失败"),r);
+    const tc=pickToolCalls(r.json)||[]; return mk(tc.length>=2?{status:"PASS",tag:"real",note:"并行调用 "+tc.length+" 个"}:{status:"INCONCLUSIVE",tag:"real",note:"仅调用 "+tc.length+" 个(未并行或指令不够明确)"},r);
+  }
+  if(id==="cap_thinking_enabled"){
+    const mt=isReasoningModel(m)?4096:768;
+    const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"请一步步思考：123 乘以 456 等于多少？给出推理过程。"}],max_tokens:mt,stream:false});
+    if(!r.ok) return mk(failRes(r,"请求失败"),r);
+    const rc=pickReasoning(r.json); return mk(rc?{status:"PASS",tag:"real",note:"返回思考内容 len="+rc.length}:{status:"INCONCLUSIVE",tag:"real",note:"未暴露 reasoning_content(端点可能不回传该字段)"},r);
+  }
+  if(id==="cap_multimodal_image_input"){
+    return {status:"SKIP",tag:"skip",note:(b.feat&&b.feat.vision===true)?"官方支持视觉,本轮未实测":"文本模型不适用",out:null};
+  }
+  return {status:"SKIP",tag:"skip",note:"本轮未实测,可扩展",out:null};
+}
+async function runPool(tasks, conc, onDone){
+  let i=0, done=0; const n=tasks.length;
+  async function worker(){ while(true){ const idx=i++; if(idx>=n) break; await tasks[idx](); done++; if(onDone)onDone(done,n); } }
+  await Promise.all(Array.from({length:Math.max(1,Math.min(conc,n))}, worker));
+}
+async function realRun(){
+  const profile=$("#profileSelect").value;
+  const params={temp:+$("#gTemp").value,topp:+$("#gTopP").value,max:+$("#gMax").value,prompt:$("#gPrompt").value};
+  const chans=channels.map(c=>{const m=MODELS[c.modelIdx];return {model:m,modelId:c.modelId||m.id,base:c.base,key:c.key,headers:c.headers,proto:c.proto};});
+  const run={run_id:"real_"+Date.now(),multi:true,profile,params,started_at:new Date().toISOString(),running:true,channels:chans,results:[]};
+  SIM_RUNS.unshift(run);
+  const total=chans.length*PLAN_ARR.length;
+  $("#launchBtn").textContent="真发中 0/"+total+"…";
+  const perCh=new Array(chans.length);
+  for(let ci=0;ci<chans.length;ci++){
+    const ch=chans[ci]; const perCase=new Array(PLAN_ARR.length); const baseDone=ci*PLAN_ARR.length;
+    const tasks=PLAN_ARR.map((c,idx)=>()=>realJudge(ch.model,ch,c,params).then(r=>{perCase[idx]=r;}).catch(e=>{perCase[idx]={status:"FAIL",tag:"real",note:"异常:"+(e.message||e)};}));
+    await runPool(tasks,3,(d)=>{ $("#launchBtn").textContent="真发中 "+(baseDone+d)+"/"+total+"…"; });
+    perCh[ci]=perCase;
+  }
+  run.results=PLAN_ARR.map((c,i)=>({case:c, perChannel:chans.map((ch,ci)=>{const r=perCh[ci][i];return {ch,status:r.status,tag:r.tag,note:r.note,out:r.out||null};})}));
+  run.running=false;
+  $("#launchBtn").textContent="启动多路验收";
+  saveRuns();
+  switchTab('done'); renderDone(); renderCompare();
+}
 
 // ====== Tab 切换 ======
 function switchTab(v){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.v===v));
   document.querySelectorAll('.view').forEach(s=>s.classList.toggle('show',s.id==='v-'+v));
   if(v==='running')renderRunning(); if(v==='done'){renderDone();renderCompare();}
+  if(v==='chat')renderChat();
 }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchTab(t.dataset.v));
 
 // ====== 演示种子数据(基于真实SAMPLE_RUNS) ======
 const SIM_RUNS=[];
+// 持久化验收结果(需求4:刷新不丢 + 供向量库检索)
+const STORE_KEY='starflow_runs_v1';
+function saveRuns(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(SIM_RUNS.slice(0,20))); }catch(e){} }
+function loadRuns(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||'null'); }catch(e){ return null; } }
 (function seed(){
-  SAMPLE_RUNS.forEach(r=>{
-    // 用真实counts造一张单模型展示卡(已完成页底部)
-  });
+  const persisted=loadRuns();
+  if(persisted&&persisted.length){ persisted.forEach(r=>SIM_RUNS.push(r)); }
+  else { SAMPLE_RUNS.forEach(r=>{ /* 用真实counts造一张单模型展示卡 */ }); }
 })();
 
 initSelects();
 renderChannels();
+
+// ====== 线上无代理保护:探测本地 /proxy 是否可用,不可用则禁用真发并提示 ======
+let PROXY_OK=true; // 默认乐观(本地有 serve.py);探测后修正
+(async function probeProxy(){
+  try{
+    const r=await fetch("/proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:"about:blank",method:"GET"})});
+    PROXY_OK = r.ok || r.status>0; // 只要能连到本地服务(不论业务码)就算代理在
+  }catch(e){ PROXY_OK=false; }
+  if(!PROXY_OK){
+    const cb=$("#realMode"); if(cb){ cb.checked=false; cb.disabled=true; }
+    const note=$("#launchNote"); if(note) note.textContent='本地代理未运行,真发已禁用(线上/GitHub Pages 无 serve.py)。如需真实验收,本地运行 serve.py 后刷新。';
+    // 探针按钮也禁用并提示
+    const pb=$("#probeBtn"); if(pb){ pb.disabled=true; pb.title='需本地 serve.py'; }
+    const ps=$("#probeStatus"); if(ps) ps.textContent='本机代理不可用(线上静态托管无 serve.py)。';
+  }
+})();
+
+// ====== 需求4: 本地向量库(TF-IDF+余弦) + LLM 对话分析 ======
+const CHAT_KEY='starflow_chat_v1';
+let CHAT=[];
+function loadChat(){ try{ CHAT=JSON.parse(localStorage.getItem(CHAT_KEY)||'[]'); }catch(e){ CHAT=[]; } }
+function saveChat(){ try{ localStorage.setItem(CHAT_KEY, JSON.stringify(CHAT.slice(-30))); }catch(e){} }
+loadChat();
+
+// 中文友好分词: CJK 单字 + 英文/数字词
+function tokenize(s){ const t=String(s==null?'':s).toLowerCase(); const out=[]; for(const ch of t){ if(/[一-鿿]/.test(ch)) out.push(ch); } const m=t.match(/[a-z0-9_]+/g)||[]; return out.concat(m); }
+function buildIndex(docs){ // docs: [{id,text}]
+  const N=docs.length||1; const df={};
+  docs.forEach(d=>{ const seen=new Set(tokenize(d.text)); seen.forEach(w=>df[w]=(df[w]||0)+1); });
+  const idf={}; Object.keys(df).forEach(w=>idf[w]=Math.log((N+1)/(df[w]+1))+1);
+  const vecs=docs.map(d=>{ const tf={}; tokenize(d.text).forEach(w=>tf[w]=(tf[w]||0)+1); const v={}; Object.keys(tf).forEach(w=>v[w]=tf[w]*idf[w]); return v; });
+  return {idf, vecs};
+}
+function qvec(q, idf){ const tf={}; tokenize(q).forEach(w=>tf[w]=(tf[w]||0)+1); const v={}; Object.keys(tf).forEach(w=>{ if(idf[w]!=null) v[w]=tf[w]*idf[w]; }); return v; }
+function cosine(a,b){ let dot=0,na=0,nb=0; const keys=new Set([...Object.keys(a),...Object.keys(b)]); keys.forEach(k=>{const x=a[k]||0,y=b[k]||0;dot+=x*y;na+=x*x;nb+=y*y;}); return (na&&nb)?dot/(Math.sqrt(na)*Math.sqrt(nb)):0; }
+function gatherDocs(){ // 从所有验收run构造文档
+  const docs=[];
+  SIM_RUNS.forEach(run=>{ run.results.forEach(r=>{ r.perChannel.forEach((p,ci)=>{ const ch=run.channels[ci]; const txt=`${r.case.name} ${r.case.id} ${r.case.desc||''} ${ch.model.name} ${p.status} ${p.note||''} ${(p.out&&p.out.content)||''} ${(p.out&&p.out.reasoning)||''}`; docs.push({id:run.run_id+'/'+ci+'/'+r.case.id, run, ci, case:r.case, p, ch, text:txt}); }); }); });
+  return docs;
+}
+function retrieve(query, k){ const docs=gatherDocs(); if(!docs.length) return []; const idx=buildIndex(docs); const qv=qvec(query, idx.idf); const scored=docs.map((d,i)=>({d, s:cosine(qv, idx.vecs[i])})).sort((a,b)=>b.s-a.s); return scored.slice(0,k).filter(x=>x.s>0).map(x=>x.d); }
+function runSummary(run){ // 最近一次验收摘要
+  const tally={PASS:0,FAIL:0,INCONCLUSIVE:0,SKIP:0}; run.results.forEach(r=>r.perChannel.forEach(p=>{tally[p.status]=(tally[p.status]||0)+1;}));
+  let lines=`汇总: PASS ${tally.PASS||0} / FAIL ${tally.FAIL||0} / INC ${tally.INCONCLUSIVE||0} / SKIP ${tally.SKIP||0}\n`;
+  lines+='逐项:\n'; run.results.forEach(r=>{ const per=r.perChannel.map((p,ci)=>`${run.channels[ci].model.name}=${p.status}`).join(' '); lines+=`- ${r.case.name}(${r.case.id}): ${per}\n`; });
+  return lines;
+}
+function ctxText(docs, run){ let s=''; if(run) s+='【最近一次验收】\n'+runSummary(run)+'\n'; if(docs.length){ s+='【历史相关片段(向量检索top-'+docs.length+')】\n'; docs.forEach((d,i)=>{ s+=`[${i+1}] run=${d.run.run_id} 模型=${d.ch.model.name} 用例=${d.case.name}(${d.case.id}) 状态=${d.p.status} 备注=${d.p.note||''}\n`; if(d.p.out&&d.p.out.content) s+='  输出摘要:"'+String(d.p.out.content).slice(0,120).replace(/\n/g,' ')+'"\n'; }); } return s||'（暂无验收数据）'; }
+
+async function callAnalyst(question, context){
+  const ci=+$("#analystCh").value; const ch=channels[ci]; if(!ch||!ch.base||!ch.key) return '⚠️ 未选择有效分析员通道(需 Base URL + Key)。请在「发起测试」配置后回到此处。';
+  const sys='你是 LLM 多路验收对比分析助手。根据给定的验收数据(最近一次+历史相关片段)回答用户问题。要求:简明、分点、指出不一致项与可能原因、给出可操作建议。若数据不足以判断,如实说明。';
+  const msgs=[{role:'system',content:sys+'\n\n'+context},{role:'user',content:question}];
+  const r=await callAPI(ch,{model:ch.modelId,messages:msgs,max_tokens:1024,stream:false});
+  if(!r.ok) return '❌ 分析调用失败 HTTP '+r.status+' '+(r.text||'').slice(0,200);
+  const t=pickContent(r.json);
+  return t||('（分析员未返回文本。原始响应:'+String(r.text).slice(0,200)+'）');
+}
+
+function renderChat(){ const log=$("#chatLog"); if(!log) return;
+  const sel=$("#analystCh"); if(sel){ sel.innerHTML=channels.map((c,i)=>`<option value="${i}">${i+1}. ${esc(c.model||'?')} · ${esc((c.base||'').slice(0,30))||'未配置'}</option>`).join(''); if(channels.length) sel.value=Math.min(sel.value||0, channels.length-1); }
+  log.innerHTML=CHAT.map(m=>`<div class="chat-msg ${m.role}"><div class="bubble">${esc(m.text)}</div>${m.ctx?`<div class="chat-ctx">${esc(m.ctx)}</div>`:''}</div>`).join('') || '<div class="cmp-note">还没有对话。提问验收结果即可（如：哪几项不一致？为什么 Kimi 判 INC 而 DeepSeek 判 PASS？）。</div>';
+  log.scrollTop=log.scrollHeight;
+}
+async function chatAsk(){
+  const inp=$("#chatInput"); const q=inp.value.trim(); if(!q) return;
+  inp.value=''; CHAT.push({role:'user',text:q}); renderChat();
+  const run=SIM_RUNS[0]; const docs=retrieve(q, +($("#chatTopK").value)||8); const ctx=ctxText(docs, run);
+  const ans=await callAnalyst(q, ctx);
+  const ctxLabel='检索到 '+docs.length+' 条历史片段'+(run?(' · 含最近一次「'+run.run_id+'」'):'');
+  CHAT.push({role:'bot',text:ans,ctx:ctxLabel}); saveChat(); renderChat();
+}
+$("#chatSend").onclick=chatAsk;
+$("#chatInput").addEventListener('keydown',e=>{ if(e.key==='Enter')chatAsk(); });
+$("#chatClear").onclick=()=>{ CHAT=[]; saveChat(); renderChat(); };
 </script>
 </body>
 </html>

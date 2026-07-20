@@ -2,9 +2,9 @@
 
 ## 当前阶段
 
-本仓库目前是规格包加数据加演示原型，不是可以直接交付的成品。
+本仓库目前是规格包加数据加可真发验收的原型，尚未接入参考站后端，不是可直接交付的成品。
 
-- prototype 是可交互设计稿。UI 和交互是真实的，但验收结果是前端模拟值，没有连接后端，也不真实调用 LLM。要得到真实结果需要后端配合接入。
+- prototype 已支持经本地代理（serve.py）真实调用各 LLM 端点，出真实验收卡（PASS/FAIL/INC/SKIP）+ 多路输出对比 + 对话分析；详见 gh-pages 分支与 PR #1。未运行 serve.py 时（含 GitHub Pages 线上）自动退回模拟演示，不报错。
 - baselines 和 catalog.json 是真实可用的数据，带官网来源，已经核实。
 - docs 是规格文档，PRD 待评审，主规格用于喂给 AI 生成，拆解报告作为蓝本，需要按评审更新。
 
@@ -20,14 +20,15 @@
 docs/         PRD、建站主规格、参考网站拆解报告
 baselines/    5 家官方参数基线，DeepSeek 智谱 MiniMax Kimi MiMo
 data/         参考站点数据：27 测试用例，运行结果，聚合模型树，参考前端源码
-prototype/    可运行原型，双击 prototype.html 打开
+prototype/    可运行原型，含 prototype.html、_data.js、serve.py（本地真发代理）
 ```
 
 ## 快速开始
 
-1. 看最终网站长什么样，打开 prototype/prototype.html，需要同目录有 _data.js。
-2. 喂给 AI 生成正式网站，先读 docs/建站主规格-面向AI生成.md，再读 PRD 与拆解报告。
-3. 基线数据在 baselines 下，每条带官网来源，官网未公布的项标为 NOT_PUBLISHED。
+1. 看最终网站长什么样，打开 prototype/prototype.html，需要同目录有 _data.js（双击为模拟演示）。
+2. 要真实调用 LLM 出验收卡：`cd prototype && python serve.py`，再开 http://127.0.0.1:8000/ ，填 Endpoint/Key，勾「真发请求」启动。Key 仅存浏览器，经本机代理转发。
+3. 喂给 AI 生成正式网站，先读 docs/建站主规格-面向AI生成.md，再读 PRD 与拆解报告。
+4. 基线数据在 baselines 下，每条带官网来源，官网未公布的项标为 NOT_PUBLISHED。
 
 ## 要点
 
@@ -50,16 +51,16 @@ prototype/    可运行原型，双击 prototype.html 打开
 | 文件 | 实际用处 | 局限 |
 |---|---|---|
 | baselines 和 catalog.json | 真实可用数据，作为官方标准，前后端直接用 | 静态数据，需人维护更新，个别项官网未公布已标注 |
-| prototype/prototype.html | 可交互设计稿，演示最终网站长相、交互、基线展示 | 验收结果为模拟值，未连后端，不真实调用 LLM，不是成品 |
+| prototype/prototype.html | 可交互原型，已支持本地真发 LLM 验收（经 serve.py 代理）+ 多路输出对比 + 对话分析 | 线上/GitHub Pages 退回模拟；参考站 /api/runs 后端接入仍待办，非成品 |
 | data/bench_plan.json 和 bench_runs.json | 参考站真实数据样本，照着写或改后端接口结构 | 是参考站快照，非本仓库产出 |
 | docs 下文档 | 规格文档，PRD 待评审，主规格喂给 AI，拆解报告作蓝本 | 是文档不是实现，需按评审更新 |
 
 ### 待办
 
 1. 后端接入最关键。前端要能调用参考站接口，需确认跨域、鉴权 token、是否能多路并发，需要后端或运维配合。
-2. 判定接真实接口。把 prototype.html 里启动按钮的模拟判定，换成对 /api/runs 的真实调用。
-3. 多路接口。参考站现有接口是单路跑测，多路对比可能需要后端加编排接口。
+2. 判定接真实接口（部分完成）。prototype.html 已支持经本地代理 serve.py 真实调用各 LLM 端点并出验收卡（见 PR #1）；但对接参考站 /api/runs 的真实编排调用仍待后端接口。
+3. 多路接口。参考站现有接口是单路跑测，多路对比可能需要后端加编排接口。（前端本地已支持多路并发直连各端点）
 4. 客户标准生成用例。落地生成逻辑。
-5. 部署到可访问地址。公司服务器能连真后端最稳，公开仓 GitHub Pages 只能演示。
+5. 部署到可访问地址。公司服务器能连真后端最稳，公开仓 GitHub Pages 只能演示（线上无代理自动退回模拟）。
 
-结论：可展示设计稿加真实基线数据加规格，但需明确结果是模拟的，待后端接入。
+结论：已可本地真实调用 LLM 出验收卡并多路对比；线上与参考站后端编排接入仍待办。
