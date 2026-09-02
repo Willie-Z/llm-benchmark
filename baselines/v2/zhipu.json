@@ -1,0 +1,594 @@
+{
+  "vendor": "zhipu",
+  "vendor_name": "智谱 / Zhipu (BigModel)",
+  "official_docs_base": "https://docs.bigmodel.cn/",
+  "api_base_url": {
+    "openai_chat": "https://open.bigmodel.cn/api/paas/v4",
+    "openai_response": "https://open.bigmodel.cn/api/v1",
+    "anthropic": "https://open.bigmodel.cn/api/anthropic"
+  },
+  "fetched_at": "2026-08-31",
+  "fetched_by": "WebFetch crawl + 对话补全API核实 + 前端bundle逆向核实",
+  "schema_version": "v2",
+  "verification_notes": {
+    "reasoning_effort": "已核实(对话补全.md):thinking开启时生效,默认max,'仅GLM-5.2及其以上模型支持'。GLM-5.3/5.3-Flash仅支持low/high/max三档;GLM-5.2支持全7档(none/minimal/low/medium/high/xhigh/max)但none/minimal关思考,low/medium→high,xhigh→max。→ 修正v1核对报告中'5.2独有'的待确认项:5.3也支持,档位更少",
+    "thinking_mode_5.3": "已核实(glm-5.3.md + glm-5.3-flash.md + 迁移页):GLM-5.3/5.3-Flash思考强制thinking.type=enabled,不支持disabled,关闭会报错。迁移提示:旧模型若用thinking.type=disabled须先改enabled并设reasoning_effort=low再切model_id → 对齐验证时thinking开关项判SKIP(无法关闭对比)",
+    "pricing_5.3": "已核实(2026-08-31):GLM-5.3绝对定价未公开。文档页/迁移页/FAQ(fee-issues)/新品发布页均无元/百万token数值;open.bigmodel.cn/pricing为SPA,价格经登录态API异步加载,静态bundle(app.0ce370f9.js/chunk-libs/chunk-vue/chunk-elementUI/Pricing.03864edb.js)均不含glm-5.x价格表;getAiModelListForFlow公开接口仅含costPrice=0(内部成本价)且不含GLM-5.x;模型列表接口需Authorization → 定价标NOT_PUBLISHED。仅知相对关系:5.3-Flash定价=5.3的1/10,限时折扣内=1/20,为Opus4.8的1/40(见glm-5.3-flash.md)",
+    "rate_limits": "已核实:智谱限速=并发数(在途请求数),与DeepSeek口径一致,非RPM/TPM。公开文档(rate-limit.md)仅定性,数值需登录控制台。沿用2026-07-16控制台核实值,各模型并发见rate_limits.per_model",
+    "glm_5.2_tier": "已核实(model-overview):GLM-5.2已降为非旗舰(仅GLM-5.3带'旗舰模型'标签),仍在'推荐模型'表,定价不变",
+    "release_dates": "已核实(新品发布页):GLM-5.3发布2026-08-19;GLM-5.3-Flash发布2026-08-26",
+    "glm_5.3_base": "已核实(glm-5.3.md):GLM-5.3使用与GLM-5.2相同的基础模型,所有提升来自后训练",
+    "protocols": "已核实(glm-5.3.md):OpenAI Chat Completion=/api/paas/v4,OpenAI Response=/api/v1,Anthropic Message=/api/anthropic。注意:曾订阅GLM Coding Plan(含已过期)的用户暂时只能用OpenAI Chat Completion协议",
+    "max_tokens": "已核实(对话补全.md schema):max_tokens maximum=131072;各模型实际上限见各模型max_output_tokens,建议不小于1024"
+  },
+  "sources": [
+    "https://docs.bigmodel.cn/cn/guide/start/model-overview",
+    "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.3.md",
+    "https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash.md",
+    "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2.md",
+    "https://docs.bigmodel.cn/cn/guide/start/migrate-to-glm-new.md",
+    "https://docs.bigmodel.cn/api-reference/模型-api/对话补全.md",
+    "https://docs.bigmodel.cn/cn/api/rate-limit.md",
+    "https://docs.bigmodel.cn/cn/update/new-releases.md",
+    "https://docs.bigmodel.cn/cn/faq/fee-issues.md",
+    "https://docs.bigmodel.cn/llms.txt",
+    "https://open.bigmodel.cn/pricing (SPA,价格经登录态API加载,公开不可抓)",
+    "https://open.bigmodel.cn/api/biz/model/getAiModelListForFlow?isShow=1 (能力flags,公开,不含GLM-5.x)"
+  ],
+  "platform_params": {
+    "temperature": {
+      "min": 0,
+      "max": 1,
+      "default": 1,
+      "precision": "2位小数",
+      "per_model_defaults": {
+        "glm-5.3": 1, "glm-5.3-flash": 1, "glm-5.2": 1, "glm-5.1": 1, "glm-5": 1, "glm-5-turbo": 1,
+        "glm-4.7": 1, "glm-4.6": 1, "glm-5v-turbo": 0.8, "glm-4.6v": 0.8,
+        "glm-4.5_series": 0.6, "glm-4_series": 0.75
+      },
+      "note": "不建议同时调整temperature与top_p",
+      "source": "https://docs.bigmodel.cn/api-reference/模型-api/对话补全.md"
+    },
+    "top_p": {
+      "min": 0.01,
+      "max": 1,
+      "default": 0.95,
+      "precision": "2位小数",
+      "per_model_defaults": {
+        "glm-5.3": 0.95, "glm-5.3-flash": 0.95, "glm-5.2": 0.95, "glm-5.1": 0.95, "glm-5": 0.95,
+        "glm-5-turbo": 0.95, "glm-4.7": 0.95, "glm-4.6": 0.95, "glm-5v-turbo": 0.6, "glm-4.6v": 0.6,
+        "glm-4_series": 0.9
+      },
+      "source": "https://docs.bigmodel.cn/api-reference/模型-api/对话补全.md"
+    },
+    "max_tokens": {
+      "min": 1,
+      "max": 131072,
+      "default": 1024,
+      "note": "各模型实际上限见各模型max_output_tokens;建议不小于1024",
+      "source": "https://docs.bigmodel.cn/api-reference/模型-api/对话补全.md"
+    },
+    "do_sample": {
+      "default": true,
+      "note": "false时temperature与top_p被忽略,总是选最高概率词;代码生成/翻译等需一致性任务建议false",
+      "source": "https://docs.bigmodel.cn/api-reference/模型-api/对话补全.md"
+    },
+    "stream": {
+      "default": false,
+      "note": "SSE流式,以[DONE]结尾;GLM-5.3系列流式需处理delta.reasoning_content与delta.content",
+      "source": "https://docs.bigmodel.cn/api-reference/模型-api/对话补全.md"
+    },
+    "response_format": {
+      "values": ["text", "json_object"],
+      "note": "仅文本模型支持此字段",
+      "source": "https://docs.bigmodel.cn/api-reference/模型-api/对话补全.md"
+    },
+    "tools": {
+      "max_functions": 128,
+      "types": ["function", "retrieval", "web_search", "mcp"],
+      "tool_choice": "auto",
+      "vision_model_support": "仅glm-5.3-flash、glm-4.6v、autoglm-phone支持tools参数",
+      "source": "https://docs.bigmodel.cn/api-reference/模型-api/对话补全.md"
+    },
+    "reasoning_effort": {
+      "supported_models": "GLM-5.2及其以上(GLM-5.3/GLM-5.3-Flash/GLM-5.2)",
+      "default": "max",
+      "enum_all": ["max", "xhigh", "high", "medium", "low", "minimal", "none"],
+      "note": "thinking开启时生效;各模型支持档位不同,见各模型reasoning_effort字段",
+      "source": "https://docs.bigmodel.cn/api-reference/模型-api/对话补全.md"
+    }
+  },
+  "rate_limits": {
+    "metric": "concurrency",
+    "type": "并发数(在途请求数)",
+    "applies_to": "余额消耗的API用户;GLM Coding套餐用户以套餐权益为准;随用户权益等级变化",
+    "public_doc": "https://docs.bigmodel.cn/cn/api/rate-limit.md (仅定性,数值需登录控制台)",
+    "console_url": "https://bigmodel.cn/usercenter/proj-mgmt/rate-limits",
+    "per_model": {
+      "glm-5.3": "NOT_PUBLISHED(新模型,控制台未实测;参照glm-5.2推测10)",
+      "glm-5.3-flash": "NOT_PUBLISHED(新模型,控制台未实测)",
+      "glm-5.2": 10,
+      "glm-5.1": 10,
+      "glm-5": 2,
+      "glm-5-turbo": 1,
+      "glm-4.7": 2,
+      "glm-4.6": 3,
+      "glm-5v-turbo": 1,
+      "glm-4.6v": 10
+    },
+    "source": "智谱控制台 rate-limits(用户登录提供,2026-07-16);新模型5.3/5.3-flash待控制台实测"
+  },
+  "important_alignment_findings": [
+    {
+      "field": "thinking_mode",
+      "finding": "GLM-5.3/GLM-5.3-Flash思考强制enabled,不支持disabled,关闭报错",
+      "alignment_implication": "对齐验证'思考开关'项时,官网无法关闭→该项对5.3系列判SKIP(无法对比关思考结果);GLM-5.2及以下仍可关思考",
+      "source": "glm-5.3.md + migrate-to-glm-new.md"
+    },
+    {
+      "field": "reasoning_effort",
+      "finding": "GLM-5.3/5.3-Flash仅支持low/high/max三档;GLM-5.2支持全7档(但none/minimal关思考,low/medium→high,xhigh→max)",
+      "alignment_implication": "对齐验证reasoning_effort时,5.3系列传none/minimal/medium/xhigh会报错或被映射;应只测low/high/max三档",
+      "source": "对话补全.md"
+    },
+    {
+      "field": "vision",
+      "finding": "GLM-5.3仅文本(vision=false);GLM-5.3-Flash原生多模态(vision=true,支持文本/图像/视频/文件,不支持音频)",
+      "alignment_implication": "图像输入对齐项:5.3判SKIP(不支持),5.3-flash判PASS/FAIL(实测)",
+      "source": "glm-5.3.md + glm-5.3-flash.md"
+    },
+    {
+      "field": "pricing",
+      "finding": "GLM-5.3绝对定价NOT_PUBLISHED;仅知5.3-Flash=5.3的1/10(限时1/20)",
+      "alignment_implication": "定价对齐项对5.3/5.3-flash判INC(官网未公布无法判定);GLM-5.2及以下定价已核实可对比",
+      "source": "glm-5.3-flash.md + bundle逆向核实"
+    },
+    {
+      "field": "sampling_parameters",
+      "finding": "GLM-5.3系列temperature/top_p默认1.0/0.95,可调;非kimi那种固定强制覆盖",
+      "alignment_implication": "采样参数对齐项可正常测PASS/FAIL(传值生效)",
+      "source": "对话补全.md"
+    }
+  ],
+  "models": [
+    {
+      "model_id": "glm-5.3",
+      "display_name": "GLM-5.3",
+      "version": "5.3",
+      "status": "current",
+      "tier": "旗舰",
+      "released": "2026-08-19",
+      "modality": "text",
+      "protocols": ["openai_chat", "openai_response", "anthropic"],
+      "context_window": { "official_value": "1M tokens", "parsed": 1000000, "source": "glm-5.3.md" },
+      "max_output_tokens": { "official_value": "128K tokens", "parsed": 131072, "source": "glm-5.3.md" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": false,
+        "vision": false,
+        "system_prompt": true,
+        "context_caching": true,
+        "mcp": true,
+        "note": "仅文本模态;基础模型同GLM-5.2,提升来自后训练;编程较5.2提升50%(内部Z.ai Code Bench)",
+        "source": "glm-5.3.md"
+      },
+      "reasoning_effort": {
+        "supported": true,
+        "values": ["low", "high", "max"],
+        "default": "max",
+        "note": "仅low/high/max三档;不支持none/minimal/medium/xhigh",
+        "source": "对话补全.md"
+      },
+      "thinking_mode": {
+        "value": "forced_enabled",
+        "note": "thinking.type仅支持enabled,关闭报错;无法禁用思考",
+        "source": "glm-5.3.md + migrate-to-glm-new.md"
+      },
+      "temperature_default": 1,
+      "top_p_default": 0.95,
+      "tool_stream": { "supported": true, "default": false },
+      "pricing": {
+        "status": "NOT_PUBLISHED",
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "finding": "绝对定价未公开;open.bigmodel.cn/pricing为SPA价格经登录态API加载,静态bundle不含;文档/FAQ/新品页均无数值",
+        "relative_note": "5.3-Flash定价=本模型的1/10(限时1/20)",
+        "source": "glm-5.3.md(未含数值) + bundle逆向核实(2026-08-31)"
+      },
+      "rate_limits": { "concurrency": "NOT_PUBLISHED", "note": "新模型,控制台未实测;参照glm-5.2推测10" },
+      "gaps": ["pricing_absolute", "rate_limit_concurrency"]
+    },
+    {
+      "model_id": "glm-5.3-flash",
+      "display_name": "GLM-5.3-Flash",
+      "version": "5.3-Flash",
+      "status": "current",
+      "tier": "原生多模态",
+      "released": "2026-08-26",
+      "modality": "text+image+video+file",
+      "protocols": ["openai_chat", "openai_response", "anthropic"],
+      "context_window": { "official_value": "1M tokens", "parsed": 1000000, "source": "glm-5.3-flash.md" },
+      "max_output_tokens": { "official_value": "128K tokens", "parsed": 131072, "source": "glm-5.3-flash.md" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": false,
+        "vision": true,
+        "vision_inputs": ["文本", "图像", "视频", "文件"],
+        "vision_not_supported": ["音频"],
+        "system_prompt": true,
+        "context_caching": true,
+        "architecture": "总参320B/激活18B,稀疏注意力+线性注意力混合;计算量较5.3降3.01倍,KV缓存降4.44倍",
+        "note": "普惠多模态模型;AA综合智能指数57",
+        "source": "glm-5.3-flash.md"
+      },
+      "reasoning_effort": {
+        "supported": true,
+        "values": ["low", "high", "max"],
+        "default": "max",
+        "note": "推荐max;仅low/high/max三档",
+        "source": "glm-5.3-flash.md + 对话补全.md"
+      },
+      "thinking_mode": {
+        "value": "forced_enabled",
+        "note": "thinking.type仅支持enabled,不支持关闭;建议thinking.clear_thinking=false",
+        "source": "glm-5.3-flash.md"
+      },
+      "temperature_default": 1,
+      "top_p_default": 0.95,
+      "tool_stream": { "supported": true, "default": false, "note": "建议stream与tool_stream同时开启" },
+      "pricing": {
+        "status": "NOT_PUBLISHED",
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "finding": "绝对定价未公开",
+        "relative_note": "定价=GLM-5.3的1/10;限时折扣内=GLM-5.3的1/20;为Opus4.8的1/40",
+        "source": "glm-5.3-flash.md(仅相对定价) + bundle逆向核实(2026-08-31)"
+      },
+      "rate_limits": { "concurrency": "NOT_PUBLISHED", "note": "新模型,控制台未实测" },
+      "gaps": ["pricing_absolute", "rate_limit_concurrency"]
+    },
+    {
+      "model_id": "glm-5.2",
+      "display_name": "GLM-5.2",
+      "version": "5.2",
+      "status": "current",
+      "tier": "非旗舰(前旗舰,仍推荐)",
+      "modality": "text",
+      "protocols": ["openai_chat", "openai_response", "anthropic"],
+      "context_window": { "official_value": "1M tokens", "parsed": 1000000, "source": "glm-5.2.md" },
+      "max_output_tokens": { "official_value": "128K tokens", "parsed": 131072, "source": "glm-5.2.md" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": true,
+        "vision": false,
+        "system_prompt": true,
+        "context_caching": true,
+        "mcp": true,
+        "note": "自动决定是否思考;Coding能力大幅提升,支撑复杂长程任务",
+        "source": "glm-5.2.md"
+      },
+      "reasoning_effort": {
+        "supported": true,
+        "values": ["none", "minimal", "low", "medium", "high", "xhigh", "max"],
+        "default": "max",
+        "mapping": "none/minimal→关思考; low/medium→high; xhigh→max",
+        "note": "支持全7档(经映射);GLM-5.2独有none/minimal关思考能力",
+        "source": "对话补全.md"
+      },
+      "temperature_default": 1,
+      "top_p_default": 0.95,
+      "max_tokens_max": 131072,
+      "tool_stream": { "supported": true, "default": false },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_miss": 8,
+        "input_cache_hit": 2,
+        "output": 28,
+        "cache_storage": "限时免费",
+        "source": "open.bigmodel.cn/pricing bundle (2026-07-16核实,5.3发布后5.2定价不变)"
+      },
+      "rate_limits": { "concurrency": 10, "source": "智谱控制台(2026-07-16)" },
+      "gaps": []
+    },
+    {
+      "model_id": "glm-5.1",
+      "display_name": "GLM-5.1",
+      "version": "5.1",
+      "status": "current",
+      "modality": "text",
+      "protocols": ["openai_chat", "anthropic"],
+      "context_window": { "official_value": "200K tokens", "parsed": 204800, "source": "model-overview" },
+      "max_output_tokens": { "official_value": "128K tokens", "parsed": 131072, "source": "model-overview" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": true,
+        "vision": false,
+        "system_prompt": true,
+        "note": "自动决定是否思考;Coding对齐Claude Opus 4.6(定性)"
+      },
+      "reasoning_effort": { "supported": false, "note": "仅GLM-5.2及其以上支持,5.1不支持" },
+      "temperature_default": 1,
+      "top_p_default": 0.95,
+      "max_tokens_max": 131072,
+      "tool_stream": { "supported": true, "default": false },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "tiered_by_input_k",
+        "bands": [
+          { "input_band": "[0, 32)K", "input_cache_miss": 6, "input_cache_hit": 1.3, "output": 24 },
+          { "input_band": "[32+)K", "input_cache_miss": 8, "input_cache_hit": 2, "output": 28 }
+        ],
+        "cache_storage": "限时免费",
+        "source": "open.bigmodel.cn/pricing bundle (2026-07-16核实)"
+      },
+      "rate_limits": { "concurrency": 10, "source": "智谱控制台(2026-07-16)" },
+      "gaps": []
+    },
+    {
+      "model_id": "glm-5",
+      "display_name": "GLM-5",
+      "version": "5",
+      "status": "current",
+      "modality": "text",
+      "protocols": ["openai_chat", "anthropic"],
+      "context_window": { "official_value": "200K tokens", "parsed": 204800, "source": "model-overview" },
+      "max_output_tokens": { "official_value": "128K tokens", "parsed": 131072, "source": "model-overview" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": true,
+        "vision": false,
+        "system_prompt": true,
+        "note": "自动决定是否思考;编程对齐Claude Opus 4.5(定性)"
+      },
+      "reasoning_effort": { "supported": false, "note": "仅GLM-5.2及其以上支持" },
+      "temperature_default": 1,
+      "top_p_default": 0.95,
+      "max_tokens_max": 131072,
+      "tool_stream": { "supported": true, "default": false },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "tiered_by_input_k",
+        "bands": [
+          { "input_band": "[0, 32)K", "input_cache_miss": 4, "input_cache_hit": 1, "output": 18 },
+          { "input_band": "[32+)K", "input_cache_miss": 6, "input_cache_hit": 1.5, "output": 22 }
+        ],
+        "cache_storage": "限时免费",
+        "decode_label": "30-50(缓存加速比)",
+        "source": "open.bigmodel.cn/pricing bundle (2026-07-16核实)"
+      },
+      "rate_limits": { "concurrency": 2, "source": "智谱控制台(2026-07-16)" },
+      "gaps": []
+    },
+    {
+      "model_id": "glm-5-turbo",
+      "display_name": "GLM-5-Turbo",
+      "version": "5-Turbo",
+      "status": "current",
+      "modality": "text",
+      "protocols": ["openai_chat", "anthropic"],
+      "context_window": { "official_value": "200K tokens", "parsed": 204800, "source": "model-overview" },
+      "max_output_tokens": { "official_value": "128K tokens", "parsed": 131072, "source": "model-overview" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": true,
+        "vision": false,
+        "system_prompt": true,
+        "note": "自动决定是否思考"
+      },
+      "reasoning_effort": { "supported": false, "note": "仅GLM-5.2及其以上支持" },
+      "temperature_default": 1,
+      "top_p_default": 0.95,
+      "max_tokens_max": 131072,
+      "tool_stream": { "supported": true, "default": false },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "tiered_by_input_k",
+        "bands": [
+          { "input_band": "[0, 32)K", "input_cache_miss": 5, "input_cache_hit": 1.2, "output": 22 },
+          { "input_band": "[32+)K", "input_cache_miss": 7, "input_cache_hit": 1.8, "output": 26 }
+        ],
+        "cache_storage": "限时免费",
+        "decode_label": "40-60(缓存加速比)",
+        "source": "open.bigmodel.cn/pricing bundle (2026-07-16核实)"
+      },
+      "rate_limits": { "concurrency": 1, "source": "智谱控制台(2026-07-16)" },
+      "gaps": []
+    },
+    {
+      "model_id": "glm-4.7",
+      "display_name": "GLM-4.7",
+      "version": "4.7",
+      "status": "current",
+      "modality": "text",
+      "protocols": ["openai_chat", "anthropic"],
+      "context_window": { "official_value": "200K tokens", "parsed": 204800, "source": "model-overview" },
+      "max_output_tokens": { "official_value": "128K tokens", "parsed": 131072, "source": "model-overview" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": false,
+        "vision": false,
+        "system_prompt": true,
+        "note": "强制思考"
+      },
+      "reasoning_effort": { "supported": false, "note": "仅GLM-5.2及其以上支持" },
+      "temperature_default": 1,
+      "top_p_default": 0.95,
+      "max_tokens_max": 131072,
+      "tool_stream": { "supported": true, "default": false },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "tiered_by_input_and_output_k",
+        "bands": [
+          { "input_band": "[0, 32)K", "output_band": "[0, 0.2)M", "input_cache_miss": 2, "input_cache_hit": 0.4, "output": 8 },
+          { "input_band": "[0, 32)K", "output_band": "[0.2+)M", "input_cache_miss": 3, "input_cache_hit": 0.6, "output": 14 },
+          { "input_band": "[32, 200)K", "output_band": "all", "input_cache_miss": 4, "input_cache_hit": 0.8, "output": 16 }
+        ],
+        "cache_storage": "限时免费",
+        "decode_label": "30-50(缓存加速比)",
+        "source": "open.bigmodel.cn/pricing bundle (2026-07-16核实)"
+      },
+      "rate_limits": { "concurrency": 2, "source": "智谱控制台(2026-07-16)" },
+      "gaps": []
+    },
+    {
+      "model_id": "glm-4.6",
+      "display_name": "GLM-4.6",
+      "version": "4.6",
+      "status": "current",
+      "modality": "text",
+      "protocols": ["openai_chat", "anthropic"],
+      "context_window": { "official_value": "200K tokens", "parsed": 204800, "source": "model-overview" },
+      "max_output_tokens": { "official_value": "128K tokens", "parsed": 131072, "source": "model-overview" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": true,
+        "vision": false,
+        "system_prompt": true,
+        "note": "自动决定是否思考;sceneType=MOE_TOOLS"
+      },
+      "reasoning_effort": { "supported": false, "note": "仅GLM-5.2及其以上支持" },
+      "temperature_default": 1,
+      "top_p_default": 0.95,
+      "max_tokens_max": 131072,
+      "tool_stream": { "supported": true, "default": false },
+      "pricing": {
+        "status": "NOT_ON_PUBLIC_PRICING_PAGE",
+        "finding": "公开价格页bundle无文本GLM-4.6价格行,也非免费模型;平台能力API标settlementType=TOKENS付费",
+        "note": "需登录智谱控制台查看实际价格;或确认GLM-4.6文本是否已被GLM-4.7取代",
+        "source": "open.bigmodel.cn/pricing bundle 全表核对(0次出现,2026-07-16)"
+      },
+      "rate_limits": { "concurrency": 3, "source": "智谱控制台(2026-07-16)" },
+      "gaps": ["price(公开页未列,需控制台登录)"]
+    },
+    {
+      "model_id": "glm-5v-turbo",
+      "display_name": "GLM-5V-Turbo",
+      "version": "5V-Turbo",
+      "status": "current",
+      "tier": "多模态Agent基座",
+      "modality": "vision",
+      "protocols": ["openai_chat"],
+      "context_window": { "official_value": "200K tokens", "parsed": 204800, "source": "model-overview" },
+      "max_output_tokens": { "official_value": "128K tokens", "parsed": 131072, "source": "model-overview" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "vision": true,
+        "vision_inputs": ["图像", "视频", "文件", "文本"],
+        "system_prompt": true,
+        "note": "智谱首个多模态Agent基座模型,视觉编程与复杂任务"
+      },
+      "reasoning_effort": { "supported": false, "note": "视觉模型reasoning_effort仅GLM-5.3-Flash支持" },
+      "temperature_default": 0.8,
+      "top_p_default": 0.6,
+      "max_tokens_max": 131072,
+      "tool_stream": { "supported": true, "default": false },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "tiered_by_input_k",
+        "bands": [
+          { "input_band": "[0, 32)K", "input_cache_miss": 5, "input_cache_hit": 1.2, "output": 22 },
+          { "input_band": "[32+)K", "input_cache_miss": 7, "input_cache_hit": 1.8, "output": 26 }
+        ],
+        "cache_storage": "限时免费",
+        "decode_label": "30-50(缓存加速比)",
+        "source": "open.bigmodel.cn/pricing bundle (2026-07-16核实)"
+      },
+      "rate_limits": { "concurrency": 1, "source": "智谱控制台(2026-07-16)" },
+      "gaps": []
+    },
+    {
+      "model_id": "glm-4.6v",
+      "display_name": "GLM-4.6V",
+      "version": "4.6V",
+      "status": "current",
+      "modality": "vision",
+      "protocols": ["openai_chat"],
+      "context_window": { "official_value": "128K tokens", "parsed": 131072, "source": "model-overview" },
+      "max_output_tokens": { "official_value": "32K tokens", "parsed": 32768, "source": "model-overview" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "vision": true,
+        "system_prompt": true,
+        "note": "原生支持工具调用"
+      },
+      "reasoning_effort": { "supported": false, "note": "视觉模型reasoning_effort仅GLM-5.3-Flash支持" },
+      "temperature_default": 0.8,
+      "top_p_default": 0.6,
+      "max_tokens_max": 32768,
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "tiered_by_input_k",
+        "bands": [
+          { "input_band": "[0, 32)K", "input_cache_miss": 1, "input_cache_hit": 0.2, "output": 3 },
+          { "input_band": "[32, 128)K", "input_cache_miss": 2, "input_cache_hit": 0.4, "output": 6 }
+        ],
+        "cache_storage": "限时免费",
+        "decode_label": "30-50(缓存加速比)",
+        "source": "open.bigmodel.cn/pricing bundle (2026-07-16核实)"
+      },
+      "rate_limits": { "concurrency": 10, "source": "智谱控制台(2026-07-16)" },
+      "gaps": []
+    }
+  ],
+  "capability_flags_from_public_api": {
+    "source": "getAiModelListForFlow?isShow=1 (公开,无需登录)",
+    "note": "提供sceneType/invokeSupport/settlementType能力分类;但sequenceLen非上下文窗口(内部部署配置,勿误用);GLM-5.x不在该接口(新模型未同步)",
+    "sceneType_meaning": {
+      "MOE_TOOLS": "MoE工具调用(支持function calling)",
+      "TOOL": "支持工具调用",
+      "NO_TOOLS": "不支持工具调用",
+      "SSE_ALL_TOOLS": "流式全工具",
+      "VIDEO_TO_TEXT_MOE_TOOL": "视频理解+工具调用",
+      "CHARACTER": "角色扮演",
+      "AUDIO_TO_AUDIO": "语音"
+    },
+    "invokeSupport_meaning": "SYNC=同步, ASYNC=异步, SSE=流式;含SSE即支持流式输出"
+  },
+  "other_models_available": {
+    "text": ["glm-4.7-flash", "glm-4.7-flashx", "glm-4.5-air", "glm-4.5-airx", "glm-4.5-flash", "glm-4-flash-250414", "glm-4-flashx-250414"],
+    "vision": ["autoglm-phone", "glm-4.6v-flash", "glm-4.6v-flashx", "glm-4v-flash", "glm-4.1v-thinking-flashx", "glm-4.1v-thinking-flash"],
+    "note": "免费模型:glm-4.7-flash/glm-4.5-flash/glm-4-flash-250414;语言模型优先,其余按需补"
+  },
+  "deprecation_notes": [
+    "GLM-5.2由旗舰降为非旗舰(2026-08-19随GLM-5.3发布),仍在售,定价不变",
+    "deepseek-chat/deepseek-reasoner弃用映射详见deepseek baseline;智谱侧无强制迁移,但新功能优先5.3"
+  ],
+  "token_ratio_note": "GLM系列中英token比约1:1.6,因模型而异;实际token在响应usage字段返回"
+}

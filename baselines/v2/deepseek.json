@@ -1,0 +1,150 @@
+{
+  "vendor": "deepseek",
+  "vendor_name": "DeepSeek",
+  "official_docs_base": "https://api-docs.deepseek.com/zh-cn/",
+  "api_base_url": {
+    "openai": "https://api.deepseek.com",
+    "anthropic": "https://api.deepseek.com/anthropic"
+  },
+  "fetched_at": "2026-08-31",
+  "fetched_by": "WebFetch crawl + 限速页核实",
+  "schema_version": "v2",
+  "verification_notes": {
+    "rate_limits": "已核实:官网'限速与隔离'页仅公布并发数(v4-pro=500,v4-flash/v4-flash-vision-exp=2500,按账号粒度,与API Key无关),明确无RPM/TPM → 基线限速项以并发数为准",
+    "max_tokens": "已核实:API参考页对max_tokens不直接给数值范围,注明'输入+输出总长受模型上下文长度限制' → 无独立max_tokens数值,上限=上下文-输入",
+    "benchmark": "已核实:官网新闻页仅定性描述('开源SOTA/领先所有开源模型'),数值以图片呈现,无文本可抽取 → 基线不放benchmark项",
+    "concurrency_per_request_timeout": "请求10分钟未开始推理则服务器关闭连接",
+    "pricing_model": "已核实(2026-08):定价改为空闲/高峰分时段,高峰价=空闲价×2。高峰时段=北京时间周一至周五 9:00–12:00、14:00–18:00,其余为空闲时段"
+  },
+  "sources": [
+    "https://api-docs.deepseek.com/zh-cn/",
+    "https://api-docs.deepseek.com/zh-cn/quick_start/pricing",
+    "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion",
+    "https://api-docs.deepseek.com/zh-cn/quick_start/rate_limit",
+    "https://api-docs.deepseek.com/news/news260424"
+  ],
+  "platform_params": {
+    "temperature": { "min": 0, "max": 2, "default": 1, "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion", "note": "建议只改temp或top_p其一" },
+    "top_p": { "min": 0, "max": 1, "default": 1, "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion" },
+    "frequency_penalty": { "status": "deprecated", "note": "已不再支持,传了无效", "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion" },
+    "presence_penalty": { "status": "deprecated", "note": "已不再支持,传了无效", "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion" },
+    "stream": { "default": false, "note": "SSE,以 [DONE] 结尾", "source": "https://api-docs.deepseek.com/zh-cn/api/create-chat-completion" }
+  },
+  "rate_limits": {
+    "metric": "concurrency",
+    "note": "按账号粒度,与API Key无关;文本模型无RPM/TPM,仅并发数",
+    "source": "https://api-docs.deepseek.com/zh-cn/quick_start/rate_limit"
+  },
+  "pricing_time_periods": {
+    "offpeak": "北京时间 非高峰时段(周末全天 + 工作日 0:00-9:00、12:00-14:00、18:00-24:00)",
+    "peak": "北京时间 周一至周五 9:00–12:00、14:00–18:00",
+    "rule": "高峰价 = 空闲价 × 2",
+    "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+  },
+  "models": [
+    {
+      "model_id": "deepseek-v4-pro",
+      "display_name": "DeepSeek-V4-Pro",
+      "version": "Pro-0813",
+      "status": "current",
+      "tier": "旗舰",
+      "modality": "text",
+      "protocols": ["openai", "anthropic"],
+      "context_window": { "official_value": "1M tokens", "parsed": 1000000, "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing" },
+      "max_output_tokens": { "official_value": "384K tokens", "parsed": 384000, "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing", "note": "384K=384000(十进制);若为二进制K则393216,需API实测确认" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": true,
+        "vision": false,
+        "fim": { "value": true, "note": "non-thinking mode only" },
+        "chat_prefix_completion": { "value": true, "note": "Beta" },
+        "system_prompt": true,
+        "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "offpeak_peak_split",
+        "offpeak": { "input_cache_hit": 0.15, "input_cache_miss": 4.5, "output": 13.5 },
+        "peak": { "input_cache_hit": 0.30, "input_cache_miss": 9, "output": 27 },
+        "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+      },
+      "rate_limits": { "concurrency": 500, "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing" },
+      "gaps": []
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "display_name": "DeepSeek-V4-Flash",
+      "version": "Flash-0731",
+      "status": "current",
+      "modality": "text",
+      "protocols": ["openai", "anthropic"],
+      "context_window": { "official_value": "1M tokens", "parsed": 1000000, "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing" },
+      "max_output_tokens": { "official_value": "384K tokens", "parsed": 384000, "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing", "note": "同v4-pro" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": true,
+        "vision": false,
+        "fim": { "value": true, "note": "non-thinking mode only" },
+        "chat_prefix_completion": { "value": true, "note": "Beta" },
+        "system_prompt": true,
+        "note": "默认思考模式;映射自弃用的deepseek-reasoner",
+        "source": "https://api-docs.deepseek.com/zh-cn/"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "offpeak_peak_split",
+        "offpeak": { "input_cache_hit": 0.05, "input_cache_miss": 1.5, "output": 4.5 },
+        "peak": { "input_cache_hit": 0.10, "input_cache_miss": 3, "output": 9 },
+        "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+      },
+      "rate_limits": { "concurrency": 2500, "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing" },
+      "gaps": []
+    },
+    {
+      "model_id": "deepseek-v4-flash-vision-exp",
+      "display_name": "DeepSeek-V4-Flash-Vision-Exp",
+      "version": "Flash-Vision-Exp",
+      "status": "current",
+      "tier": "实验性",
+      "modality": "text+image",
+      "protocols": ["openai", "anthropic"],
+      "context_window": { "official_value": "1M tokens", "parsed": 1000000, "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing" },
+      "max_output_tokens": { "official_value": "384K tokens", "parsed": 384000, "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing", "note": "同v4-flash" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": true,
+        "vision": true,
+        "fim": { "value": false, "note": "vision-exp不支持FIM补全" },
+        "chat_prefix_completion": { "value": true, "note": "Beta" },
+        "system_prompt": true,
+        "note": "实验性视觉模型,支持图像输入;定价同v4-flash",
+        "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "offpeak_peak_split",
+        "offpeak": { "input_cache_hit": 0.05, "input_cache_miss": 1.5, "output": 4.5 },
+        "peak": { "input_cache_hit": 0.10, "input_cache_miss": 3, "output": 9 },
+        "note": "定价与v4-flash一致",
+        "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing"
+      },
+      "rate_limits": { "concurrency": 2500, "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing" },
+      "gaps": []
+    }
+  ],
+  "deprecation_notes": [
+    "deepseek-chat 和 deepseek-reasoner 于 2026/07/24 23:59(北京时间)弃用;分别映射到 deepseek-v4-flash 的 non-thinking 与 thinking 模式"
+  ]
+}

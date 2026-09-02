@@ -1,0 +1,411 @@
+{
+  "vendor": "minimax",
+  "vendor_name": "MiniMax",
+  "official_docs_base": "https://platform.minimaxi.com/docs",
+  "api_base_url": {
+    "openai_compatible": "https://api.minimaxi.com/v1",
+    "anthropic": "https://api.minimaxi.com/anthropic"
+  },
+  "fetched_at": "2026-08-31",
+  "fetched_by": "WebFetch crawl + 限速页/定价页/模型概览页核实",
+  "schema_version": "v2",
+  "verification_notes": {
+    "rate_limits": "已核实(rate-limits.md):语言模型仅RPM/TPM限速,无并发(inflight)限制;主子账号共享限额。M3: rpm20/tpm1M(free), rpm200/tpm10M(paid); M2.7系列(含M2.5/M2.1/M2及highspeed): rpm20/tpm1M(free), rpm500/tpm20M(paid)。口径=rpm_tpm(与Kimi同,与DeepSeek/智谱的concurrency不同)",
+    "pricing_m3": "已核实(pricing-paygo.md):M3永久五折,按输入是否>512K分段,另按service_tier分standard/priority(priority=标准价1.5倍)。划线原价:standard≤512K input4.20/output16.80/cache_read0.84; 五折后2.10/8.40/0.42。>512K档为≤512K档×2",
+    "pricing_m2x": "已核实:M2.7标准版input2.10/output8.40/cache_read0.42/cache_write2.625;highspeed变体input/output为标准版×2(4.20/16.80),cache_read/cache_write不变。历史模型M2.5/M2.1/M2的cache_read=0.21(标准版),其余同M2.7",
+    "deprecated_models": "已核实(models-intro.md):M2.5/M2.5-highspeed/M2.1/M2.1-highspeed/M2 位于'历史模型'折叠面板,标status=deprecated;M2-her在模型概览与定价页均未出现,标status=deprecated(下线)",
+    "thinking_mode": "已核实(openapi):thinking.type取值disabled/adaptive,默认adaptive。M3支持disabled(可关思考);M2.x系列始终开启思考不可disable → 对齐验证'思考开关'项对M2.x判SKIP(无法关闭对比)",
+    "service_tier": "已核实:service_tier取值standard/priority,默认standard;priority=标准价1.5倍,影响定价对齐,验证时须注明档位",
+    "protocols": "已核实(models-intro.md):所有文本模型API链接统一指向text-anthropic-api,即Anthropic兼容接口为主;同时支持OpenAI兼容(/v1)。M3在Anthropic API下支持interleaved thinking",
+    "max_tokens_field": "已核实:max_tokens已弃用,用max_completion_tokens替代;M3 recommended131072/max524288,M2.x recommended65536/max204800"
+  },
+  "sources": [
+    "https://platform.minimaxi.com/docs/guides/text-generation.md",
+    "https://platform.minimaxi.com/docs/guides/models-intro.md",
+    "https://platform.minimaxi.com/docs/api-reference/text/api/openapi-chat-openai.json",
+    "https://platform.minimaxi.com/docs/guides/pricing-paygo.md",
+    "https://platform.minimaxi.com/docs/guides/rate-limits.md",
+    "https://platform.minimaxi.com/docs/llms.txt"
+  ],
+  "platform_params": {
+    "temperature": { "min": 0, "max": 2, "default": 1, "source": "openapi-chat-openai.json" },
+    "top_p": {
+      "min": 0, "max": 1,
+      "default_m3": 0.95,
+      "default_m2x": 0.9,
+      "source": "openapi-chat-openai.json"
+    },
+    "max_completion_tokens": {
+      "m3": { "recommended": 131072, "max": 524288 },
+      "m2x": { "recommended": 65536, "max": 204800 },
+      "source": "openapi-chat-openai.json"
+    },
+    "max_tokens": { "status": "deprecated", "note": "用max_completion_tokens替代", "source": "openapi-chat-openai.json" },
+    "service_tier": {
+      "values": ["standard", "priority"],
+      "default": "standard",
+      "note": "priority=标准价1.5倍;影响定价对齐",
+      "source": "openapi-chat-openai.json"
+    },
+    "thinking": {
+      "type_values": ["disabled", "adaptive"],
+      "default": "adaptive",
+      "note": "M3支持disabled可关思考;M2.x始终开启不可disable",
+      "source": "openapi-chat-openai.json"
+    },
+    "reasoning_split": { "type": "boolean", "note": "拆分reasoning_content与reasoning_details" },
+    "stream": { "default": false },
+    "stream_options_include_usage": { "default": false },
+    "tools": { "type": "function", "note": "工具调用" },
+    "reasoning_effort": { "supported": false, "note": "MiniMax用thinking.type(disabled/adaptive)控制,无reasoning_effort参数" }
+  },
+  "rate_limits": {
+    "metric": "rpm_tpm",
+    "concurrency": "语言模型无并发(inflight)限制,仅RPM/TPM",
+    "shared": "主账号与子账号共享同一限额",
+    "per_model": {
+      "MiniMax-M3": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 200, "tpm": 10000000 } },
+      "MiniMax-M2.7": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 } },
+      "MiniMax-M2.7-highspeed": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 } },
+      "MiniMax-M2.5": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 } },
+      "MiniMax-M2.1": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 } },
+      "MiniMax-M2": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 } }
+    },
+    "source": "https://platform.minimaxi.com/docs/guides/rate-limits.md"
+  },
+  "important_alignment_findings": [
+    {
+      "field": "thinking_mode",
+      "finding": "M3支持thinking.type=disabled(可关思考);M2.x系列始终开启思考不可disable",
+      "alignment_implication": "对齐验证'思考开关'项:M3可测PASS/FAIL(开关对比);M2.x判SKIP(官网无法关闭,无法对比关思考结果)",
+      "source": "openapi-chat-openai.json"
+    },
+    {
+      "field": "rate_limit_metric",
+      "finding": "MiniMax限速口径=rpm_tpm(与Kimi同),与DeepSeek/智谱的concurrency不同;语言模型无并发限制",
+      "alignment_implication": "对齐验证限速项时,MiniMax测RPM/TPM而非并发数;不能与DeepSeek/智谱的并发数值直接横比",
+      "source": "rate-limits.md"
+    },
+    {
+      "field": "service_tier",
+      "finding": "service_tier=priority时定价为standard的1.5倍",
+      "alignment_implication": "定价对齐验证须注明service_tier档位,否则同模型不同档会误判FAIL",
+      "source": "openapi-chat-openai.json"
+    },
+    {
+      "field": "pricing_m3_tiered",
+      "finding": "M3按输入是否>512K分段定价,且永久五折",
+      "alignment_implication": "定价对齐验证M3时须分≤512K与>512K两档分别对比,且用五折后价格(非划线原价)",
+      "source": "pricing-paygo.md"
+    },
+    {
+      "field": "highspeed_pricing",
+      "finding": "highspeed变体input/output为标准版×2,cache_read/cache_write不变",
+      "alignment_implication": "定价对齐验证highspeed模型时输入输出价翻倍,缓存价不翻倍,须分别核对",
+      "source": "pricing-paygo.md"
+    },
+    {
+      "field": "reasoning_effort_absent",
+      "finding": "MiniMax无reasoning_effort参数,用thinking.type(disabled/adaptive)控制思考",
+      "alignment_implication": "对齐验证reasoning_effort项对MiniMax判SKIP(参数不存在);思考程度控制项改测thinking.type",
+      "source": "openapi-chat-openai.json"
+    }
+  ],
+  "models": [
+    {
+      "model_id": "MiniMax-M3",
+      "display_name": "MiniMax-M3",
+      "version": "M3",
+      "status": "current",
+      "tier": "旗舰",
+      "modality": "text+image+video",
+      "protocols": ["openai", "anthropic"],
+      "context_window": { "official_value": "1M tokens", "parsed": 1000000, "source": "text-generation.md" },
+      "max_output_tokens": { "official_value": "524288 tokens (max)", "parsed_recommended": 131072, "parsed_max": 524288, "source": "openapi-chat-openai.json" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": true,
+        "vision": true,
+        "vision_inputs": ["image_url", "video_url"],
+        "agent_reasoning": true,
+        "code": true,
+        "anthropic_interleaved_thinking": true,
+        "source": "text-generation.md"
+      },
+      "thinking_mode": {
+        "value": "adaptive",
+        "type_values": ["disabled", "adaptive"],
+        "default": "adaptive",
+        "note": "M3支持disabled可关思考",
+        "source": "openapi-chat-openai.json"
+      },
+      "top_p_default": 0.95,
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "tiered_by_input_x_service_tier",
+        "discount": "永久五折",
+        "standard": {
+          "le_512k_input": { "input_cache_miss": 2.10, "input_cache_hit": 0.42, "output": 8.40, "original_before_discount": { "input_cache_miss": 4.20, "input_cache_hit": 0.84, "output": 16.80 } },
+          "gt_512k_input": { "input_cache_miss": 4.20, "input_cache_hit": 0.84, "output": 16.80, "original_before_discount": { "input_cache_miss": 8.40, "input_cache_hit": 1.68, "output": 33.60 } }
+        },
+        "priority": { "note": "standard价×1.5" },
+        "cache_write": "NOT_PUBLISHED(定价页未列M3的cache_write)",
+        "source": "https://platform.minimaxi.com/docs/guides/pricing-paygo.md"
+      },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 200, "tpm": 10000000 }, "source": "rate-limits.md" },
+      "gaps": ["cache_write(定价页未列)", "system_prompt显式标注", "benchmark(官网未公布)"]
+    },
+    {
+      "model_id": "MiniMax-M2.7",
+      "display_name": "MiniMax-M2.7",
+      "version": "M2.7",
+      "status": "current",
+      "modality": "text",
+      "protocols": ["openai", "anthropic"],
+      "context_window": { "official_value": "200K tokens", "parsed": 204800, "source": "text-generation.md" },
+      "max_output_tokens": { "official_value": "204800 tokens (max)", "parsed_recommended": 65536, "parsed_max": 204800, "source": "openapi-chat-openai.json" },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": false,
+        "vision": false,
+        "tps": "~60",
+        "note": "开启模型的自我迭代"
+      },
+      "thinking_mode": {
+        "value": "forced_enabled",
+        "default": "adaptive",
+        "note": "M2.x始终开启思考,不可disable",
+        "source": "openapi-chat-openai.json"
+      },
+      "top_p_default": 0.9,
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_miss": 2.10,
+        "input_cache_hit": 0.42,
+        "output": 8.40,
+        "cache_write": 2.625,
+        "source": "https://platform.minimaxi.com/docs/guides/pricing-paygo.md"
+      },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 }, "source": "rate-limits.md" },
+      "gaps": ["system_prompt显式标注", "benchmark"]
+    },
+    {
+      "model_id": "MiniMax-M2.7-highspeed",
+      "display_name": "MiniMax-M2.7-highspeed",
+      "version": "M2.7-highspeed",
+      "status": "current",
+      "modality": "text",
+      "protocols": ["openai", "anthropic"],
+      "context_window": { "official_value": "200K tokens", "parsed": 204800 },
+      "max_output_tokens": { "official_value": "204800 tokens (max)", "parsed_recommended": 65536, "parsed_max": 204800 },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": false,
+        "vision": false,
+        "tps": "~100",
+        "note": "效果同M2.7,速度大幅提升"
+      },
+      "thinking_mode": { "value": "forced_enabled", "default": "adaptive", "note": "M2.x始终开启思考,不可disable" },
+      "top_p_default": 0.9,
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_miss": 4.20,
+        "input_cache_hit": 0.42,
+        "output": 16.80,
+        "cache_write": 2.625,
+        "note": "input/output为标准版×2,cache_read/cache_write不变",
+        "source": "https://platform.minimaxi.com/docs/guides/pricing-paygo.md"
+      },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 }, "source": "rate-limits.md" },
+      "gaps": ["system_prompt显式标注", "benchmark"]
+    },
+    {
+      "model_id": "MiniMax-M2.5",
+      "display_name": "MiniMax-M2.5",
+      "version": "M2.5",
+      "status": "deprecated",
+      "tier": "历史模型",
+      "modality": "text",
+      "protocols": ["openai", "anthropic"],
+      "context_window": { "official_value": "200K tokens", "parsed": 204800 },
+      "max_output_tokens": { "official_value": "204800 tokens (max)", "parsed_recommended": 65536, "parsed_max": 204800 },
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": false,
+        "vision": false,
+        "tps": "~60",
+        "note": "顶尖性能与极致性价比"
+      },
+      "thinking_mode": { "value": "forced_enabled", "default": "adaptive", "note": "M2.x始终开启思考,不可disable" },
+      "top_p_default": 0.9,
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_miss": 2.10,
+        "input_cache_hit": 0.21,
+        "output": 8.40,
+        "cache_write": 2.625,
+        "source": "https://platform.minimaxi.com/docs/guides/pricing-paygo.md (历史模型折叠区)"
+      },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 }, "source": "rate-limits.md" },
+      "gaps": ["system_prompt显式标注", "benchmark"]
+    },
+    {
+      "model_id": "MiniMax-M2.5-highspeed",
+      "display_name": "MiniMax-M2.5-highspeed",
+      "version": "M2.5-highspeed",
+      "status": "deprecated",
+      "tier": "历史模型",
+      "modality": "text",
+      "protocols": ["openai", "anthropic"],
+      "context_window": { "official_value": "200K tokens", "parsed": 204800 },
+      "max_output_tokens": { "official_value": "204800 tokens (max)", "parsed_recommended": 65536, "parsed_max": 204800 },
+      "features": { "streaming": true, "thinking_mode": true, "non_thinking_mode": false, "vision": false, "tps": "~100", "note": "效果同M2.5,速度提升" },
+      "thinking_mode": { "value": "forced_enabled", "default": "adaptive", "note": "M2.x始终开启思考,不可disable" },
+      "top_p_default": 0.9,
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_miss": 4.20,
+        "input_cache_hit": 0.21,
+        "output": 16.80,
+        "cache_write": 2.625,
+        "note": "input/output为标准版×2",
+        "source": "https://platform.minimaxi.com/docs/guides/pricing-paygo.md (历史模型折叠区)"
+      },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 }, "source": "rate-limits.md" },
+      "gaps": ["system_prompt显式标注", "benchmark"]
+    },
+    {
+      "model_id": "MiniMax-M2.1",
+      "display_name": "MiniMax-M2.1",
+      "version": "M2.1",
+      "status": "deprecated",
+      "tier": "历史模型",
+      "modality": "text",
+      "protocols": ["openai", "anthropic"],
+      "context_window": { "official_value": "200K tokens", "parsed": 204800 },
+      "max_output_tokens": { "official_value": "204800 tokens (max)", "parsed_recommended": 65536, "parsed_max": 204800 },
+      "features": { "streaming": true, "function_calling": true, "json_output": true, "thinking_mode": true, "non_thinking_mode": false, "vision": false, "tps": "~60", "note": "强大多语言编程" },
+      "thinking_mode": { "value": "forced_enabled", "default": "adaptive", "note": "M2.x始终开启思考,不可disable" },
+      "top_p_default": 0.9,
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_miss": 2.10,
+        "input_cache_hit": 0.21,
+        "output": 8.40,
+        "cache_write": 2.625,
+        "source": "https://platform.minimaxi.com/docs/guides/pricing-paygo.md (历史模型折叠区)"
+      },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 }, "source": "rate-limits.md" },
+      "gaps": ["system_prompt显式标注", "benchmark"]
+    },
+    {
+      "model_id": "MiniMax-M2.1-highspeed",
+      "display_name": "MiniMax-M2.1-highspeed",
+      "version": "M2.1-highspeed",
+      "status": "deprecated",
+      "tier": "历史模型",
+      "modality": "text",
+      "protocols": ["openai", "anthropic"],
+      "context_window": { "official_value": "200K tokens", "parsed": 204800 },
+      "max_output_tokens": { "official_value": "204800 tokens (max)", "parsed_recommended": 65536, "parsed_max": 204800 },
+      "features": { "streaming": true, "thinking_mode": true, "non_thinking_mode": false, "vision": false, "tps": "~100", "note": "效果同M2.1,速度提升" },
+      "thinking_mode": { "value": "forced_enabled", "default": "adaptive", "note": "M2.x始终开启思考,不可disable" },
+      "top_p_default": 0.9,
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_miss": 4.20,
+        "input_cache_hit": 0.21,
+        "output": 16.80,
+        "cache_write": 2.625,
+        "note": "input/output为标准版×2",
+        "source": "https://platform.minimaxi.com/docs/guides/pricing-paygo.md (历史模型折叠区)"
+      },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 }, "source": "rate-limits.md" },
+      "gaps": ["system_prompt显式标注", "benchmark"]
+    },
+    {
+      "model_id": "MiniMax-M2",
+      "display_name": "MiniMax-M2",
+      "version": "M2",
+      "status": "deprecated",
+      "tier": "历史模型",
+      "modality": "text",
+      "protocols": ["openai", "anthropic"],
+      "context_window": { "official_value": "200K tokens", "parsed": 204800 },
+      "max_output_tokens": { "official_value": "204800 tokens (max)", "parsed_recommended": 65536, "parsed_max": 204800 },
+      "features": { "streaming": true, "function_calling": true, "json_output": true, "thinking_mode": true, "non_thinking_mode": false, "vision": false, "tps": "~60", "note": "专为高效编码与Agent工作流" },
+      "thinking_mode": { "value": "forced_enabled", "default": "adaptive", "note": "M2.x始终开启思考,不可disable" },
+      "top_p_default": 0.9,
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_miss": 2.10,
+        "input_cache_hit": 0.21,
+        "output": 8.40,
+        "cache_write": 2.625,
+        "source": "https://platform.minimaxi.com/docs/guides/pricing-paygo.md (历史模型折叠区)"
+      },
+      "rate_limits": { "free": { "rpm": 20, "tpm": 1000000 }, "paid": { "rpm": 500, "tpm": 20000000 }, "source": "rate-limits.md" },
+      "gaps": ["system_prompt显式标注", "benchmark"]
+    },
+    {
+      "model_id": "M2-her",
+      "display_name": "M2-her",
+      "version": "M2-her",
+      "status": "deprecated",
+      "tier": "下线(官网未列出)",
+      "modality": "text",
+      "protocols": ["openai"],
+      "context_window": { "official_value": "64K tokens", "parsed": 65536, "source": "text-generation.md(历史)" },
+      "note": "对话/角色扮演/多轮;2026-08-31核实在模型概览与定价页均未出现,已下线",
+      "features": { "streaming": true, "thinking_mode": true },
+      "pricing": { "status": "NOT_PUBLISHED", "note": "官网未列出" },
+      "rate_limits": { "status": "NOT_PUBLISHED", "note": "官网未列出" },
+      "gaps": ["pricing", "rate_limits", "max_completion_tokens", "benchmark", "不在openai enum(仅历史text-generation提及)"]
+    }
+  ],
+  "other_models_available": {
+    "video": ["MiniMax-H3", "MiniMax-H3-Max", "Hailuo系列(历史)"],
+    "speech": ["speech-02", "speech-2.6", "speech-2.8-HD", "speech-2.8-Turbo"],
+    "image": ["image-01"],
+    "music": ["music-3.0"],
+    "note": "非语言模型,按需补;H3替代Hailuo系列"
+  },
+  "deprecation_notes": [
+    "M2.5/M2.5-highspeed/M2.1/M2.1-highspeed/M2 标为历史模型(2026-08-31核实),仍在售但非推荐",
+    "M2-her 在模型概览与定价页均未出现,已下线",
+    "Text-01与abab系列在当前文档未列出(更早下线/改名)"
+  ],
+  "notes": [
+    "文本模型无并发限制,仅RPM/TPM;主子账号共享限额",
+    "M3计费按输入是否>512K分段+service_tier(standard/priority)×永久五折",
+    "M2.7-highspeed等highspeed变体input/output价为标准版×2,cache_read/cache_write不变",
+    "所有文本模型统一通过Anthropic兼容接口(text-anthropic-api),同时支持OpenAI兼容"
+  ]
+}

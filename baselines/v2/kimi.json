@@ -1,0 +1,439 @@
+{
+  "vendor": "kimi",
+  "vendor_name": "Kimi / Moonshot AI",
+  "official_docs_base": "https://platform.kimi.com/docs",
+  "api_base_url": {
+    "openai_compatible": "https://api.moonshot.cn/v1",
+    "anthropic": "NOT_PUBLISHED"
+  },
+  "fetched_at": "2026-08-31",
+  "fetched_by": "WebFetch crawl + list-models API/openapi 核实",
+  "schema_version": "v2",
+  "sources": [
+    "https://platform.kimi.com/docs",
+    "https://platform.kimi.com/docs/models",
+    "https://platform.kimi.com/docs/api/chat",
+    "https://platform.kimi.com/docs/api/models-overview.md",
+    "https://platform.kimi.com/docs/guide/kimi-k3-quickstart.md",
+    "https://platform.kimi.com/docs/guide/use-reasoning-effort.md",
+    "https://platform.kimi.com/docs/pricing/chat-k3.md",
+    "https://platform.kimi.com/docs/pricing/chat-k27-code.md",
+    "https://platform.kimi.com/docs/pricing/chat-k26.md",
+    "https://platform.kimi.com/docs/pricing/chat-v1.md",
+    "https://platform.kimi.com/docs/pricing/limits.md",
+    "https://platform.kimi.com/docs/llms.txt"
+  ],
+  "verification_notes": {
+    "max_output_tokens": "已核实:Kimi官方不公布各模型最大输出tokens。查证三处均无该字段:(1)模型介绍页/docs/models仅给上下文;(2)List Models接口响应字段为 id/object/created/owned_by/context_length/supports_image_in/supports_video_in/supports_reasoning,无max_output;(3)chat API的max_completion_tokens无min/max/按模型上限,仅说'默认约1024'。V1系列注明上下文含输入+输出合计 → 基线仅记上下文,最大输出项标NOT_PUBLISHED",
+    "sampling_params_k3": "已核实(api/models-overview.md):kimi-k3的temperature固定1.0、top_p固定0.95、n固定1、penalty固定0,显式传入会报错;推理强度由顶层reasoning_effort控制(low/high/max,默认max),切换档位会破坏前缀缓存命中 → 对齐验证时k3的temp/top_p项应判SKIP(传值被强制覆盖)",
+    "sampling_params_k2": "已核实:temperature/top_p/n/penalty仅MoonshotV1ChatRequest定义;K2系列(K2.6/K2.7)继承ChatRequestBase不含这些采样参数 → K2系列采样参数对齐项判SKIP",
+    "k3_modality": "kimi-k3支持原生视觉理解(文本+图像输入);vision字段=true"
+  },
+  "platform_params": {
+    "moonshot_v1": {
+      "temperature": { "min": 0, "max": 1, "default": 0, "source": "https://platform.kimi.com/docs/api/chat" },
+      "top_p": { "min": 0, "max": 1, "default": 1, "source": "https://platform.kimi.com/docs/api/chat" },
+      "n": { "min": 1, "max": 5, "default": 1, "note": "温度接近0时只能返回1个" },
+      "presence_penalty": { "min": -2.0, "max": 2.0, "default": 0 },
+      "frequency_penalty": { "min": -2.0, "max": 2.0, "default": 0 },
+      "stream": { "default": false },
+      "max_completion_tokens": { "default": 1024, "note": "达到上限时finish_reason=length;max_tokens已弃用" },
+      "applies_to": "moonshot-v1系列;K2/K3系列参数固定,见各模型"
+    }
+  },
+  "rate_limits": {
+    "metric": "rpm_tpm",
+    "basis": "按账号累计充值金额分档",
+    "tiers": [
+      { "tier": "Tier0", "recharge_cny": 0, "concurrency": 1, "rpm": 3, "tpm": 500000, "tpd": 1500000 },
+      { "tier": "Tier1", "recharge_cny": 50, "concurrency": 50, "rpm": 200, "tpm": 2000000, "tpd": "NOT_PUBLISHED(无限)" },
+      { "tier": "Tier2", "recharge_cny": 100, "concurrency": 100, "rpm": 500, "tpm": 3000000, "tpd": "NOT_PUBLISHED(无限)" },
+      { "tier": "Tier3", "recharge_cny": 500, "concurrency": 200, "rpm": 5000, "tpm": 3000000, "tpd": "NOT_PUBLISHED(无限)" },
+      { "tier": "Tier4", "recharge_cny": 5000, "concurrency": 400, "rpm": 5000, "tpm": 4000000, "tpd": "NOT_PUBLISHED(无限)" },
+      { "tier": "Tier5", "recharge_cny": 20000, "concurrency": 1000, "rpm": 10000, "tpm": 5000000, "tpd": "NOT_PUBLISHED(无限)" }
+    ],
+    "note": "代金券不计入累计充值;集群负载达上限时临时限流;限速按账号,与具体模型无关",
+    "source": "https://platform.kimi.com/docs/pricing/limits.md"
+  },
+  "important_alignment_findings": [
+    {
+      "field": "sampling_parameters_k2",
+      "finding": "temperature/top_p/n/presence_penalty/frequency_penalty 仅在 MoonshotV1ChatRequest 中定义;KimiK26ChatRequest/KimiK25ChatRequest/KimiK27CodeChatRequest 只继承 ChatRequestBase",
+      "implication": "K2系列(K2.6/K2.7)不支持或不暴露这些采样参数 → 对齐验证时这些项对K2系列应判SKIP",
+      "source": "https://platform.kimi.com/docs/api/chat"
+    },
+    {
+      "field": "sampling_parameters_k3",
+      "finding": "kimi-k3 的 temperature/top_p/n/penalty 固定,显式传入会报错;推理强度由 reasoning_effort 控制",
+      "implication": "K3 的 temp/top_p 项应判 SKIP(传值被强制覆盖);reasoning_effort 是 K3 的核心可测参数",
+      "source": "https://platform.kimi.com/docs/api/models-overview.md"
+    }
+  ],
+  "models": [
+    {
+      "model_id": "kimi-k3",
+      "display_name": "Kimi K3",
+      "version": "K3",
+      "status": "current",
+      "tier": "旗舰",
+      "modality": "text+vision",
+      "context_window": { "official_value": "1M", "parsed": 1048576, "source": "https://platform.kimi.com/docs/guide/kimi-k3-quickstart.md" },
+      "max_output_tokens": "NOT_PUBLISHED(已核实,见verification_notes)",
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "vision": true,
+        "web_search": true,
+        "system_prompt": true,
+        "auto_context_caching": true,
+        "reasoning_effort": { "supported": true, "values": ["low", "high", "max"], "default": "max", "note": "切换档位会破坏前缀缓存命中,建议会话开始前确定" },
+        "note": "长程编程/知识工作/深度推理/视觉理解;2.8万亿参数;始终进行推理思考且保留式思考始终开启"
+      },
+      "fixed_params": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "n": 1,
+        "presence_penalty": 0,
+        "frequency_penalty": 0,
+        "note": "固定值,显式传入会报错,对齐验证应判SKIP"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_hit": 2.00,
+        "input_cache_miss": 20.00,
+        "output": 100.00,
+        "source": "https://platform.kimi.com/docs/pricing/chat-k3.md"
+      },
+      "rate_limits": "按账号tier,见rate_limits(与模型无关)",
+      "gaps": ["max_output_tokens(官网未公布)"]
+    },
+    {
+      "model_id": "kimi-k2.7-code",
+      "display_name": "Kimi K2.7 Code",
+      "version": "K2.7",
+      "status": "current",
+      "modality": "text(coding)",
+      "context_window": { "official_value": "256K", "parsed": 262144, "source": "https://platform.kimi.com/docs/models" },
+      "max_output_tokens": "NOT_PUBLISHED(已核实,见verification_notes)",
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "vision": false,
+        "system_prompt": true,
+        "coding_agent": true,
+        "note": "对话与Agent任务;thinking始终开启,仅接受{type:enabled,keep:all}"
+      },
+      "fixed_params": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "n": 1,
+        "note": "K2系列采样参数不暴露,对齐验证应判SKIP"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_hit": 1.30,
+        "input_cache_miss": 6.50,
+        "output": 27.00,
+        "source": "https://platform.kimi.com/docs/pricing/chat-k27-code.md"
+      },
+      "rate_limits": "按账号tier,见rate_limits",
+      "gaps": ["max_output_tokens(官网未公布)"]
+    },
+    {
+      "model_id": "kimi-k2.7-code-highspeed",
+      "display_name": "Kimi K2.7 Code Highspeed",
+      "version": "K2.7",
+      "status": "current",
+      "modality": "text(coding)",
+      "context_window": { "official_value": "256K", "parsed": 262144 },
+      "max_output_tokens": "NOT_PUBLISHED(已核实,见verification_notes)",
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "vision": false,
+        "system_prompt": true,
+        "note": "约180 Tokens/s,短上下文可达260 Token/s;效果同k2.7-code更快"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_hit": 2.60,
+        "input_cache_miss": 13.00,
+        "output": 54.00,
+        "note": "标准版2倍价",
+        "source": "https://platform.kimi.com/docs/pricing/chat-k27-code.md"
+      },
+      "rate_limits": "按账号tier,见rate_limits",
+      "gaps": ["max_output_tokens(官网未公布)"]
+    },
+    {
+      "model_id": "kimi-k2.6",
+      "display_name": "Kimi K2.6",
+      "version": "K2.6",
+      "status": "current",
+      "modality": "text+vision",
+      "context_window": { "official_value": "256K", "parsed": 262144, "source": "https://platform.kimi.com/docs/models" },
+      "max_output_tokens": "NOT_PUBLISHED(已核实,见verification_notes)",
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": true,
+        "vision": true,
+        "video_input": true,
+        "web_search": true,
+        "system_prompt": true,
+        "note": "通用对话/Agent/视觉理解/复杂推理;升级自kimi-thinking-preview;thinking默认enabled支持disabled"
+      },
+      "fixed_params": {
+        "temperature": "思考1.0/非思考0.6",
+        "top_p": 0.95,
+        "n": 1,
+        "note": "K2系列采样参数不暴露,对齐验证应判SKIP"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_hit": 1.10,
+        "input_cache_miss": 6.50,
+        "output": 27.00,
+        "source": "https://platform.kimi.com/docs/pricing/chat-k26.md"
+      },
+      "rate_limits": "按账号tier,见rate_limits",
+      "gaps": ["max_output_tokens(官网未公布)"]
+    },
+    {
+      "model_id": "kimi-k2.5",
+      "display_name": "Kimi K2.5",
+      "version": "K2.5",
+      "status": "deprecated",
+      "deprecation_date": "2026-08-31",
+      "modality": "text+image+video",
+      "context_window": { "official_value": "256K", "parsed": 262144, "source": "pricing/chat-k25.md" },
+      "max_output_tokens": "NOT_PUBLISHED(已核实,见verification_notes)",
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": true,
+        "non_thinking_mode": true,
+        "vision": true,
+        "video_input": true,
+        "web_search": true,
+        "system_prompt": true,
+        "auto_context_caching": true,
+        "note": "对话与Agent任务,长思考深度推理"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_hit": 0.70,
+        "input_cache_miss": 4.00,
+        "output": 21.00,
+        "source": "https://platform.kimi.com/docs/pricing/chat-k25.md"
+      },
+      "rate_limits": "按账号tier,见rate_limits",
+      "gaps": ["max_output_tokens(官网未公布)"]
+    },
+    {
+      "model_id": "moonshot-v1-8k",
+      "display_name": "Moonshot V1 8K",
+      "version": "V1",
+      "status": "deprecated",
+      "deprecation_date": "2026-08-31",
+      "modality": "text",
+      "context_window": { "official_value": "8K", "parsed": 8192, "source": "https://platform.kimi.com/docs/models" },
+      "max_output_tokens": "NOT_PUBLISHED(上下文含输入+输出合计)",
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": false,
+        "vision": false,
+        "system_prompt": true,
+        "note": "V1系列各型号仅最大上下文不同,效果无差异;支持完整采样参数(见platform_params.moonshot_v1)"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_hit": "NOT_PUBLISHED(无cache价格)",
+        "input_cache_miss": 2.00,
+        "output": 10.00,
+        "source": "https://platform.kimi.com/docs/pricing/chat-v1.md"
+      },
+      "rate_limits": "按账号tier,见rate_limits",
+      "gaps": []
+    },
+    {
+      "model_id": "moonshot-v1-32k",
+      "display_name": "Moonshot V1 32K",
+      "version": "V1",
+      "status": "deprecated",
+      "deprecation_date": "2026-08-31",
+      "modality": "text",
+      "context_window": { "official_value": "32K", "parsed": 32768 },
+      "max_output_tokens": "NOT_PUBLISHED(上下文含输入+输出合计)",
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": false,
+        "vision": false,
+        "system_prompt": true,
+        "note": "支持完整采样参数"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_hit": "NOT_PUBLISHED(无cache价格)",
+        "input_cache_miss": 5.00,
+        "output": 20.00
+      },
+      "rate_limits": "按账号tier,见rate_limits",
+      "gaps": []
+    },
+    {
+      "model_id": "moonshot-v1-128k",
+      "display_name": "Moonshot V1 128K",
+      "version": "V1",
+      "status": "deprecated",
+      "deprecation_date": "2026-08-31",
+      "modality": "text",
+      "context_window": { "official_value": "128K", "parsed": 131072 },
+      "max_output_tokens": "NOT_PUBLISHED(上下文含输入+输出合计)",
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": false,
+        "vision": false,
+        "system_prompt": true,
+        "note": "支持完整采样参数"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_hit": "NOT_PUBLISHED(无cache价格)",
+        "input_cache_miss": 10.00,
+        "output": 30.00
+      },
+      "rate_limits": "按账号tier,见rate_limits",
+      "gaps": []
+    },
+    {
+      "model_id": "moonshot-v1-8k-vision-preview",
+      "display_name": "Moonshot V1 8K Vision Preview",
+      "version": "V1",
+      "status": "deprecated",
+      "deprecation_date": "2026-08-31",
+      "modality": "text+image",
+      "context_window": { "official_value": "8K", "parsed": 8192 },
+      "max_output_tokens": "NOT_PUBLISHED(上下文含输入+输出合计)",
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": false,
+        "vision": true,
+        "system_prompt": true,
+        "note": "支持完整采样参数"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_hit": "NOT_PUBLISHED(无cache价格)",
+        "input_cache_miss": 2.00,
+        "output": 10.00
+      },
+      "rate_limits": "按账号tier,见rate_limits",
+      "gaps": []
+    },
+    {
+      "model_id": "moonshot-v1-32k-vision-preview",
+      "display_name": "Moonshot V1 32K Vision Preview",
+      "version": "V1",
+      "status": "deprecated",
+      "deprecation_date": "2026-08-31",
+      "modality": "text+image",
+      "context_window": { "official_value": "32K", "parsed": 32768 },
+      "max_output_tokens": "NOT_PUBLISHED(上下文含输入+输出合计)",
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": false,
+        "vision": true,
+        "system_prompt": true,
+        "note": "支持完整采样参数"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_hit": "NOT_PUBLISHED(无cache价格)",
+        "input_cache_miss": 5.00,
+        "output": 20.00
+      },
+      "rate_limits": "按账号tier,见rate_limits",
+      "gaps": []
+    },
+    {
+      "model_id": "moonshot-v1-128k-vision-preview",
+      "display_name": "Moonshot V1 128K Vision Preview",
+      "version": "V1",
+      "status": "deprecated",
+      "deprecation_date": "2026-08-31",
+      "modality": "text+image",
+      "context_window": { "official_value": "128K", "parsed": 131072 },
+      "max_output_tokens": "NOT_PUBLISHED(上下文含输入+输出合计)",
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "json_output": true,
+        "thinking_mode": false,
+        "vision": true,
+        "system_prompt": true,
+        "note": "支持完整采样参数"
+      },
+      "pricing": {
+        "currency": "CNY",
+        "unit": "per_million_tokens",
+        "model": "single",
+        "input_cache_hit": "NOT_PUBLISHED(无cache价格)",
+        "input_cache_miss": 10.00,
+        "output": 30.00
+      },
+      "rate_limits": "按账号tier,见rate_limits",
+      "gaps": []
+    }
+  ],
+  "deprecation_notes": [
+    "kimi-k2.5 与 moonshot-v1 全系列于 2026-08-31 全平台下线,官方建议切换至 kimi-k3",
+    "kimi-latest 已于 2026-01-28 下线",
+    "kimi-k2 系列(0905-preview/0711-preview/turbo-preview/thinking/thinking-turbo)已于 2026-05-25 下线"
+  ],
+  "gaps_summary": [
+    "max_output_tokens:已核实官网不公布(见verification_notes),基线标NOT_PUBLISHED,非缺口",
+    "anthropic端点:Kimi官方仅提供OpenAI兼容端点,无独立Anthropic端点",
+    "benchmark:官网未公布 → 不放benchmark项",
+    "唯一需登录项:无(限速/价格/上下文/能力均已公开获取)"
+  ]
+}
