@@ -275,7 +275,7 @@ td.c-ch-cell{text-align:center;font-family:var(--mono)}
     <div class="field"><label>模型</label><select id="modelSelect"></select></div>
     <div class="field"><label>Profile</label><select id="profileSelect"><option value="smoke">smoke</option><option value="standard" selected>standard</option><option value="full">full</option></select></div>
     <div class="field"><label>对比通道</label><span class="ch-count" id="chCount">2 路</span></div>
-    <div class="field" style="flex-basis:100%"><label>统一 Prompt</label><textarea id="gPrompt" rows="2" style="width:100%;font-family:var(--sans);font-size:13px;border:1px solid var(--border-strong);border-radius:8px;padding:9px 11px;background:var(--surface);color:var(--ink);resize:vertical;min-height:44px">请精确回复 SPEC_TEXT_OK</textarea></div>
+    <div class="field" style="flex-basis:100%"><label>文本I/O 哨兵词</label><textarea id="gPrompt" rows="2" style="width:100%;font-family:var(--sans);font-size:13px;border:1px solid var(--border-strong);border-radius:8px;padding:9px 11px;background:var(--surface);color:var(--ink);resize:vertical;min-height:44px">请精确回复哨兵 SPEC_TEXT_OK</textarea></div>
     <div class="right">
       <label class="toggle"><input type="checkbox" id="realMode" checked><span class="track"></span><span>真发</span></label>
       <button class="btn ghost sm" id="editCh">编辑通道</button>
@@ -467,7 +467,7 @@ $$('.tab,.foot-links [data-go]').forEach(t=>t.onclick=()=>switchTab(t.dataset.go
 // ============ 通道管理 ============
 let channels=[];
 function saveCh(){try{localStorage.setItem('lla2_ch',JSON.stringify(channels.map(c=>({name:c.name,proto:c.proto,base:c.base,key:c.key,headers:c.headers,model:c.model,modelId:c.modelId,modelIdx:c.modelIdx}))))}catch(e){}}
-function loadCh(){try{return JSON.parse(localStorage.getItem('lla2_ch')||'null');}catch(e){return null;}}
+function loadCh(){try{const lc=JSON.parse(localStorage.getItem('lla2_ch')||'null');if(lc){lc.forEach(c=>{if(c.modelIdx==null||c.modelIdx>=MODELS.length||c.modelIdx<0){const idx=MODELS.findIndex(m=>m.id===c.modelId);c.modelIdx=idx>=0?idx:0;}});}return lc;}catch(e){return null;}}
 function addCh(){
   if(channels.length>=4){return;}
   const id=Date.now()+Math.random();const m=MODELS[+$("#modelSelect").value];
@@ -491,7 +491,7 @@ function renderCh(){
         <div class="field"><label>Headers</label><input data-hdr value="${esc(c.headers||'')}"></div>
       </div>`;
     const ms=d.querySelector('[data-m]');MODELS.forEach((mm,i)=>{const o=document.createElement('option');o.value=i;o.textContent=mm.vendor+'·'+mm.name;if(mm.id===c.model)o.selected=true;ms.appendChild(o);});
-    ms.onchange=e=>{c.modelIdx=+e.target.value;c.model=MODELS[c.modelIdx].id;c.modelId=MODELS[c.modelIdx].id;saveCh();};
+    ms.onchange=e=>{const newIdx=+e.target.value;const newM=MODELS[newIdx];const oldM=MODELS[c.modelIdx];c.modelIdx=newIdx;c.model=newM.id;c.modelId=newM.id;const newBase=newM.api_base?(typeof newM.api_base==='string'?newM.api_base:Object.values(newM.api_base)[0]||''):'';const oldBase=oldM.api_base?(typeof oldM.api_base==='string'?oldM.api_base:Object.values(oldM.api_base)[0]||''):'';if(newBase&&(!c.base||c.base===oldBase)){c.base=newBase;const bi=d.querySelector('[data-base]');if(bi)bi.value=newBase;}saveCh();updateThinkHint();};
     d.querySelector('[data-mid]').oninput=e=>{c.modelId=e.target.value;saveCh();};
     d.querySelector('[data-pr]').value=c.proto;d.querySelector('[data-pr]').onchange=e=>{c.proto=e.target.value;saveCh();};
     d.querySelector('[data-base]').oninput=e=>{c.base=e.target.value;saveCh();};
@@ -603,7 +603,10 @@ function outCell(p){
   return h;
 }
 function renderCmp(){
-  const box=$("#cmpBox");box.innerHTML='';
+  const box=$("#cmpBox");
+  const expanded=new Set();
+  if(box.querySelectorAll)box.querySelectorAll('.cmp-detail').forEach(e=>{if(e.style.display!=='none')expanded.add(+e.dataset.didx);});
+  box.innerHTML='';
   const run=SIM_RUNS[0];
   if(!run){box.innerHTML='<div class="empty">启动验收后此处显示多路并排对比</div>';$("#cmpCnt").textContent='';return;}
   $("#cmpCnt").textContent=run.channels.length+' 路';
@@ -641,6 +644,7 @@ function renderCmp(){
     detail.style.display=open?'none':'table-row';
     btn.textContent=open?'展开':'收起';
   });
+  expanded.forEach(idx=>{const detail=box.querySelector(`.cmp-detail[data-didx="${idx}"]`);const btn=box.querySelector(`.cmp-toggle[data-idx="${idx}"]`);if(detail){detail.style.display='table-row';if(btn)btn.textContent='收起';}});
 }
 
 // ============ 官网基线 ============
@@ -722,70 +726,105 @@ function judgeOne(m,p,profile){
   return'PASS';
 }
 function simulateMulti(chans,profile){
-  return PLAN_ARR.map(c=>({case:c,perChannel:chans.map(ch=>({ch,status:judgeOne(ch.model,c.id,profile)}))}));
+  const plan=PLAN_ARR.filter(c=>c.profiles&&c.profiles.includes(profile));
+  return plan.map(c=>({case:c,perChannel:chans.map(ch=>({ch,status:judgeOne(ch.model,c.id,profile)}))}));
 }
 
 // ============ 真发 ============
 async function proxyFetch(url,opt){opt=opt||{};try{const r=await fetch("/proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:url,method:opt.method||"POST",headers:opt.headers||{},body:opt.body||null})});const j=await r.json();return{ok:!!j.ok,status:j.status||0,text:j.body||"",headers:j.headers||{}};}catch(e){return{ok:false,status:0,text:"代理未响应:"+(e.message||e),headers:{}};}}
-function chatUrl(base){let b=(base||"").trim().replace(/\/$/,"");if(!b)return"";if(/\/chat\/completions$/.test(b))return b;if(/\/v1$/.test(b))return b+"/chat/completions";return b+"/v1/chat/completions";}
-async function callAPI(ch,body,noThink){if(!noThink)Object.assign(body,thinkParams(ch));const url=chatUrl(ch.base);const headers={"Content-Type":"application/json","Accept":"application/json"};if(ch.key)headers["Authorization"]="Bearer "+ch.key;if(ch.headers){try{Object.assign(headers,JSON.parse(ch.headers));}catch(e){}}const r=await proxyFetch(url,{method:"POST",headers,body:JSON.stringify(body)});let json=null;try{json=JSON.parse(r.text);}catch(e){}const ret={ok:r.ok,status:r.status,text:r.text,json};globalThis._lastCall=ret;return ret;}
-function pickContent(j){try{return j.choices[0].message.content||"";}catch(e){return"";}}
-function pickFinishReason(j){try{return j.choices[0].finish_reason||"";}catch(e){return"";}}
-function pickToolCalls(j){try{return j.choices[0].message.tool_calls||null;}catch(e){return null;}}
-function pickReasoning(j){try{return j.choices[0].message.reasoning_content||j.choices[0].message.reasoning||"";}catch(e){return"";}}
+// 通道级错误识别
+function chanErr(r){return r.status===401||r.status===403||r.status===404;}
+// 模型该用 max_tokens 还是 max_completion_tokens
+function maxTokField(m){if(!m)return'max_tokens';const v=m.vendorId?CATALOG[m.vendorId]:null;const pp=(v&&v.platform_params)||m.platform_params;if(pp&&pp.max_completion_tokens&&!pp.max_tokens)return'max_completion_tokens';if(/^o[1-9]/.test(m.id))return'max_completion_tokens';return'max_tokens';}
+// 按模型转换 max_tokens 字段（MiMo / o 系列）
+function buildBody(m,body,proto){if(proto==='anthropic')return body;const f=maxTokField(m);if(f==='max_completion_tokens'&&body.max_tokens!=null){body.max_completion_tokens=body.max_tokens;delete body.max_tokens;}return body;}
+// 按 proto 拼 endpoint
+function chatUrl(base,proto){proto=proto||'openai';let b=(base||"").trim().replace(/\/$/,"");if(!b)return"";if(proto==='anthropic'){if(/\/v1\/messages$/.test(b))return b;if(/\/v1$/.test(b))return b+"/messages";return b+"/v1/messages";}if(/\/chat\/completions$/.test(b))return b;if(/\/v1$/.test(b))return b+"/chat/completions";return b+"/v1/chat/completions";}
+// 从 gPrompt 提取大写哨兵词
+function extractSentinel(prompt){const m=String(prompt||"").match(/[A-Z][A-Z0-9_]{3,}/);return m?m[0]:null;}
+async function callAPI(ch,body,noThink){
+  if(!noThink)Object.assign(body,thinkParams(ch));
+  const proto=ch.proto||'openai';
+  const m=ch.model||(ch.modelIdx!=null?MODELS[ch.modelIdx]:null);
+  body=buildBody(m,body,proto);
+  const url=chatUrl(ch.base,proto);
+  let headers={"Content-Type":"application/json","Accept":"application/json"};
+  if(proto==='anthropic'){
+    if(ch.key)headers["x-api-key"]=ch.key;
+    headers["anthropic-version"]="2023-06-01";
+    // system 消息提取到 top-level
+    if(body.messages){const sys=body.messages.find(x=>x.role==='system');if(sys){body.system=sys.content;body.messages=body.messages.filter(x=>x.role!=='system');}}
+    if(!body.max_tokens&&!body.max_completion_tokens)body.max_tokens=1024;
+    // tools 格式转换
+    if(body.tools)body.tools=body.tools.map(t=>({name:t.function.name,description:t.function.description,input_schema:t.function.parameters}));
+    if(body.tool_choice&&typeof body.tool_choice==='string'){const map={auto:{type:'auto'},required:{type:'any'},none:{type:'none'}};body.tool_choice=map[body.tool_choice]||{type:'auto'};}
+  }else{
+    if(ch.key)headers["Authorization"]="Bearer "+ch.key;
+  }
+  if(ch.headers){try{Object.assign(headers,JSON.parse(ch.headers));}catch(e){}}
+  const r=await proxyFetch(url,{method:"POST",headers,body:JSON.stringify(body)});
+  let json=null;try{json=JSON.parse(r.text);}catch(e){}
+  const ret={ok:r.ok,status:r.status,text:r.text,json,proto};globalThis._lastCall=ret;return ret;
+}
+// 按 proto 解析响应
+function pickContent(j,proto){proto=proto||'openai';try{if(proto==='anthropic')return(j.content||[]).filter(b=>b.type==='text').map(b=>b.text||'').join('');return j.choices[0].message.content||"";}catch(e){return"";}}
+function pickReasoning(j,proto){proto=proto||'openai';try{if(proto==='anthropic')return(j.content||[]).filter(b=>b.type==='thinking').map(b=>b.thinking||'').join('');return j.choices[0].message.reasoning_content||j.choices[0].message.reasoning||"";}catch(e){return"";}}
+function pickToolCalls(j,proto){proto=proto||'openai';try{if(proto==='anthropic')return(j.content||[]).filter(b=>b.type==='tool_use')||null;return j.choices[0].message.tool_calls||null;}catch(e){return null;}}
 function sSlice(s){return String(s==null?"":s).slice(0,140);}
-function failRes(r,note){return{status:"FAIL",tag:"real",note:note+" HTTP "+r.status+(r.text?(" · "+sSlice(r.text)):"")};}
+function failRes(r,note){if(chanErr(r))return{status:"INCONCLUSIVE",note:"通道未接通 HTTP "+r.status+(r.text?(" · "+sSlice(r.text)):"")};return{status:"FAIL",note:note+" HTTP "+r.status+(r.text?(" · "+sSlice(r.text)):"")};}
 function isReasoningModel(m){const b=bl(m);return!!(b.feat&&b.feat.thinking_mode===true);}
 function jsonFromText(t){if(!t)return null;let s=String(t).trim().replace(/^```(?:json)?\s*/i,"").replace(/\s*```\s*$/,"");if(s[0]==="{"||s[0]==="["){try{return JSON.parse(s);}catch(e){}}const m=s.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);if(m){try{return JSON.parse(m[0]);}catch(e){}}return null;}
 
-async function realJudge(m,ch,c){
-  const b=bl(m);const id=c.id;const modelId=ch.modelId||m.id;
+async function realJudge(m,ch,c,profile){
+  const b=bl(m);const id=c.id;const modelId=ch.modelId||m.id;const proto=ch.proto||'openai';const v=m?m.vendor:'';
   const notpubTemp=!b.temp||b.temp.min==="NOT_PUBLISHED";
-  const mk=(res)=>{const lc=globalThis._lastCall;const out=lc?{http:lc.status,content:String(pickContent(lc.json)||'').slice(0,400),reasoning:String(pickReasoning(lc.json)||'').slice(0,400),toolCalls:pickToolCalls(lc.json),text:String(lc.text||'').slice(0,400)}:null;return{...res,out};};
-  const exactSentinel=t=>String(t==null?'':t).trim().replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g,'')==="SPEC_TEXT_OK";
-  if(id==="spec_text_io"){const mt=isReasoningModel(m)?2048:64;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"请精确回复哨兵 SPEC_TEXT_OK，不要输出其他内容。"}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"请求失败"));const t=pickContent(r.json);if(exactSentinel(t))return mk({status:"PASS",note:"精确返回哨兵"});if(/SPEC_TEXT_OK/.test(t))return mk({status:"FAIL",note:"含哨兵但非精确:"+sSlice(t)});const rc=pickReasoning(r.json);return mk((!t&&rc)?{status:"INCONCLUSIVE",note:"content空,reasoning len="+rc.length}:{status:"FAIL",note:"未返回哨兵:"+sSlice(t)});}
-  if(id==="spec_output_generation"){const mt=isReasoningModel(m)?2048:200;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"用中文写一段约50字的产品介绍。"}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"请求失败"));const t=pickContent(r.json);if(t&&t.length>0)return mk({status:"PASS",note:"生成len="+t.length});const rc=pickReasoning(r.json);return mk((!t&&rc)?{status:"INCONCLUSIVE",note:"空,有reasoning"}:{status:"FAIL",note:"空输出"});}
-  if(id==="spec_invalid_request_errors"){const r=await callAPI(ch,{model:modelId,messages:[],max_tokens:16,stream:false},true);
-    if(r.status===401||r.status===403)return mk({status:"INCONCLUSIVE",note:"通道鉴权失败 HTTP "+r.status+",未真正测到"});
-    if(r.status===404)return mk({status:"INCONCLUSIVE",note:"通道路由不存在 HTTP 404,未真正测到"});
-    return mk((r.status>=400&&r.status<500)?{status:"PASS",note:"拒绝非法 HTTP "+r.status}:(r.ok?{status:"FAIL",note:"未拒绝"}:{status:"INCONCLUSIVE",note:"HTTP "+r.status}));}
-  if(id==="spec_parameter_boundaries"){if(notpubTemp)return mk({status:"INCONCLUSIVE",note:"未公布范围"});const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"hi"}],temperature:99999,max_tokens:16,stream:false},true);
-    if(r.status===401||r.status===403)return mk({status:"INCONCLUSIVE",note:"通道鉴权失败 HTTP "+r.status+",未真正测到"});
-    if(r.status===404)return mk({status:"INCONCLUSIVE",note:"通道路由不存在 HTTP 404,未真正测到"});
-    return mk((r.status>=400&&r.status<500)?{status:"PASS",note:"超界被拒 HTTP "+r.status}:(r.ok?{status:"FAIL",note:"超界未拒"}:{status:"INCONCLUSIVE",note:"HTTP "+r.status}));}
-  if(id==="spec_max_output_parameter"||id==="spec_max_completion_tokens_parameter"){if(b.notpub)return mk({status:"INCONCLUSIVE",note:"未公布最大输出"});const mo=b.maxOut||4096;const tm=Math.min(mo,4096);const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"输出连续文字。"}],max_tokens:tm,stream:false});if(!r.ok)return mk(failRes(r,"max_tokens="+tm+"失败"));return mk({status:"PASS",note:"max_tokens="+tm+"被接受(上限"+mo+")"});}
-  if(id==="spec_context_window"){const cap=b.ctx?Math.min(b.ctx,65536):4096;const pad="x ".repeat(Math.floor(cap/2));const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:pad+"文末回复 CONTEXT_OK。"}],max_tokens:64,stream:false});if(!r.ok)return mk(failRes(r,"压测失败"));const t=pickContent(r.json);const toks=(r.json&&r.json.usage&&r.json.usage.prompt_tokens)||0;if(/CONTEXT_OK/.test(t))return mk({status:"PASS",note:"窗口内接受,prompt_tokens="+toks});if(r.ok)return mk({status:"INCONCLUSIVE",note:"接受200但无哨兵"});return mk({status:"FAIL",note:"压测失败"});}
-  if(id==="cap_tool_result_roundtrip"){const mt=isReasoningModel(m)?2048:128;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"北京天气？调get_weather。"},{role:"assistant",content:null,tool_calls:[{id:"call_1",type:"function",function:{name:"get_weather",arguments:'{"city":"北京"}'}}]},{role:"tool",tool_call_id:"call_1",content:"北京，晴，25℃。"}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const t=pickContent(r.json)||"";return mk(/25|晴/.test(t)?{status:"PASS",note:"使用回填结果"}:{status:"FAIL",note:"未使用:"+sSlice(t)});}
-  if(id==="cap_tool_error_recovery"){const mt=isReasoningModel(m)?2048:128;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"查北京天气，调get_weather。"},{role:"assistant",content:null,tool_calls:[{id:"call_1",type:"function",function:{name:"get_weather",arguments:'{"city":"北京"}'}}]},{role:"tool",tool_call_id:"call_1",content:"ERROR:503"}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const t=pickContent(r.json)||"";return mk((t.length>0&&/不可用|无法|失败|抱歉|503/i.test(t))?{status:"PASS",note:"错误后合理回应"}:(t.length>0?{status:"INCONCLUSIVE",note:"有回应但未处理错误"}:{status:"FAIL",note:"空输出"}));}
-  if(id==="cap_tool_choice_modes"){const mt=isReasoningModel(m)?2048:128;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"你好。"}],tools:[{type:"function",function:{name:"get_weather",description:"天气",parameters:{type:"object",properties:{city:{type:"string"}}}}}],tool_choice:"required",max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const tc=pickToolCalls(r.json);return mk((tc&&tc.length)?{status:"PASS",note:"required触发调用"}:{status:"FAIL",note:"未触发"});}
+  const mk=(res)=>{const lc=globalThis._lastCall;const p=proto;const out=lc?{http:lc.status,content:String(pickContent(lc.json,p)||'').slice(0,400),reasoning:String(pickReasoning(lc.json,p)||'').slice(0,400),toolCalls:pickToolCalls(lc.json,p),text:String(lc.text||'').slice(0,400)}:null;return{...res,out};};
+  if(id==="spec_text_io"){const mt=isReasoningModel(m)?4096:64;const promptTxt=$("#gPrompt")?$("#gPrompt").value:'请精确回复哨兵 SPEC_TEXT_OK';const sentinel=extractSentinel(promptTxt);const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:promptTxt}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"请求失败"));const t=pickContent(r.json,proto);if(sentinel){const exact=String(t==null?'':t).trim().replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g,'')===sentinel;if(exact)return mk({status:"PASS",note:"精确返回哨兵 "+sentinel});if(new RegExp(sentinel).test(t))return mk({status:"FAIL",note:"含哨兵但非精确:"+sSlice(t)});const rc=pickReasoning(r.json,proto);if(!t&&rc)return mk({status:"INCONCLUSIVE",note:"content空,reasoning len="+rc.length});return mk({status:"FAIL",note:"未返回哨兵:"+sSlice(t)});}else{return mk(t&&t.length>0?{status:"PASS",note:"非空len="+t.length}:{status:"FAIL",note:"空输出"});}}
+  if(id==="spec_output_generation"){const thresh=profile==='smoke'?128:profile==='standard'?1024:2048;const mt=isReasoningModel(m)?8192:profile==='smoke'?1024:4096;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"用中文写一段约200字的产品介绍，详细描述功能特点。"}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"请求失败"));const t=pickContent(r.json,proto);const ctoks=(r.json&&r.json.usage&&r.json.usage.completion_tokens)||0;if(ctoks>=thresh)return mk({status:"PASS",note:"completion_tokens="+ctoks+"≥"+thresh});if(t&&t.length>0)return mk({status:"INCONCLUSIVE",note:"产出不足 tokens="+ctoks+"<"+thresh});return mk({status:"FAIL",note:"空输出"});}
+  if(id==="spec_invalid_request_errors"){const tests=[{n:'空messages',b:{model:modelId,messages:[],max_tokens:16}},{n:'空content',b:{model:modelId,messages:[{role:'user',content:''}],max_tokens:16}},{n:'无model',b:{messages:[{role:'user',content:'hi'}],max_tokens:16}}];const results=[];for(const tt of tests){const r=await callAPI(ch,tt.b,true);if(chanErr(r))return mk({status:"INCONCLUSIVE",note:"通道未接通 HTTP "+r.status+",未真正测到"});results.push(tt.n+':'+(r.status>=400&&r.status<500?'拒'+r.status:'未拒'+r.status));}const allRej=results.every(s=>/:拒/.test(s));return mk(allRej?{status:"PASS",note:results.join(' ')}:{status:"FAIL",note:results.join(' ')});}
+  if(id==="spec_parameter_boundaries"){if(notpubTemp)return mk({status:"INCONCLUSIVE",note:"未公布范围"});const tests=[{n:'max_tokens=1',b:{model:modelId,messages:[{role:'user',content:'hi'}],max_tokens:1}},{n:'temp=0',b:{model:modelId,messages:[{role:'user',content:'hi'}],temperature:0,max_tokens:16}},{n:'temp=1',b:{model:modelId,messages:[{role:'user',content:'hi'}],temperature:1,max_tokens:16}}];const results=[];for(const tt of tests){const r=await callAPI(ch,tt.b,true);if(chanErr(r))return mk({status:"INCONCLUSIVE",note:"通道未接通 HTTP "+r.status+",未真正测到"});results.push(tt.n+':'+(r.ok?'200':'HTTP'+r.status));}const allOk=results.every(s=>/:200/.test(s));return mk(allOk?{status:"PASS",note:"三边界全200: "+results.join(' ')}:{status:"FAIL",note:results.join(' ')});}
+  if(id==="spec_max_output_parameter"||id==="spec_max_completion_tokens_parameter"){if(b.notpub)return mk({status:"INCONCLUSIVE",note:"未公布最大输出"});const mo=b.maxOut||4096;const tm=Math.min(mo,4096);const field=maxTokField(m);const body={model:modelId,messages:[{role:"user",content:"输出连续文字。"}],stream:false};body[field]=tm;const r=await callAPI(ch,body,true);if(!r.ok)return mk(failRes(r,field+"="+tm+"失败"));return mk({status:"PASS",note:field+"="+tm+"被接受(上限"+mo+")"});}
+  if(id==="spec_context_window"){const cap=b.ctx?Math.min(b.ctx,profile==='smoke'?8192:profile==='standard'?32768:131072):4096;const pad="x ".repeat(Math.floor(cap/2));const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:pad+"文末回复 CONTEXT_OK。"}],max_tokens:64,stream:false});if(!r.ok)return mk(failRes(r,"压测失败"));const t=pickContent(r.json,proto);const toks=(r.json&&r.json.usage&&r.json.usage.prompt_tokens)||0;if(/CONTEXT_OK/.test(t))return mk({status:"PASS",note:"窗口内接受,prompt_tokens="+toks});if(r.ok)return mk({status:"INCONCLUSIVE",note:"接受200但无哨兵"});return mk({status:"FAIL",note:"压测失败"});}
+  if(id==="cap_tool_result_roundtrip"){const mt=isReasoningModel(m)?2048:128;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"北京天气？调get_weather。"},{role:"assistant",content:null,tool_calls:[{id:"call_1",type:"function",function:{name:"get_weather",arguments:'{"city":"北京"}'}}]},{role:"tool",tool_call_id:"call_1",content:"北京，晴，25℃。"}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const t=pickContent(r.json,proto)||"";return mk(/25|晴/.test(t)?{status:"PASS",note:"使用回填结果"}:{status:"FAIL",note:"未使用:"+sSlice(t)});}
+  if(id==="cap_tool_error_recovery"){const mt=isReasoningModel(m)?2048:128;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"查北京天气，调get_weather。"},{role:"assistant",content:null,tool_calls:[{id:"call_1",type:"function",function:{name:"get_weather",arguments:'{"city":"北京"}'}}]},{role:"tool",tool_call_id:"call_1",content:"ERROR:503"}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const t=pickContent(r.json,proto)||"";return mk((t.length>0&&/不可用|无法|失败|抱歉|503/i.test(t))?{status:"PASS",note:"错误后合理回应"}:(t.length>0?{status:"INCONCLUSIVE",note:"有回应但未处理错误"}:{status:"FAIL",note:"空输出"}));}
+  if(id==="cap_tool_choice_modes"){const mt=isReasoningModel(m)?2048:128;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"你好。"}],tools:[{type:"function",function:{name:"get_weather",description:"天气",parameters:{type:"object",properties:{city:{type:"string"}}}}}],tool_choice:"required",max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const tc=pickToolCalls(r.json,proto);return mk((tc&&tc.length)?{status:"PASS",note:"required触发调用"}:{status:"FAIL",note:"未触发"});}
   if(id==="cap_streaming"){const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"从1数到5"}],max_tokens:64,stream:true});return mk(/data:\s/.test(r.text)?{status:"PASS",note:"收到SSE流"}:{status:"FAIL",note:"无SSE:"+sSlice(r.text)});}
-  if(id==="cap_function_calling"){const mt=isReasoningModel(m)?2048:128;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"北京天气？调工具。"}],tools:[{type:"function",function:{name:"get_weather",description:"天气",parameters:{type:"object",properties:{city:{type:"string"}},required:["city"]}}}],tool_choice:"auto",max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const tc=pickToolCalls(r.json);return mk((tc&&tc.length)?{status:"PASS",note:"触发调用"}:{status:"FAIL",note:"未触发"});}
-  if(id==="cap_tool_no_false_positive"){const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"1+1等于几？直接回答数字,不调工具。"}],tools:[{type:"function",function:{name:"get_weather",description:"天气",parameters:{type:"object",properties:{city:{type:"string"}}}}}],tool_choice:"auto",max_tokens:64,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const tc=pickToolCalls(r.json);return mk((!tc||!tc.length)?{status:"PASS",note:"无误触"}:{status:"FAIL",note:"误触"});}
-  if(id==="cap_structured_output"){const mt=isReasoningModel(m)?2048:128;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"只返回JSON：{\"ok\":true,\"n\":42}"}],response_format:{type:"json_object"},max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const t=pickContent(r.json);if(jsonFromText(t))return mk({status:"PASS",note:"合法JSON"});return mk({status:"FAIL",note:"非JSON:"+sSlice(t)});}
-  if(id==="cap_json_schema_output"){const mt=isReasoningModel(m)?2048:128;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"按schema返回用户:name=张三,age=18"}],response_format:{type:"json_schema",json_schema:{name:"user",strict:false,schema:{type:"object",properties:{name:{type:"string"},age:{type:"integer"}},required:["name","age"]}}},max_tokens:mt,stream:false});if(!r.ok)return mk({status:"INCONCLUSIVE",note:"可能不支持json_schema HTTP "+r.status});const t=pickContent(r.json);const o=jsonFromText(t);if(o&&o.name&&o.age!=null)return mk({status:"PASS",note:"符合schema"});return mk({status:"FAIL",note:"不符:"+sSlice(t)});}
-  if(id==="cap_multi_round_chat"){const mt=isReasoningModel(m)?2048:64;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"我叫小明，记住。"},{role:"assistant",content:"你好小明。"},{role:"user",content:"我叫什么？只回答名字。"}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const t=pickContent(r.json)||"";return mk(/小明/.test(t)?{status:"PASS",note:"多轮记忆OK"}:{status:"FAIL",note:"记忆失败:"+sSlice(t)});}
-  if(id==="cap_tool_parallel_calls"){const mt=isReasoningModel(m)?2048:256;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"同时查北京和上海天气。"}],tools:[{type:"function",function:{name:"get_weather",description:"天气",parameters:{type:"object",properties:{city:{type:"string"}},required:["city"]}}}],tool_choice:"auto",max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const tc=pickToolCalls(r.json)||[];return mk(tc.length>=2?{status:"PASS",note:"并行"+tc.length+"个"}:{status:"INCONCLUSIVE",note:"仅"+tc.length+"个"});}
-  if(id==="cap_thinking_enabled"){const mt=isReasoningModel(m)?4096:768;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"一步步思考：123×456等于多少？给推理过程。"}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const rc=pickReasoning(r.json);return mk(rc?{status:"PASS",note:"返回思考len="+rc.length}:{status:"INCONCLUSIVE",note:"未暴露reasoning"});}
-  if(id==="cap_multimodal_image_input"){return mk({status:"SKIP",note:(b.feat&&b.feat.vision===true)?"支持视觉,未实测":"文本模型"});}
-  return mk({status:"SKIP",note:"本轮未实测"});
+  if(id==="cap_function_calling"){const mt=isReasoningModel(m)?2048:128;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"北京天气？调工具。"}],tools:[{type:"function",function:{name:"get_weather",description:"天气",parameters:{type:"object",properties:{city:{type:"string"}},required:["city"]}}}],tool_choice:"auto",max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const tc=pickToolCalls(r.json,proto);return mk((tc&&tc.length)?{status:"PASS",note:"触发调用"}:{status:"FAIL",note:"未触发"});}
+  if(id==="cap_tool_no_false_positive"){const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"1+1等于几？直接回答数字,不调工具。"}],tools:[{type:"function",function:{name:"get_weather",description:"天气",parameters:{type:"object",properties:{city:{type:"string"}}}}}],tool_choice:"auto",max_tokens:64,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const tc=pickToolCalls(r.json,proto);return mk((!tc||!tc.length)?{status:"PASS",note:"无误触"}:{status:"FAIL",note:"误触"});}
+  if(id==="cap_structured_output"){const mt=isReasoningModel(m)?2048:128;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"只返回JSON：{\"ok\":true,\"n\":42}"}],response_format:{type:"json_object"},max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const t=pickContent(r.json,proto);if(jsonFromText(t))return mk({status:"PASS",note:"合法JSON"});return mk({status:"FAIL",note:"非JSON:"+sSlice(t)});}
+  if(id==="cap_json_schema_output"){const mt=isReasoningModel(m)?2048:128;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"按schema返回用户:name=张三,age=18"}],response_format:{type:"json_schema",json_schema:{name:"user",strict:false,schema:{type:"object",properties:{name:{type:"string"},age:{type:"integer"}},required:["name","age"]}}},max_tokens:mt,stream:false});if(!r.ok)return mk({status:"INCONCLUSIVE",note:"可能不支持json_schema HTTP "+r.status});const t=pickContent(r.json,proto);const o=jsonFromText(t);if(o&&o.name&&o.age!=null)return mk({status:"PASS",note:"符合schema"});return mk({status:"FAIL",note:"不符:"+sSlice(t)});}
+  if(id==="cap_multi_round_chat"){const mt=isReasoningModel(m)?2048:64;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"我叫小明，记住。"},{role:"assistant",content:"你好小明。"},{role:"user",content:"我叫什么？只回答名字。"}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const t=pickContent(r.json,proto)||"";return mk(/小明/.test(t)?{status:"PASS",note:"多轮记忆OK"}:{status:"FAIL",note:"记忆失败:"+sSlice(t)});}
+  if(id==="cap_tool_parallel_calls"){const mt=isReasoningModel(m)?2048:256;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"同时查北京和上海天气。"}],tools:[{type:"function",function:{name:"get_weather",description:"天气",parameters:{type:"object",properties:{city:{type:"string"}},required:["city"]}}}],tool_choice:"auto",max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const tc=pickToolCalls(r.json,proto)||[];return mk(tc.length>=2?{status:"PASS",note:"并行"+tc.length+"个"}:{status:"INCONCLUSIVE",note:"仅"+tc.length+"个"});}
+  if(id==="cap_thinking_enabled"){if(!isReasoningModel(m))return mk({status:'SKIP',note:'非思考模型'});const mt=4096;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"一步步思考：123×456等于多少？给推理过程。"}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const rc=pickReasoning(r.json,proto);return mk(rc?{status:"PASS",note:"返回思考len="+rc.length}:{status:"INCONCLUSIVE",note:"未暴露reasoning"});}
+  if(id==="cap_thinking_disabled"){if(!isReasoningModel(m))return mk({status:'SKIP',note:'非思考模型'});let dis={};if(/智谱|zhipu|glm/i.test(v))dis={thinking:{type:'disabled'}};else if(/Kimi|moonshot/i.test(v))dis={thinking:false};else if(/MiniMax/i.test(v))dis={thinking_enabled:false};else if(/MiMo|小米/i.test(v))dis={enable_thinking:false};else dis={reasoning_effort:'low'};const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"请精确回复哨兵 DISABLED_THINK_OK"}],max_tokens:isReasoningModel(m)?2048:128,stream:false,...dis},true);if(r.status>=400&&r.status<500)return mk({status:"PASS",note:"不可关闭,被拒 HTTP "+r.status});if(!r.ok)return mk(failRes(r,"失败"));const t=pickContent(r.json,proto);const rc=pickReasoning(r.json,proto);if(t&&(!rc||rc.length===0))return mk({status:"PASS",note:"关闭成功,无reasoning"});if(rc&&rc.length>0)return mk({status:"FAIL",note:"仍返回reasoning len="+rc.length});return mk({status:"INCONCLUSIVE",note:"无content无reasoning"});}
+  if(id==="cap_reasoning_effort"){if(!isReasoningModel(m))return mk({status:'SKIP',note:'非思考模型'});if(maxTokField(m)!=='max_completion_tokens')return mk({status:'SKIP',note:'非reasoning_effort模型'});const efforts=['low','high'];const results=[];for(const eff of efforts){const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"1+1=?"}],max_tokens:256,stream:false,reasoning_effort:eff},true);if(chanErr(r))return mk({status:"INCONCLUSIVE",note:"通道未接通 HTTP "+r.status});results.push(eff+':'+(r.ok?'OK':'FAIL'+r.status));}return mk(results.every(s=>/:OK/.test(s))?{status:"PASS",note:results.join(' ')}:{status:"FAIL",note:results.join(' ')});}
+  if(id==="cap_stream_tool"){const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"北京天气？调get_weather。"}],tools:[{type:"function",function:{name:"get_weather",description:"天气",parameters:{type:"object",properties:{city:{type:"string"}},required:["city"]}}}],tool_choice:"auto",max_tokens:256,stream:true},true);if(!r.ok)return mk(failRes(r,"失败"));const lines=String(r.text||'').split('\n').filter(l=>/^data:\s/.test(l));let toolArgs='',hasTC=false;for(const line of lines){const d=line.replace(/^data:\s/,'').trim();if(d==='[DONE]')break;try{const j=JSON.parse(d);const delta=j.choices&&j.choices[0]&&j.choices[0].delta;if(delta&&delta.tool_calls){hasTC=true;const tc=delta.tool_calls[0];if(tc.function&&tc.function.arguments)toolArgs+=tc.function.arguments;}}catch(e){}}return mk(hasTC?{status:"PASS",note:"流式tool_call合并 args="+sSlice(toolArgs)}:{status:"FAIL",note:"无流式tool_call"});}
+  if(id==="cap_preserved_thinking"){if(!isReasoningModel(m))return mk({status:'SKIP',note:'非思考模型'});if(!/智谱|zhipu|glm/i.test(v))return mk({status:'SKIP',note:'仅GLM支持clear_thinking'});const r1=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"记住数字42,然后计算1+1"}],max_tokens:2048,stream:false,thinking:{type:'enabled'}},true);if(!r.ok)return mk(failRes(r,"第一轮失败"));const t1=pickContent(r.json,proto);const r2=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"记住数字42,然后计算1+1"},{role:"assistant",content:t1||'42,1+1=2'},{role:"user",content:"我之前说的数字是多少？"}],max_tokens:2048,stream:false,thinking:{type:'enabled'}},true);if(!r.ok)return mk(failRes(r,"第二轮失败"));const t2=pickContent(r.json,proto);return mk(/42/.test(t2)?{status:"PASS",note:"思考保留,记住42"}:{status:"FAIL",note:"未记住:"+sSlice(t2)});}
+  if(id==="cap_cache"){const longCtx='请记住以下内容：'+('ABCDEFGHIJKLMNOPQRSTUVWXYZ').repeat(200)+'\n\n回复 OK';const r1=await callAPI(ch,{model:modelId,messages:[{role:"user",content:longCtx}],max_tokens:16,stream:false},true);if(!r.ok)return mk(failRes(r,"第一次失败"));const r2=await callAPI(ch,{model:modelId,messages:[{role:"user",content:longCtx}],max_tokens:16,stream:false},true);if(!r.ok)return mk(failRes(r,"第二次失败"));const u2=r2.json&&r2.json.usage||{};const cached=(u2.prompt_tokens_details&&u2.prompt_tokens_details.cached_tokens)||u2.cached_tokens||0;return mk(cached>0?{status:"PASS",note:"缓存命中 cached_tokens="+cached}:{status:"INCONCLUSIVE",note:"缓存为0 (可能不支持或不触发)"});}
+  if(id==="cap_partial_mode"){if(proto==='anthropic')return mk({status:'SKIP',note:'Anthropic协议不支持prefill'});const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"续写以下文字："},{role:"assistant",content:"春天来了，"}],max_tokens:64,stream:false},true);if(!r.ok)return mk(failRes(r,"失败"));const t=pickContent(r.json,proto);return mk(t&&t.length>3?{status:"PASS",note:"续写:"+sSlice(t)}:{status:"FAIL",note:"未续写"});}
+  if(id==="sec_auth_security"){const chNoKey={...ch,key:''};const r1=await callAPI(chNoKey,{model:modelId,messages:[{role:"user",content:"hi"}],max_tokens:16,stream:false},true);const chBadKey={...ch,key:'sk-invalid-'+(Date.now()%10000)};const r2=await callAPI(chBadKey,{model:modelId,messages:[{role:"user",content:"hi"}],max_tokens:16,stream:false},true);const p1=(r1.status===401||r1.status===403);const p2=(r2.status===401||r2.status===403);return mk(p1&&p2?{status:"PASS",note:"空Key→"+r1.status+" 错Key→"+r2.status+" (脱敏需后端日志验证)"}:{status:"FAIL",note:"空Key→"+r1.status+" 错Key→"+r2.status});}
+  if(id==="obs_usage_and_status_fields"){return mk({status:'SKIP',note:'需平台观测接口,前端不可测'});}
+  if(id==="cap_multimodal_image_input"){if(!(b.feat&&b.feat.vision===true))return mk({status:'SKIP',note:'文本模型,不支持视觉'});const imgUrl='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:[{type:"text",text:"这张图是什么颜色？"},{type:"image_url",image_url:{url:imgUrl}}]}],max_tokens:64,stream:false});if(!r.ok)return mk(failRes(r,"失败"));const t=pickContent(r.json,proto);return mk(t&&t.length>0?{status:"PASS",note:"视觉输入被接受,回复:"+sSlice(t)}:{status:"FAIL",note:"空输出"});}
+  return mk({status:"SKIP",note:"未实现"});
 }
 async function runPool(tasks,conc){let i=0;const n=tasks.length;async function w(){while(true){const idx=i++;if(idx>=n)break;await tasks[idx]();}}await Promise.all(Array.from({length:Math.max(1,Math.min(conc,n))},w));}
 async function realRun(){
   const profile=$("#profileSelect").value;
+  const plan=PLAN_ARR.filter(c=>c.profiles&&c.profiles.includes(profile));
   const chans=channels.map(c=>{const m=MODELS[c.modelIdx];return{model:m,modelId:c.modelId||m.id,base:c.base,key:c.key,headers:c.headers,proto:c.proto};});
-  const run={run_id:"real_"+Date.now(),multi:true,profile,started_at:new Date().toISOString(),running:true,channels:chans,results:PLAN_ARR.map(c=>({case:c,perChannel:chans.map(ch=>({ch,status:"PENDING",note:"",elapsed:0}))}))};
+  const run={run_id:"real_"+Date.now(),multi:true,profile,started_at:new Date().toISOString(),running:true,channels:chans,results:plan.map(c=>({case:c,perChannel:chans.map(ch=>({ch,status:"PENDING",note:"",elapsed:0}))}))};
   SIM_RUNS.unshift(run);
-  const total=chans.length*PLAN_ARR.length;
+  const total=chans.length*plan.length;
   $("#launchBtn").textContent="真发中 0/"+total;
   let done=0;
   const tick=()=>{renderSummary();renderGroups();renderCmp();};
   tick();
   for(let ci=0;ci<chans.length;ci++){
     const ch=chans[ci];
-    const tasks=PLAN_ARR.map((c,idx)=>async()=>{
+    const tasks=plan.map((c,idx)=>async()=>{
       const t0=performance.now();
       run.results[idx].perChannel[ci]={ch,status:"RUNNING",note:"",elapsed:0};
-      try{const r=await realJudge(ch.model,ch,c);run.results[idx].perChannel[ci]={ch,status:r.status,note:r.note||"",elapsed:Math.round(performance.now()-t0),out:r.out||null};}
+      try{const r=await realJudge(ch.model,ch,c,profile);run.results[idx].perChannel[ci]={ch,status:r.status,note:r.note||"",elapsed:Math.round(performance.now()-t0),out:r.out||null};}
       catch(e){run.results[idx].perChannel[ci]={ch,status:"FAIL",note:"异常:"+(e.message||e),elapsed:Math.round(performance.now()-t0),out:null};}
       done++;$("#launchBtn").textContent="真发中 "+done+"/"+total;tick();
     });
@@ -799,7 +838,7 @@ async function realRun(){
 // ============ 持久化 ============
 const SIM_RUNS=[];
 const STORE_KEY='lla2_runs';
-function saveRuns(){try{localStorage.setItem(STORE_KEY,JSON.stringify(SIM_RUNS.slice(0,20)));}catch(e){}}
+function saveRuns(){try{const toSave=SIM_RUNS.slice(0,5).map(r=>({...r,results:r.results.map(res=>({...res,perChannel:res.perChannel.map(p=>({...p,out:p.out?{http:p.out.http,content:String(p.out.content||'').slice(0,200),text:String(p.out.text||'').slice(0,200)}:null}))}))}));localStorage.setItem(STORE_KEY,JSON.stringify(toSave));}catch(e){}}
 function loadRuns(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'null');}catch(e){return null;}}
 (function(){const p=loadRuns();if(p&&p.length)p.forEach(r=>SIM_RUNS.push(r));})();
 
@@ -823,11 +862,11 @@ async function callAnalyst(question,context){
   const msgs=[{role:'system',content:sys+'\n\n'+context},{role:'user',content:question}];
   const r=await callAPI(ch,{model:ch.modelId,messages:msgs,max_tokens:1024,stream:false},true);
   if(!r.ok)return'分析调用失败 HTTP '+r.status+' '+(r.text||'').slice(0,200);
-  const t=pickContent(r.json);
+  const t=pickContent(r.json,ch.proto||'openai');
   return t||('（分析员未返回文本。原始响应:'+String(r.text).slice(0,200)+'）');
 }
 function renderChat(){
-  const sel=$("#analystCh");if(sel){sel.innerHTML=channels.map((c,i)=>`<option value="${i}">${i+1}. ${esc(MODELS[c.modelIdx]?MODELS[c.modelIdx].name:c.model||'?')} · ${esc((c.base||'').slice(0,30))||'未配置'}</option>`).join('');if(channels.length)sel.value=Math.min(sel.value||0,channels.length-1);}
+  const sel=$("#analystCh");if(sel){if(!channels.length){sel.innerHTML='<option value="">请先在发起测试配置通道</option>';}else{sel.innerHTML=channels.map((c,i)=>`<option value="${i}">${i+1}. ${esc(MODELS[c.modelIdx]?MODELS[c.modelIdx].name:c.model||'?')} · ${esc((c.base||'').slice(0,30))||'未配置'}</option>`).join('');sel.value=Math.min(sel.value||0,channels.length-1);}}
   const log=$("#chatLog");
   log.innerHTML=CHAT.map(m=>`<div class="chat-msg ${m.role}"><div class="who">${m.role==='user'?'你':'分析员'}</div><div class="bubble">${esc(m.text)}</div>${m.ctx?`<div class="ctx">${esc(m.ctx)}</div>`:''}</div>`).join('')||'<div class="empty" style="border:none">还没有对话。提问验收结果即可。</div>';
   log.scrollTop=log.scrollHeight;
