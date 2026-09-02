@@ -79,7 +79,7 @@ main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
 .config-bar .field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .config-bar .field label{font-size:10px;color:var(--stone-500);font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
 .config-bar select,.config-bar input{border:1px solid var(--border-strong);border-radius:8px;padding:8px 11px;font-size:13px;background:var(--surface);color:var(--ink);font-family:var(--sans);min-width:120px}
-.config-bar select:focus,.config-bar input:focus{outline:none;border-color:var(--amber-600);box-shadow:0 0 0 3px var(--amber-100)}
+.config-bar select:focus,.config-bar input:focus,.config-bar textarea:focus{outline:none;border-color:var(--amber-600);box-shadow:0 0 0 3px var(--amber-100)}
 .config-bar .ch-count{font-size:12px;color:var(--stone-500);font-family:var(--mono);padding:8px 0}
 .config-bar .right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;user-select:none}
@@ -275,7 +275,7 @@ td.c-ch-cell{text-align:center;font-family:var(--mono)}
     <div class="field"><label>模型</label><select id="modelSelect"></select></div>
     <div class="field"><label>Profile</label><select id="profileSelect"><option value="smoke">smoke</option><option value="standard" selected>standard</option><option value="full">full</option></select></div>
     <div class="field"><label>对比通道</label><span class="ch-count" id="chCount">2 路</span></div>
-    <div class="field" style="min-width:200px"><label>统一 Prompt</label><input id="gPrompt" type="text" value="请精确回复 SPEC_TEXT_OK"></div>
+    <div class="field" style="flex-basis:100%"><label>统一 Prompt</label><textarea id="gPrompt" rows="2" style="width:100%;font-family:var(--sans);font-size:13px;border:1px solid var(--border-strong);border-radius:8px;padding:9px 11px;background:var(--surface);color:var(--ink);resize:vertical;min-height:44px">请精确回复 SPEC_TEXT_OK</textarea></div>
     <div class="right">
       <label class="toggle"><input type="checkbox" id="realMode" checked><span class="track"></span><span>真发</span></label>
       <button class="btn ghost sm" id="editCh">编辑通道</button>
@@ -304,7 +304,7 @@ td.c-ch-cell{text-align:center;font-family:var(--mono)}
       <label>附加请求属性 JSON</label>
       <input id="extraProps" type="text" placeholder='如 {"reasoning_effort":"low"} 或 {"enable_thinking":false}，重名覆盖，null 移除'>
     </div>
-    <div class="think-hint" id="thinkHint">自动：按模型厂商注入思考参数（智谱 thinking.type / Kimi thinking / MiniMax thinking_enabled / OpenAI reasoning_effort / Anthropic thinking.budget_tokens）。DeepSeek reasoner 默认开不可关，不注入。</div>
+    <div class="think-hint" id="thinkHint">自动：先按基线 thinking_mode 判断模型是否支持思考——支持则按厂商注入（智谱 thinking.type / Kimi thinking / MiniMax thinking_enabled / MiMo enable_thinking / OpenAI reasoning_effort / Anthropic thinking.budget_tokens），不支持则不注入（避免 400）。DeepSeek reasoner 默认开不可关，不注入。右侧附加属性可强制覆盖。</div>
   </div>
 
   <div id="chEditor" style="display:none">
@@ -396,10 +396,15 @@ bindSeg('thinkSeg',v=>{THINK_ON=v;updateThinkHint();});
 bindSeg('effortSeg',v=>{THINK_EFFORT=v;updateThinkHint();});
 function updateThinkHint(){
   const m=MODELS[+$("#modelSelect").value]||MODELS[0];
+  const canThink=isReasoningModel(m);
   const p=thinkParams({model:m,proto:m.protocols&&m.protocols[0]?m.protocols[0]:'openai'});
   const keys=Object.keys(p);
-  const desc=THINK_ON==='off'?'关闭：不注入思考参数，模型按默认行为':('自动注入: '+keys.map(k=>k+'='+JSON.stringify(p[k])).join(', '));
-  $("#thinkHint").textContent=desc+(keys.length?'。可在右侧附加属性覆盖':'');
+  let desc;
+  if(THINK_ON==='off'){desc='关闭：不注入思考参数，模型按默认行为';}
+  else if(!canThink){desc='该模型基线 thinking_mode 非支持，不注入思考参数（注入会 400）。如需强制试注入，在右侧附加属性填写';}
+  else if(!keys.length){desc='思考模型但该厂商默认开不可关（如 DeepSeek reasoner），不注入';}
+  else{desc='自动注入: '+keys.map(k=>k+'='+JSON.stringify(p[k])).join(', ')+'。可在右侧附加属性覆盖';}
+  $("#thinkHint").textContent=desc;
 }
 // 按厂商/协议算思考参数（附加属性覆盖、null 移除）
 function thinkParams(ch){
@@ -409,8 +414,12 @@ function thinkParams(ch){
   else if(ch.modelIdx!=null)m=MODELS[ch.modelIdx];
   const v=m?m.vendor:'', id=m?m.id:'', proto=ch.proto||'openai';
   let p={};
-  if(/DeepSeek/i.test(v)){
-    // deepseek-reasoner 默认开不可关；deepseek-chat 不支持。注入会报错，跳过
+  // 先按基线判断模型本身是否支持思考；不支持的不注入(注入会 400 unknown parameter)
+  const canThink=isReasoningModel(m);
+  if(!canThink){
+    p={}; // 非思考模型:不注入思考参数,模型按默认行为
+  }else if(/DeepSeek/i.test(v)){
+    // deepseek-reasoner 默认开不可关;chat 不支持。注入会报错,跳过
     p={};
   }else if(/智谱|zhipu|glm/i.test(v)){
     p={thinking:{type:'enabled'}};
@@ -424,11 +433,11 @@ function thinkParams(ch){
     const budget={low:1024,high:8192,max:16384}[THINK_EFFORT]||8192;
     p={thinking:{type:'enabled',budget_tokens:budget}};
   }else{
-    // 通用 OpenAI o 系列兼容：reasoning_effort（max 无对应，映射 high）
+    // 通用 OpenAI o 系列兼容:reasoning_effort(max 无对应,映射 high)
     const eff={low:'low',high:'high',max:'high'}[THINK_EFFORT]||'high';
     p={reasoning_effort:eff};
   }
-  // 附加属性 JSON 覆盖：重名覆盖，值为 null 从请求移除
+  // 附加属性 JSON 覆盖:重名覆盖,值为 null 从请求移除
   let extra={};
   try{extra=JSON.parse($("#extraProps")?$("#extraProps").value:'{}')||{};}catch(e){}
   Object.keys(extra).forEach(k=>{if(extra[k]===null)delete p[k];else p[k]=extra[k];});
