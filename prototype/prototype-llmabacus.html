@@ -227,6 +227,20 @@ td.c-ch-cell{text-align:center;font-family:var(--mono)}
 .foot-links a:hover{text-decoration:underline}
 .foot-links .sep{color:var(--faint)}
 .empty{padding:28px;text-align:center;color:var(--faint);font-size:13px}
+
+/* ============ 思考模式 + 附加属性 ============ */
+.think-bar{margin:10px 0 0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 20px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;box-shadow:0 1px 2px rgba(28,25,23,.03)}
+.think-bar .field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.think-bar .field>label{font-size:10px;color:var(--stone-500);font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:8px;padding:2px;gap:2px}
+.seg-btn{border:none;background:transparent;color:var(--stone-500);font-size:12px;font-weight:500;padding:5px 11px;border-radius:6px;cursor:pointer;font-family:var(--sans);transition:.12s}
+.seg-btn:hover{color:var(--ink)}
+.seg-btn.active{background:var(--amber-600);color:#fff}
+[data-theme="dark"] .seg-btn:hover{color:var(--ink)}
+.think-bar .extra-field{flex:1;min-width:220px}
+.think-bar .extra-field input{border:1px solid var(--border-strong);border-radius:8px;padding:8px 11px;font-size:12.5px;background:var(--surface);color:var(--ink);font-family:var(--mono);width:100%}
+.think-bar .extra-field input:focus{outline:none;border-color:var(--amber-600);box-shadow:0 0 0 3px var(--amber-100)}
+.think-hint{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:4px;word-break:break-all}
 </style>
 </head>
 <body>
@@ -268,6 +282,29 @@ td.c-ch-cell{text-align:center;font-family:var(--mono)}
       <button class="btn" id="launchBtn">启动验收</button>
       <span id="launchNote"></span>
     </div>
+  </div>
+
+  <div class="think-bar">
+    <div class="field">
+      <label>思考模式</label>
+      <div class="seg" id="thinkSeg">
+        <button class="seg-btn active" type="button" data-v="auto">自动</button>
+        <button class="seg-btn" type="button" data-v="off">关闭</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>力度</label>
+      <div class="seg" id="effortSeg">
+        <button class="seg-btn" type="button" data-v="low">low</button>
+        <button class="seg-btn active" type="button" data-v="high">high</button>
+        <button class="seg-btn" type="button" data-v="max">max</button>
+      </div>
+    </div>
+    <div class="field extra-field">
+      <label>附加请求属性 JSON</label>
+      <input id="extraProps" type="text" placeholder='如 {"reasoning_effort":"low"} 或 {"enable_thinking":false}，重名覆盖，null 移除'>
+    </div>
+    <div class="think-hint" id="thinkHint">自动：按模型厂商注入思考参数（智谱 thinking.type / Kimi thinking / MiniMax thinking_enabled / OpenAI reasoning_effort / Anthropic thinking.budget_tokens）。DeepSeek reasoner 默认开不可关，不注入。</div>
   </div>
 
   <div id="chEditor" style="display:none">
@@ -346,6 +383,58 @@ const $$=s=>document.querySelectorAll(s);
 const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+// ============ 思考模式 + 附加请求属性 ============
+let THINK_ON='auto', THINK_EFFORT='high';
+function bindSeg(segId, onSel){
+  const seg=$("#"+segId);if(!seg)return;
+  seg.querySelectorAll('.seg-btn').forEach(b=>b.onclick=()=>{
+    seg.querySelectorAll('.seg-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');onSel(b.dataset.v);
+  });
+}
+bindSeg('thinkSeg',v=>{THINK_ON=v;updateThinkHint();});
+bindSeg('effortSeg',v=>{THINK_EFFORT=v;updateThinkHint();});
+function updateThinkHint(){
+  const m=MODELS[+$("#modelSelect").value]||MODELS[0];
+  const p=thinkParams({model:m,proto:m.protocols&&m.protocols[0]?m.protocols[0]:'openai'});
+  const keys=Object.keys(p);
+  const desc=THINK_ON==='off'?'关闭：不注入思考参数，模型按默认行为':('自动注入: '+keys.map(k=>k+'='+JSON.stringify(p[k])).join(', '));
+  $("#thinkHint").textContent=desc+(keys.length?'。可在右侧附加属性覆盖':'');
+}
+// 按厂商/协议算思考参数（附加属性覆盖、null 移除）
+function thinkParams(ch){
+  if(THINK_ON==='off')return{};
+  let m=null;
+  if(ch.model&&typeof ch.model==='object')m=ch.model;
+  else if(ch.modelIdx!=null)m=MODELS[ch.modelIdx];
+  const v=m?m.vendor:'', id=m?m.id:'', proto=ch.proto||'openai';
+  let p={};
+  if(/DeepSeek/i.test(v)){
+    // deepseek-reasoner 默认开不可关；deepseek-chat 不支持。注入会报错，跳过
+    p={};
+  }else if(/智谱|zhipu|glm/i.test(v)){
+    p={thinking:{type:'enabled'}};
+  }else if(/Kimi|moonshot/i.test(v)){
+    p={thinking:true};
+  }else if(/MiniMax/i.test(v)){
+    p={thinking_enabled:true};
+  }else if(/MiMo|小米|xiaomi/i.test(v)){
+    p={enable_thinking:true};
+  }else if(proto==='anthropic'){
+    const budget={low:1024,high:8192,max:16384}[THINK_EFFORT]||8192;
+    p={thinking:{type:'enabled',budget_tokens:budget}};
+  }else{
+    // 通用 OpenAI o 系列兼容：reasoning_effort（max 无对应，映射 high）
+    const eff={low:'low',high:'high',max:'high'}[THINK_EFFORT]||'high';
+    p={reasoning_effort:eff};
+  }
+  // 附加属性 JSON 覆盖：重名覆盖，值为 null 从请求移除
+  let extra={};
+  try{extra=JSON.parse($("#extraProps")?$("#extraProps").value:'{}')||{};}catch(e){}
+  Object.keys(extra).forEach(k=>{if(extra[k]===null)delete p[k];else p[k]=extra[k];});
+  return p;
+}
+
 function bl(m){
   const bs=m.baseline||{};let srcs=[];
   const ps=(o)=>{if(o&&o.source&&/^https?:/.test(o.source)&&!srcs.includes(o.source))srcs.push(o.source);};
@@ -415,7 +504,7 @@ function initModel(){
   const ms=$("#modelSelect");
   MODELS.forEach((m,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${m.vendor} · ${m.name}`;ms.appendChild(o);});
   ms.value=0;
-  ms.onchange=()=>{renderBaseline();renderBaseline2();};
+  ms.onchange=()=>{renderBaseline();renderBaseline2();updateThinkHint();};
 }
 
 // ============ 四态渲染 ============
@@ -630,7 +719,7 @@ function simulateMulti(chans,profile){
 // ============ 真发 ============
 async function proxyFetch(url,opt){opt=opt||{};try{const r=await fetch("/proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:url,method:opt.method||"POST",headers:opt.headers||{},body:opt.body||null})});const j=await r.json();return{ok:!!j.ok,status:j.status||0,text:j.body||"",headers:j.headers||{}};}catch(e){return{ok:false,status:0,text:"代理未响应:"+(e.message||e),headers:{}};}}
 function chatUrl(base){let b=(base||"").trim().replace(/\/$/,"");if(!b)return"";if(/\/chat\/completions$/.test(b))return b;if(/\/v1$/.test(b))return b+"/chat/completions";return b+"/v1/chat/completions";}
-async function callAPI(ch,body){const url=chatUrl(ch.base);const headers={"Content-Type":"application/json","Accept":"application/json"};if(ch.key)headers["Authorization"]="Bearer "+ch.key;if(ch.headers){try{Object.assign(headers,JSON.parse(ch.headers));}catch(e){}}const r=await proxyFetch(url,{method:"POST",headers,body:JSON.stringify(body)});let json=null;try{json=JSON.parse(r.text);}catch(e){}const ret={ok:r.ok,status:r.status,text:r.text,json};globalThis._lastCall=ret;return ret;}
+async function callAPI(ch,body,noThink){if(!noThink)Object.assign(body,thinkParams(ch));const url=chatUrl(ch.base);const headers={"Content-Type":"application/json","Accept":"application/json"};if(ch.key)headers["Authorization"]="Bearer "+ch.key;if(ch.headers){try{Object.assign(headers,JSON.parse(ch.headers));}catch(e){}}const r=await proxyFetch(url,{method:"POST",headers,body:JSON.stringify(body)});let json=null;try{json=JSON.parse(r.text);}catch(e){}const ret={ok:r.ok,status:r.status,text:r.text,json};globalThis._lastCall=ret;return ret;}
 function pickContent(j){try{return j.choices[0].message.content||"";}catch(e){return"";}}
 function pickFinishReason(j){try{return j.choices[0].finish_reason||"";}catch(e){return"";}}
 function pickToolCalls(j){try{return j.choices[0].message.tool_calls||null;}catch(e){return null;}}
@@ -647,11 +736,11 @@ async function realJudge(m,ch,c){
   const exactSentinel=t=>String(t==null?'':t).trim().replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g,'')==="SPEC_TEXT_OK";
   if(id==="spec_text_io"){const mt=isReasoningModel(m)?2048:64;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"请精确回复哨兵 SPEC_TEXT_OK，不要输出其他内容。"}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"请求失败"));const t=pickContent(r.json);if(exactSentinel(t))return mk({status:"PASS",note:"精确返回哨兵"});if(/SPEC_TEXT_OK/.test(t))return mk({status:"FAIL",note:"含哨兵但非精确:"+sSlice(t)});const rc=pickReasoning(r.json);return mk((!t&&rc)?{status:"INCONCLUSIVE",note:"content空,reasoning len="+rc.length}:{status:"FAIL",note:"未返回哨兵:"+sSlice(t)});}
   if(id==="spec_output_generation"){const mt=isReasoningModel(m)?2048:200;const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"用中文写一段约50字的产品介绍。"}],max_tokens:mt,stream:false});if(!r.ok)return mk(failRes(r,"请求失败"));const t=pickContent(r.json);if(t&&t.length>0)return mk({status:"PASS",note:"生成len="+t.length});const rc=pickReasoning(r.json);return mk((!t&&rc)?{status:"INCONCLUSIVE",note:"空,有reasoning"}:{status:"FAIL",note:"空输出"});}
-  if(id==="spec_invalid_request_errors"){const r=await callAPI(ch,{model:modelId,messages:[],max_tokens:16,stream:false});
+  if(id==="spec_invalid_request_errors"){const r=await callAPI(ch,{model:modelId,messages:[],max_tokens:16,stream:false},true);
     if(r.status===401||r.status===403)return mk({status:"INCONCLUSIVE",note:"通道鉴权失败 HTTP "+r.status+",未真正测到"});
     if(r.status===404)return mk({status:"INCONCLUSIVE",note:"通道路由不存在 HTTP 404,未真正测到"});
     return mk((r.status>=400&&r.status<500)?{status:"PASS",note:"拒绝非法 HTTP "+r.status}:(r.ok?{status:"FAIL",note:"未拒绝"}:{status:"INCONCLUSIVE",note:"HTTP "+r.status}));}
-  if(id==="spec_parameter_boundaries"){if(notpubTemp)return mk({status:"INCONCLUSIVE",note:"未公布范围"});const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"hi"}],temperature:99999,max_tokens:16,stream:false});
+  if(id==="spec_parameter_boundaries"){if(notpubTemp)return mk({status:"INCONCLUSIVE",note:"未公布范围"});const r=await callAPI(ch,{model:modelId,messages:[{role:"user",content:"hi"}],temperature:99999,max_tokens:16,stream:false},true);
     if(r.status===401||r.status===403)return mk({status:"INCONCLUSIVE",note:"通道鉴权失败 HTTP "+r.status+",未真正测到"});
     if(r.status===404)return mk({status:"INCONCLUSIVE",note:"通道路由不存在 HTTP 404,未真正测到"});
     return mk((r.status>=400&&r.status<500)?{status:"PASS",note:"超界被拒 HTTP "+r.status}:(r.ok?{status:"FAIL",note:"超界未拒"}:{status:"INCONCLUSIVE",note:"HTTP "+r.status}));}
@@ -723,7 +812,7 @@ async function callAnalyst(question,context){
   const ci=+$("#analystCh").value;const ch=channels[ci];if(!ch||!ch.base||!ch.key)return'未选择有效分析员通道(需 Base URL + Key)。请在「发起测试」配置后回到此处。';
   const sys='你是 LLM 多路验收对比分析助手。根据给定的验收数据(最近一次+历史相关片段)回答用户问题。要求:简明、分点、指出不一致项与可能原因、给出可操作建议。若数据不足以判断,如实说明。';
   const msgs=[{role:'system',content:sys+'\n\n'+context},{role:'user',content:question}];
-  const r=await callAPI(ch,{model:ch.modelId,messages:msgs,max_tokens:1024,stream:false});
+  const r=await callAPI(ch,{model:ch.modelId,messages:msgs,max_tokens:1024,stream:false},true);
   if(!r.ok)return'分析调用失败 HTTP '+r.status+' '+(r.text||'').slice(0,200);
   const t=pickContent(r.json);
   return t||('（分析员未返回文本。原始响应:'+String(r.text).slice(0,200)+'）');
@@ -749,6 +838,7 @@ $("#chatClear").onclick=()=>{CHAT.length=0;saveChat();renderChat();};
 // ============ 初始化 ============
 initModel();
 renderBaseline();
+updateThinkHint();
 (function(){const lc=loadCh();if(lc&&lc.length){channels=lc;renderCh();}else{addCh();addCh();}})();
 renderSummary();renderGroups();renderCmp();renderChat();
 
