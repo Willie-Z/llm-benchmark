@@ -14,6 +14,7 @@
 - **对话分析归因**：基于 TF-IDF 向量检索历史验收片段 + LLM 归因，自然语言提问（如「哪几项不一致？为什么 Kimi 判 INC 而 DeepSeek 判 PASS？」）。
 - **双主题**：浅色 / 深色，stone + amber 配色，本地偏好记忆。
 - **离线退回**：无 `serve.py` 时自动禁用真发、退回模拟演示，不报错。
+- **多工具测试**：`prototype-multitool.html` 测试 AI 编码工具（codex 等）接入星流网关的可用性——工具版本号自动从 GitHub Release 获取（支持 4 层 / 7 层代理），模型列表凭控制台 Cookie 在线获取，真发请求做模型连通性测试判定连通，并生成 codex 接入配置（`config.toml` + 启动命令）。
 
 ## 目录结构
 
@@ -25,11 +26,13 @@
 ├── data/                         # 参考站点数据（27 用例、运行结果、聚合模型树）
 └── prototype/                    # 可运行原型
     ├── prototype-llmabacus.html  # 主版本：4-tab + 真发对比 + 答案展开
+    ├── prototype-multitool.html  # 多工具测试：codex 接入星流网关连通性测试 + 配置生成
     ├── prototype-promptfoo.html  # promptfoo 风格双主题版本
     ├── prototype-v3.html         # v3 工作版本
     ├── prototype-coze.html       # Coze 风格版本
+    ├── prototype.html            # 早期版本（默认页回退）
     ├── _data.js                  # CATALOG 模型树 + PLAN 27 用例 + 示例结果
-    └── serve.py                  # 本地代理（绕 CORS，转发到真实 Endpoint）
+    └── serve.py                  # 本地代理（绕 CORS，转发到真实 Endpoint；/proxy 支持 4 层上游代理）
 ```
 
 ## 安装
@@ -42,7 +45,7 @@
    python serve.py
    ```
 
-2. 浏览器打开 http://127.0.0.1:8000/prototype-llmabacus.html
+2. 浏览器打开 http://127.0.0.1:8000/prototype-llmabacus.html （多工具测试：http://127.0.0.1:8000/prototype-multitool.html）
 
 无需构建，原生 HTML + JavaScript，仅依赖 Python 3 运行本地代理。
 
@@ -69,6 +72,17 @@
 2. **进行中**：实时查看各用例 × 通道的判定状态，summary 卡 + 进度条 + 分类表格。
 3. **已完成**：多路并排对比表，每用例一行各路一列，末列标注一致性。点击「展开」查看各路实测返回。
 4. **对话分析**：选择分析员通道，自然语言提问验收结果。
+
+### 多工具测试
+
+打开 http://127.0.0.1:8000/prototype-multitool.html ：
+
+1. **选工具与模型**：工具下拉（目前 codex），版本下拉自动从 GitHub Releases（`openai/codex`）获取全部版本（默认最新正式版，列表接口受限时回退最新版；预发布标注）；模型分「国内 / 国外」两个选项，**模型列表在线获取**——粘贴星流控制台 Cookie（F12 → Network → `console-v2` 请求头）经 `serve.py` 实时拉取全量模型列表（国内 101 / 国际 34），提取出对话模型填充下拉（按 apiConfig 端点判定协议，嵌入/重排序/图片/视频/语音模型排除），Cookie 仅存本机 localStorage、启动时自动加载；未粘贴 Cookie 时下拉显示占位提示。切换区域时网关 Base URL 自动跟随（国内 `kspmas.ksyun.com` ↔ 国际 `global-kspmas.ksyun.com`），本页不依赖 `_data.js`、可独立打开。
+2. **GitHub 代理（境内访问失败时启用）**：4 层代理填 `http://10.0.0.1:8080`（gost / shadowsocks 等自建 HTTP 代理，经本地 `serve.py` 转发）；7 层代理填 `https://gh-proxy.com` 这类公开代理（自动把完整 GitHub 地址拼接在代理地址后）。
+3. **模型详情**：选中模型后自动用 Key 拉取网关 `/v1/models` 详情（上下文 / 输出上限 / 输入输出模态 / 定价 / `owned_by`）。
+3. **模型连通性测试 / 工具测试**：填网关 Base URL 与 API Key 与测试 Prompt 后「开始测试」，真发一条请求判定 PASS / FAIL + 耗时 + 原始返回。**模型协议检测**四档可选：Auto（真自动检测——从模型标记的协议起依次尝试 chat → responses → anthropic，首个通过即用，结果卡显示每个协议的探测轨迹）/ Completion（`/v1/chat/completions`）/ Anthropic（`/v1/messages`，`x-api-key` 鉴权）/ Responses（`/v1/responses`，codex 工具测试默认）。**工具测试**则拉起 codex（优先页面所选版本二进制，与「下载并验证」同一套下载逻辑、缓存 15 分钟自动清理；未指定版本回退本机 codex），写入临时配置目录后执行 `codex exec` 用完整网关路径 + 所选模型端到端跑一次，结果卡显示 codex 路径、退出码与完整输出。
+5. **下载并验证**：点版本号旁的「下载并验证」，serve.py 自动识别平台（macOS/Linux/Windows × x86_64/arm64），从 GitHub Release 下载对应资产（优先直拼确定性 URL，绕开 API 限流；可走 4/7 层代理），解压到临时目录重命名为 `codex-版本号`，执行 `--version` 验证后**立即删除临时目录**。
+6. **配置生成**：自动生成 codex 的 `~/.codex/config.toml` 与环境变量、启动命令，一键复制；也可写入自定义路径（如 `/tmp/mytest`），或留空写入系统临时目录并按保留时长自动删除。
 
 ### 如何判断真跑通
 
@@ -111,7 +125,7 @@ python serve.py
 ### 技术栈
 
 - 无构建步骤、无第三方运行时依赖，原生 JavaScript（单文件 HTML + `_data.js` + `serve.py`）。
-- `serve.py` 硬编码端口 8000，提供 `/proxy` 端点转发 + 静态文件服务。
+- `serve.py` 硬编码端口 8000，提供 `/proxy`（LLM 转发 + 4 层代理）、`/cfg`（配置写入 + 临时目录自动删除）、`/tool`（工具二进制下载验证，缓存 15 分钟复用）、`/tooltest`（codex 端到端测试）端点 + 静态文件服务。
 - `_data.js` 提供 CATALOG（模型树）/ PLAN（27 用例）/ 示例结果，前后端共享。
 
 ## 许可
