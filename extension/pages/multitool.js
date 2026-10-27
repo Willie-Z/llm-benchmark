@@ -1,325 +1,3 @@
-<!doctype html>
-<html lang="zh-CN" data-theme="light">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>星流多工具测试</title>
-<style>
-/* ============ 与 prototype-llmabacus 同款风格：stone + amber + 浅/深双主题 ============ */
-:root{
-  --bg:#fafaf9; --surface:#ffffff; --surface-2:#f5f5f4; --surface-3:#e7e5e4;
-  --ink:#1c1917; --ink-2:#44403c; --muted:#78716c; --faint:#a8a29e;
-  --border:#e7e5e4; --border-strong:#d6d3d1;
-  --amber-50:#fffbeb; --amber-100:#fef3c7; --amber-200:#fde68a; --amber-300:#fcd34d;
-  --amber-600:#d97706; --amber-700:#b45309; --amber-800:#92400e; --amber-900:#78350f;
-  --stone-50:#fafaf9; --stone-100:#f5f5f4; --stone-200:#e7e5e4; --stone-300:#d6d3d1;
-  --stone-400:#a8a29e; --stone-500:#78716c; --stone-600:#57534e; --stone-700:#44403c;
-  --stone-800:#292524; --stone-900:#1c1917; --stone-950:#0c0a09;
-  --em-bg:#ecfdf5; --em-txt:#047857; --em-solid:#059669;
-  --rd-bg:#fef2f2; --rd-txt:#b91c1c; --rd-solid:#dc2626;
-  --am-txt:#b45309; --am-solid:#d97706;
-  --bl-txt:#1d4ed8;
-  --accent:#d97706; --accent-press:#b45309;
-  --sans:"PingFang SC","Source Han Sans SC","Noto Sans SC","Microsoft YaHei",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"JetBrains Mono","SF Mono",ui-monospace,Consolas,monospace;
-  font-family:var(--sans);
-  color:var(--ink); background:var(--bg);
-  -webkit-font-smoothing:antialiased;
-}
-[data-theme="dark"]{
-  --bg:#0c0a09; --surface:#1c1917; --surface-2:#292524; --surface-3:#44403c;
-  --ink:#f5f5f4; --ink-2:#d6d3d1; --muted:#a8a29e; --faint:#78716c;
-  --border:rgba(231,229,228,.1); --border-strong:rgba(231,229,228,.18);
-  --amber-50:rgba(120,53,15,.25); --amber-100:rgba(120,53,15,.35); --amber-200:rgba(120,53,15,.45); --amber-300:rgba(146,64,14,.5);
-  --em-bg:rgba(6,78,59,.3); --em-txt:#6ee7b7; --em-solid:#10b981;
-  --rd-bg:rgba(127,29,29,.3); --rd-txt:#fca5a5; --rd-solid:#ef4444;
-  --am-txt:#fcd34d; --am-solid:#f59e0b;
-  --bl-txt:#93c5fd;
-  --accent:#d97706; --accent-press:#f59e0b;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-size:14px;line-height:1.6;min-height:100vh}
-
-/* ============ 顶栏 ============ */
-header.topbar{position:sticky;top:0;z-index:30;border-bottom:1px solid var(--border-strong);background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.topbar-inner{max-width:1152px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px}
-.brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit}
-.brand .logo{color:var(--amber-700)}
-.brand .name{font-size:18px;font-weight:700;letter-spacing:-.02em;color:var(--stone-900);font-family:var(--sans)}
-[data-theme="dark"] .brand .name{color:var(--ink)}
-.brand .en{font-size:11px;font-weight:500;color:var(--stone-400);letter-spacing:.02em;font-family:var(--mono)}
-.top-actions{display:flex;align-items:center;gap:8px}
-.theme-btn{border-radius:999px;padding:8px;border:none;background:transparent;color:var(--stone-600);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
-.theme-btn:hover{background:var(--stone-100);color:var(--amber-700)}
-[data-theme="dark"] .theme-btn:hover{background:var(--surface-2)}
-.theme-btn svg{width:18px;height:18px}
-
-/* ============ 主内容 ============ */
-main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
-.page-h1{font-size:24px;font-weight:600;color:var(--stone-900);letter-spacing:-.01em;line-height:1.3;font-family:var(--sans)}
-[data-theme="dark"] .page-h1{color:var(--ink)}
-.page-desc{margin-top:8px;max-width:720px;font-size:13px;color:var(--stone-600);line-height:1.65}
-[data-theme="dark"] .page-desc{color:var(--muted)}
-.page-h2{font-size:16px;font-weight:600;color:var(--stone-900);font-family:var(--sans);letter-spacing:-.01em;margin:28px 0 12px;display:flex;align-items:baseline;gap:10px}
-[data-theme="dark"] .page-h2{color:var(--ink)}
-.page-h2 .cnt{font-size:11px;font-weight:400;color:var(--stone-400);font-family:var(--mono)}
-
-/* ============ 配置卡片 ============ */
-.config-bar{margin:18px 0 8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;box-shadow:0 1px 2px rgba(28,25,23,.03)}
-.config-bar .field{display:flex;flex-direction:column;gap:5px;min-width:0}
-.config-bar .field label{font-size:10px;color:var(--stone-500);font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
-.config-bar select,.config-bar input{border:1px solid var(--border-strong);border-radius:8px;padding:8px 11px;font-size:13px;background:var(--surface);color:var(--ink);font-family:var(--sans);min-width:120px}
-.config-bar input[type=password]{font-family:var(--mono)}
-.config-bar select:focus,.config-bar input:focus{outline:none;border-color:var(--amber-600);box-shadow:0 0 0 3px var(--amber-100)}
-.config-bar .right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.ver-txt{font-size:12.5px;color:var(--ink);font-family:var(--mono);padding:8px 0;min-width:120px}
-.ver-txt.err{color:var(--rd-txt)}
-.ver-txt.ok{color:var(--em-txt)}
-.hint{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:4px;word-break:break-all}
-
-/* 问号悬停说明 */
-.help{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--surface-3);color:var(--stone-500);font-size:10px;font-weight:700;cursor:help;position:relative;margin-left:4px;vertical-align:middle;transition:.15s}
-.help:hover{background:var(--amber-600);color:#fff}
-.help .tip{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--stone-900);color:#fff;font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;font-family:var(--sans);line-height:1.6;padding:7px 10px;border-radius:6px;width:max-content;max-width:300px;white-space:normal;text-align:left;z-index:40;box-shadow:0 4px 14px rgba(0,0,0,.25)}
-.help:hover .tip{display:block}
-.help .tip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--stone-900)}
-
-/* 分段按钮 */
-.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:8px;padding:2px;gap:2px}
-.seg-btn{border:none;background:transparent;color:var(--stone-500);font-size:12px;font-weight:500;padding:5px 11px;border-radius:6px;cursor:pointer;font-family:var(--sans);transition:.12s}
-.seg-btn:hover{color:var(--ink)}
-[data-theme="dark"] .seg-btn:hover{color:var(--ink)}
-.seg-btn.active{background:var(--amber-600);color:#fff}
-
-/* 开关 */
-.toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;user-select:none}
-.toggle input{display:none}
-.toggle .track{width:34px;height:19px;background:var(--stone-300);border-radius:10px;position:relative;transition:.2s;flex-shrink:0}
-.toggle .track::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
-.toggle input:checked + .track{background:var(--amber-600)}
-.toggle input:checked + .track::after{transform:translateX(15px)}
-
-/* 按钮 */
-.btn{display:inline-flex;align-items:center;gap:7px;background:var(--amber-600);color:#fff;border:none;border-radius:999px;padding:9px 20px;font-weight:600;font-size:13px;cursor:pointer;font-family:var(--sans);transition:.15s}
-.btn:hover{background:var(--amber-700)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn.ghost{background:var(--surface);color:var(--amber-700);border:1px solid var(--amber-300)}
-.btn.ghost:hover{background:var(--amber-50)}
-.btn.sm{padding:6px 12px;font-size:12px}
-.launch-note{font-size:12px;color:var(--stone-500);font-family:var(--mono)}
-
-/* 下载进度条 */
-.prog-wrap{margin:10px 0 0}
-.prog-txt{font-size:11px;color:var(--stone-500);font-family:var(--mono);margin-bottom:5px;font-variant-numeric:tabular-nums}
-.prog{background:var(--surface-2);border-radius:8px;height:8px;overflow:hidden;border:1px solid var(--border)}
-.prog .bar{height:100%;background:var(--em-solid);transition:width .3s;border-radius:8px}
-
-/* ============ 结果 ============ */
-.result-card{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;box-shadow:0 1px 2px rgba(28,25,23,.03);display:none}
-.result-card.show{display:block}
-.res-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:10px}
-.res-tag{display:inline-block;border-radius:6px;padding:3px 10px;font-weight:600;font-size:13px}
-.res-pass{background:var(--em-bg);color:var(--em-txt)}
-.res-fail{background:var(--rd-bg);color:var(--rd-txt)}
-.res-skip{background:var(--surface-2);color:var(--stone-400)}
-.res-meta{font-size:11.5px;color:var(--stone-500);font-family:var(--mono);word-break:break-all}
-.out-pre{font-size:11.5px;font-family:var(--mono);background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:9px 11px;white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;color:var(--ink-2);line-height:1.5}
-[data-theme="dark"] .out-pre{background:var(--bg)}
-.out-label{font-size:10px;color:var(--stone-400);font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono);margin:10px 0 4px}
-
-/* ============ 配置生成 ============ */
-.cfg-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;box-shadow:0 1px 2px rgba(28,25,23,.03)}
-.cfg-card pre{font-size:11.5px;font-family:var(--mono);background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;white-space:pre-wrap;word-break:break-word;overflow:auto;color:var(--ink-2);line-height:1.55}
-[data-theme="dark"] .cfg-card pre{background:var(--bg)}
-.cfg-title{font-size:12px;font-weight:600;color:var(--ink);margin:12px 0 6px;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.cfg-title:first-child{margin-top:0}
-.cfg-sub{font-size:11px;color:var(--faint);font-family:var(--mono);font-weight:400}
-
-.empty{padding:28px;text-align:center;color:var(--faint);font-size:13px}
-</style>
-</head>
-<body>
-<header class="topbar">
-  <div class="topbar-inner">
-    <a class="brand" href="#">
-      <svg class="logo" width="24" height="24" viewBox="0 0 28 28" fill="none">
-        <rect x="3" y="3" width="22" height="22" rx="6" stroke="currentColor" stroke-width="2"/>
-        <path d="M9 18V10l5 5 5-5v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span class="name">多工具测试</span><span class="en">Multitool</span>
-    </a>
-    <div class="top-actions">
-      <button class="theme-btn" id="themeBtn" title="切换深浅色">
-        <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-        <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<main>
-  <h1 class="page-h1">星流多工具测试</h1>
-  <p class="page-desc">测试 AI 编码工具（codex 等）接入星流网关的可用性：选择工具与模型，自动获取工具最新版本（GitHub），真发一条请求验证模型连通性，并生成对应工具的接入配置。API Key 仅存浏览器 localStorage，请求经本地 <code>serve.py</code> 转发，不落盘、不记日志。</p>
-
-  <!-- ============ 环境配置 ============ -->
-  <h2 class="page-h2">环境配置<span class="cnt">SETUP</span></h2>
-  <div class="config-bar">
-    <div class="field">
-      <label>工具</label>
-      <select id="toolSelect"></select>
-    </div>
-    <div class="field">
-      <label>版本号（GitHub Releases）<span class="help">?<span class="tip">自动从 GitHub Releases（openai/codex）拉取全部版本，默认选最新正式版（已过滤 alpha，展示时去掉 rust-v 前缀）。境内直连 GitHub 可能失败，获取失败时可勾选右侧「启用代理」（4 层 / 7 层）后重试</span></span></label>
-      <select id="verSelect"><option>获取中…</option></select>
-    </div>
-    <div class="field">
-      <label>&nbsp;</label>
-      <button class="btn ghost sm" id="verRefresh">刷新版本</button>
-    </div>
-    <div class="field">
-      <label>&nbsp;</label>
-      <button class="btn ghost sm" id="dlBtn" title="按当前平台下载所选版本，解压执行 --version 验证后自动删除">下载并验证</button>
-    </div>
-    <label class="toggle"><input type="checkbox" id="ghProxyOn"><span class="track"></span>启用代理（GitHub 访问）</label>
-    <div class="field">
-      <label>代理类型<span class="help">?<span class="tip" id="proxyTip"></span></span></label>
-      <div class="seg" id="proxyTypeSeg">
-        <button class="seg-btn active" data-v="l4">4 层代理</button>
-        <button class="seg-btn" data-v="l7">7 层代理</button>
-      </div>
-    </div>
-    <div class="field" style="flex:1;min-width:240px">
-      <label>代理地址</label>
-      <input type="text" id="proxyAddr" placeholder="http://10.0.0.1:8080" style="width:100%">
-    </div>
-  </div>
-
-  <div class="config-bar">
-    <div class="field">
-      <label>模型来源</label>
-      <div class="seg" id="regionSeg">
-        <button class="seg-btn active" data-v="domestic">国内模型</button>
-        <button class="seg-btn" data-v="foreign">国外模型</button>
-      </div>
-    </div>
-    <div class="field" style="flex:1;min-width:220px">
-      <label>模型</label>
-      <select id="modelSelect"></select>
-    </div>
-    <div class="field" style="flex:1;min-width:240px">
-      <label>网关 Base URL</label>
-      <input type="text" id="gwBase" style="width:100%">
-    </div>
-    <div class="field" style="flex:1;min-width:200px">
-      <label>网关 API Key</label>
-      <input type="password" id="gwKey" placeholder="sk-..." style="width:100%">
-    </div>
-  </div>
-
-  <div class="config-bar">
-    <div class="field" style="flex:1;min-width:300px">
-      <label>控制台 Cookie（自动拉取全量模型列表）<span class="help">?<span class="tip">内置清单为固化快照；粘贴控制台 Cookie 后可实时拉取全量模型列表（国内 101 / 国际 34 个）替换内置清单。取法：浏览器登录星流控制台 → F12 Network → 找 console-v2 请求 → 复制请求头里的 Cookie 粘贴于此。Cookie 是控制台会话凭证，仅存本机 localStorage；过期后重新粘贴即可</span></span></label>
-      <input type="password" id="consoleCookie" placeholder="Hm_lpvt_...=...; kscdigest=iam_...; uid=..." style="width:100%">
-      <div class="hint" id="consoleHint"></div>
-    </div>
-    <div class="field">
-      <label>&nbsp;</label>
-      <button class="btn ghost sm" id="fetchModelsBtn">拉取模型列表</button>
-    </div>
-  </div>
-
-  <!-- ============ 模型详情 ============ -->
-  <div class="result-card" id="mdCard">
-    <div class="res-head">
-      <span class="res-tag" style="background:var(--amber-50);color:var(--am-txt)">模型详情</span>
-      <span class="res-meta" id="mdMeta"></span>
-      <button class="btn ghost sm" id="mdRefresh">刷新详情</button>
-    </div>
-    <pre class="out-pre" id="mdPre"></pre>
-  </div>
-
-  <!-- ============ 模型连通性测试 ============ -->
-  <h2 class="page-h2">模型连通性测试<span class="cnt">CONNECTIVITY</span></h2>
-  <div class="config-bar">
-    <button class="btn" id="runBtn">开始测试</button>
-    <button class="btn ghost" id="toolTestBtn" title="拉起本机 codex，用完整网关路径 + 所选模型真实执行一次端到端调用">工具测试</button>
-    <div class="field">
-      <label>模型协议</label>
-      <div class="seg" id="protoSeg">
-        <button class="seg-btn active" data-v="auto">Auto</button>
-        <button class="seg-btn" data-v="chat">Completion</button>
-        <button class="seg-btn" data-v="anthropic">Anthropic</button>
-        <button class="seg-btn" data-v="responses">Responses</button>
-      </div>
-    </div>
-    <div class="field" style="flex:1;min-width:260px">
-      <label>测试 Prompt</label>
-      <input type="text" id="testPrompt" style="width:100%">
-    </div>
-  </div>
-  <div class="result-card" id="resultCard">
-    <div class="res-head">
-      <span class="res-tag" id="resTag">—</span>
-      <span class="res-meta" id="resMeta"></span>
-    </div>
-    <div class="out-label">请求</div>
-    <pre class="out-pre" id="reqPre"></pre>
-    <div class="out-label">响应</div>
-    <pre class="out-pre" id="respPre"></pre>
-  </div>
-
-  <div class="result-card" id="dlCard">
-    <div class="res-head">
-      <span class="res-tag" id="dlTag">—</span>
-      <span class="res-meta" id="dlMeta"></span>
-    </div>
-    <div class="out-label">执行输出（--version，验证后临时目录已删除）</div>
-    <pre class="out-pre" id="dlPre"></pre>
-  </div>
-
-  <!-- ============ 工具测试（拉起本机 codex 端到端） ============ -->
-  <div class="result-card" id="ttCard">
-    <div class="res-head">
-      <span class="res-tag" id="ttTag">—</span>
-      <span class="res-meta" id="ttMeta"></span>
-    </div>
-    <div class="prog-wrap" id="ttProgWrap" style="display:none">
-      <div class="prog-txt" id="ttProgTxt">下载 codex…</div>
-      <div class="prog"><div class="bar" id="ttProgBar" style="width:0%"></div></div>
-    </div>
-    <div class="out-label">codex exec 输出（临时配置目录执行后已删除）</div>
-    <pre class="out-pre" id="ttPre"></pre>
-  </div>
-
-  <!-- ============ 接入配置生成 ============ -->
-  <h2 class="page-h2">接入配置生成<span class="cnt">CONFIG</span></h2>
-  <div class="cfg-card">
-    <div class="cfg-title"><span id="cfgFileTitle">~/.codex/config.toml</span><span class="cfg-sub" id="cfgSub"></span></div>
-    <pre id="cfgPre"></pre>
-    <div class="cfg-title"><span>环境变量 + 启动命令</span><button class="btn ghost sm" id="copyBtn">复制全部</button></div>
-    <pre id="cmdPre"></pre>
-  </div>
-
-  <div class="config-bar">
-    <div class="field" style="flex:1;min-width:260px">
-      <label>配置写入位置<span class="help">?<span class="tip">填绝对路径（如 /tmp/mytest）则写到该目录并保留；留空则写入系统临时目录，按右侧保留时长到点后由 serve.py 自动删除（目录里会生成 config.toml 与 env.sh，env.sh 含 API Key 明文，自动删除可避免残留）</span></span></label>
-      <input type="text" id="cfgPath" placeholder="留空 = 系统临时目录（自动删除）" style="width:100%">
-    </div>
-    <div class="field">
-      <label>保留时长（秒）</label>
-      <input type="number" id="cfgTtl" value="600" min="30" step="30" style="width:110px">
-    </div>
-    <div class="field">
-      <label>&nbsp;</label>
-      <button class="btn sm" id="writeCfgBtn">写入配置文件</button>
-    </div>
-    <div class="right">
-      <span class="launch-note" id="cfgNote"></span>
-    </div>
-  </div>
-</main>
-
-<script>
 // ============ 主题 ============
 (function(){
   const saved=localStorage.getItem('mt_theme')||'light';
@@ -354,20 +32,22 @@ const state=Object.assign({
 },(function(){try{return JSON.parse(localStorage.getItem(STORE_KEY))||{};}catch(e){return{};}})());
 function saveState(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){}}
 
-// ============ 本地代理转发（复用 llmabacus proxyFetch，扩展 4 层代理字段） ============
-let PROXY_OK=true;
+// ============ 请求层（api.js 双模：扩展 background 直连 / serve.py 转发） ============
+// PROXY_OK：直连能力（LLM 真发 / GitHub / 模型列表）。扩展恒可用；服务模式取决于 serve.py。
+// LOCAL_OK：本地执行端点（/tool /tooltest /cfg /dljob）与 4 层上游代理，需要本地二进制（或 serve.py）。
+let PROXY_OK=API.IS_EXT;
+let LOCAL_OK=false;
 async function proxyFetch(url,opt){
   opt=opt||{};
-  try{
-    const payload={url:url,method:opt.method||"POST",headers:opt.headers||{},body:opt.body||null};
-    if(opt.proxy)payload.proxy=opt.proxy;  // 4 层代理：经 serve.py ProxyHandler 转发
-    const r=await fetch("/proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-    const j=await r.json();
-    return{ok:!!j.ok,status:j.status||0,text:j.body||"",headers:j.headers||{}};
-  }catch(e){return{ok:false,status:0,text:"代理未响应:"+(e.message||e),headers:{}};}
+  const payload={url:url,method:opt.method||"POST",headers:opt.headers||{},body:opt.body||null};
+  if(opt.proxy)payload.proxy=opt.proxy;  // 4 层上游代理：必须经本地二进制转发
+  return API.proxy(payload);
 }
-// 代理探测（无 serve.py 时禁用真发）
-(async function(){try{const r=await fetch("/proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:"about:blank",method:"GET"})});if(!r.ok)throw 0;}catch(e){PROXY_OK=false;}})();
+// 存活探测：本地后端（二进制 / serve.py）在则 LOCAL_OK；服务模式下真发也依赖它
+(async function(){
+  LOCAL_OK=await API.health();
+  if(!API.IS_EXT)PROXY_OK=LOCAL_OK;
+})();
 
 // ============ GitHub 版本获取 ============
 let RELEASES=[]; // [{tag, date, pre}]，按发布时间倒序
@@ -382,14 +62,14 @@ function githubFetch(url){
   const api='https://api.github.com'+url;
   const headers={Accept:'application/vnd.github+json'};
   if(state.ghProxyOn&&state.proxyType==='l4'){
-    // 4 层代理：URL 不变，经 serve.py 走上游 HTTP 代理
-    if(!PROXY_OK)return Promise.resolve({ok:false,status:0,text:'4 层代理需要本地 serve.py 支持（未检测到）',headers:{}});
+    // 4 层代理：URL 不变，经本地二进制走上游 HTTP 代理（扩展 fetch 不能按请求指定代理）
+    if(!LOCAL_OK)return Promise.resolve({ok:false,status:0,text:'4 层代理需要本地后端（二进制/serve.py）支持（未检测到）',headers:{}});
     if(!state.proxyAddr)return Promise.resolve({ok:false,status:0,text:'未填写 4 层代理地址',headers:{}});
     return proxyFetch(api,{method:'GET',headers:headers,proxy:state.proxyAddr});
   }
   const target=buildGithubUrl(api);
   if(!PROXY_OK&&state.ghProxyOn&&state.proxyType==='l7'){
-    // 无 serve.py：7 层代理通常开放 CORS，尝试浏览器直连
+    // 无本地后端（file:// 等）：7 层代理通常开放 CORS，尝试浏览器直连
     return fetch(target,{headers:headers}).then(r=>r.text().then(t=>({ok:r.ok,status:r.status,text:t,headers:{}})))
       .catch(e=>({ok:false,status:0,text:'直连失败:'+(e.message||e),headers:{}}));
   }
@@ -467,7 +147,7 @@ function renderModels(){
   const list=state.region==='foreign'?FOREIGN_MODELS:DOMESTIC_MODELS;
   if(!list.length){ // 列表为空：在线拉取前显示占位提示
     const o=document.createElement('option');
-    o.textContent=PROXY_OK?'（请粘贴控制台 Cookie 拉取模型列表）':'（无本地代理，无法拉取模型列表）';
+    o.textContent=PROXY_OK?(API.IS_EXT?'（自动读取控制台 Cookie，可粘贴覆盖后拉取）':'（请粘贴控制台 Cookie 拉取模型列表）'):'（无本地后端，无法拉取模型列表）';
     ms.appendChild(o);
     renderCfg();return;
   }
@@ -509,12 +189,12 @@ async function fetchConsoleModels(isGlobal){
   const body={operationName:'AicpDescribeModels',
     variables:{Region:'Default-CN',Marker:1,MaxResults:500,IsGlobalServer:!!isGlobal,ModelIds:[]},
     query:GQL_QUERY};
-  const r=await proxyFetch('https://overlord-api.ksyun.com/console-v2?action=AicpDescribeModels',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','apollographql-client-name':'ksc-aicp',
-      'Origin':'https://starflow.console.ksyun.com','Referer':'https://starflow.console.ksyun.com/',
-      'Cookie':state.consoleCookie||''},
-    body:JSON.stringify(body)});
+  // Origin/Referer/Cookie 是浏览器禁止头：扩展下由 background 用 declarativeNetRequest 注入
+  //（Cookie 留空则 chrome.cookies 自动读控制台域），服务模式由 serve.py 转发时伪造
+  const r=await API.consoleFetch({
+    url:'https://overlord-api.ksyun.com/console-v2?action=AicpDescribeModels',
+    body:JSON.stringify(body),
+    cookie:state.consoleCookie||''});
   let j=null;try{j=JSON.parse(r.text);}catch(e){}
   const res=j&&j.data&&j.data.AicpDescribeModels;
   if(!res)throw new Error((j&&j.errors&&j.errors[0]&&j.errors[0].message)||('HTTP '+r.status));
@@ -522,8 +202,9 @@ async function fetchConsoleModels(isGlobal){
 }
 async function fetchAllModels(silent){
   const note=$("#consoleHint"),btn=$("#fetchModelsBtn");
-  if(!PROXY_OK){if(!silent)note.textContent='无本地代理(serve.py)，拉取功能不可用';return;}
-  if(!state.consoleCookie){if(!silent)note.textContent='请先粘贴控制台 Cookie';return;}
+  if(!PROXY_OK){if(!silent)note.textContent='无本地后端(serve.py)，拉取功能不可用';return;}
+  // 扩展模式下 background 可用 chrome.cookies 自动读控制台 Cookie；服务模式需粘贴
+  if(!state.consoleCookie&&!API.IS_EXT){if(!silent)note.textContent='请先粘贴控制台 Cookie';return;}
   if(!silent){btn.disabled=true;note.textContent='拉取中…';}
   try{
     const cn=await fetchConsoleModels(false);
@@ -751,7 +432,7 @@ function init(){
   // 下载并验证工具二进制：平台自动识别 → GitHub Release 下载 → 解压临时目录 → codex-版本号 执行 --version → 自动删除
   $("#dlBtn").onclick=async()=>{
     const t=curTool(),btn=$("#dlBtn");
-    if(!PROXY_OK){return;}
+    if(!LOCAL_OK){$("#dlCard").classList.add('show');$("#dlTag").textContent='FAIL';$("#dlTag").className='res-tag res-fail';$("#dlPre").textContent='本地后端未启动（二进制/serve.py），下载验证不可用';return;}
     if(!state.verTag){return;}
     const proxy=(state.ghProxyOn&&state.proxyType==='l4')?state.proxyAddr:undefined;
     btn.disabled=true;
@@ -759,9 +440,7 @@ function init(){
     $("#dlTag").textContent='下载中';$("#dlTag").className='res-tag res-skip';
     $("#dlPre").textContent='…';$("#dlMeta").textContent='';
     try{
-      const r=await fetch("/tool",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({repo:t.repo,tag:state.verTag,ver:state.verTag,proxy:proxy})});
-      const j=await r.json();
+      const j=await API.local("/tool",{repo:t.repo,tag:state.verTag,ver:state.verTag,proxy:proxy});
       const pass=!!j.ok;
       $("#dlTag").textContent=pass?'PASS':'FAIL';
       $("#dlTag").className='res-tag '+(pass?'res-pass':'res-fail');
@@ -775,7 +454,7 @@ function init(){
     const m=curModel(),btn=$("#toolTestBtn");
     const fail=(msg)=>{$("#ttCard").classList.add('show');$("#ttTag").textContent='FAIL';$("#ttTag").className='res-tag res-fail';$("#ttMeta").textContent=msg;$("#ttPre").textContent='';btn.disabled=false;};
     if(!m){fail('无可用模型（请先拉取模型列表）');return;}
-    if(!PROXY_OK){fail('无本地代理(serve.py)，工具测试不可用');return;}
+    if(!LOCAL_OK){fail('本地后端未启动（二进制/serve.py），工具测试不可用');return;}
     if(!state.gwKey){fail('请先填写网关 API Key');return;}
     btn.disabled=true;
     $("#ttCard").classList.add('show');
@@ -786,13 +465,12 @@ function init(){
       const pw=$("#ttProgWrap"),pt=$("#ttProgTxt"),pb=$("#ttProgBar");
       pw.style.display='block';pb.style.width='0%';
       try{
-        const sj=await (await fetch("/dljob",{method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({repo:curTool().repo,tag:state.verTag,ver:state.verTag,
-            proxy:(state.ghProxyOn&&state.proxyType==='l4')?state.proxyAddr:undefined})})).json();
+        const sj=await API.local("/dljob",{repo:curTool().repo,tag:state.verTag,ver:state.verTag,
+          proxy:(state.ghProxyOn&&state.proxyType==='l4')?state.proxyAddr:undefined});
         if(!sj.ok)throw new Error(sj.error||'启动下载失败');
         const mb=v=>(v/1048576).toFixed(1);
         for(;;){
-          const st=await (await fetch('/dljob?id='+encodeURIComponent(sj.id))).json();
+          const st=await API.localGet('/dljob?id='+encodeURIComponent(sj.id));
           if(st.status==='done'){pt.textContent='下载完成（'+(st.bin||state.verTag)+'）';pb.style.width='100%';break;}
           if(st.status==='error')throw new Error(st.error||'下载失败');
           const pct=st.total?Math.min(100,Math.round(st.received/st.total*100)):0;
@@ -810,12 +488,10 @@ function init(){
     }
     $("#ttPre").textContent='…';
     try{
-      const r=await fetch("/tooltest",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({base_url:gwBaseClean()+'/v1',model:m.id,api_key:state.gwKey,
-          prompt:state.testPrompt||'请只回复一个词：SPEC_TEXT_OK',
-          repo:curTool().repo,tag:state.verTag||'',ver:state.verTag||'',
-          proxy:(state.ghProxyOn&&state.proxyType==='l4')?state.proxyAddr:undefined})});
-      const j=await r.json();
+      const j=await API.local("/tooltest",{base_url:gwBaseClean()+'/v1',model:m.id,api_key:state.gwKey,
+        prompt:state.testPrompt||'请只回复一个词：SPEC_TEXT_OK',
+        repo:curTool().repo,tag:state.verTag||'',ver:state.verTag||'',
+        proxy:(state.ghProxyOn&&state.proxyType==='l4')?state.proxyAddr:undefined});
       const pass=!!j.ok;
       $("#ttTag").textContent=pass?'PASS':'FAIL';
       $("#ttTag").className='res-tag '+(pass?'res-pass':'res-fail');
@@ -827,14 +503,12 @@ function init(){
   // 写入接入配置到本机目录（经 serve.py /cfg；留空 = 系统临时目录，ttl 秒后自动删除）
   $("#writeCfgBtn").onclick=async()=>{
     const note=$("#cfgNote"),btn=$("#writeCfgBtn");
-    if(!PROXY_OK){note.textContent='无本地代理(serve.py)，写入功能不可用';return;}
+    if(!LOCAL_OK){note.textContent='本地后端未启动（二进制/serve.py），写入功能不可用';return;}
     const envTxt='export STARFLOW_API_KEY="'+(state.gwKey||'sk-...')+'"\n';
     btn.disabled=true;note.textContent='写入中…';
     try{
-      const r=await fetch("/cfg",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({content:$("#cfgPre").textContent,env:envTxt,
-          path:$("#cfgPath").value.trim(),ttl:+$("#cfgTtl").value||600})});
-      const j=await r.json();
+      const j=await API.local("/cfg",{content:$("#cfgPre").textContent,env:envTxt,
+        path:$("#cfgPath").value.trim(),ttl:+$("#cfgTtl").value||600});
       if(j.ok){
         note.textContent=(j.temp
           ?'已写入临时目录 '+j.dir+'（config.toml + env.sh），'+j.ttl+' 秒后自动删除'
@@ -854,9 +528,6 @@ function init(){
   renderModels();
   renderCfg();
   fetchReleases();
-  if(state.consoleCookie)fetchAllModels(true); // 已存 Cookie：启动静默自动拉全量列表
+  fetchAllModels(true); // 启动静默自动拉全量列表（扩展下 Cookie 自动读取，失败静默）
 }
 init();
-</script>
-</body>
-</html>

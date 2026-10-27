@@ -4,3 +4,6 @@ node_modules/
 .DS_Store
 __pycache__/
 *.pyc
+# PyInstaller 构建产物（prototype/build.sh）
+prototype/build/
+prototype/dist/

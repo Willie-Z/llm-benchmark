@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 """
 星流 LLM 验收工具 · 本地代理 + 静态服务（prototype 目录版）
-- GET /  →  默认返回 index.html，没有则回退 prototype.html（同源，浏览器无跨域问题）
-- GET /<file>  →  返回静态文件
+- GET /healthz  →  存活探测 {ok:true}（浏览器插件与 popup 用它判断本地后端是否在跑）
+- GET /  →  默认返回 index.html，没有则回退 multitool.html（同源，浏览器无跨域问题）
+- GET /<file>  →  返回静态文件（先查 prototype/，再查 extension/pages/——
+  多工具页与 LLM 验收页已迁往扩展目录，本服务同时托管以便不开扩展时使用）
 - POST /proxy  {url, method, headers, body, proxy}  →  转发到真实 LLM Endpoint，返回 {ok,status,body,headers}
   浏览器直连 LLM Endpoint 常被 CORS 拦截；经本机代理转发即可绕开。
   Key 仅在本机内存中转发，不落盘、不记日志。
@@ -15,12 +17,32 @@
 用法（在本文件所在目录运行）：
     cd prototype
     python serve.py
-  然后浏览器开 http://127.0.0.1:8000/   （会自动打开 prototype.html）
+  然后浏览器开 http://127.0.0.1:8000/   （会自动打开 multitool.html）
+  分发为单文件二进制（免装 Python）：sh build.sh  →  dist/starflow-backend
 """
 import os, sys, json, ssl, time, shutil, tempfile, threading, platform, subprocess, tarfile, zipfile, urllib.request, urllib.error, urllib.parse
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+def _static_dirs():
+    """静态查找目录：prototype/（历史原型）与 extension/pages/（两个主页面）。
+    PyInstaller 冻结后 __file__ 在解压临时目录，改以可执行文件位置为基准；
+    dist/starflow-backend 场景再回退上一级（prototype/）继续找仓库文件。
+    二进制单独拷走时找不到静态页（404），但 API 端点不受影响（插件模式够用）。"""
+    if getattr(sys, "frozen", False):
+        bases = [os.path.dirname(os.path.abspath(sys.executable))]
+        bases.append(os.path.dirname(bases[0]))
+    else:
+        bases = [os.path.dirname(os.path.abspath(__file__))]
+    out = []
+    for b in bases:
+        for d in (b, os.path.normpath(os.path.join(b, os.pardir, "extension", "pages"))):
+            if d not in out:
+                out.append(d)
+    return out
+
+ROOT = os.path.dirname(os.path.abspath(__file__)) if not getattr(sys, "frozen", False) \
+    else os.path.dirname(os.path.abspath(sys.executable))
+STATIC_DIRS = _static_dirs()
 PORT = 8000
 TIMEOUT = 180  # 思考类请求可能较慢
 
@@ -33,9 +55,10 @@ CTYPES = {
 }
 
 def default_page():
-    for name in ("index.html", "prototype-multitool.html"):
-        if os.path.isfile(os.path.join(ROOT, name)):
-            return "/" + name
+    for name in ("index.html", "multitool.html", "prototype-multitool.html"):
+        for d in STATIC_DIRS:
+            if os.path.isfile(os.path.join(d, name)):
+                return "/" + name
     return "/index.html"
 
 
@@ -240,13 +263,25 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
+        if path == "/healthz":
+            self._send_json(200, {"ok": True, "service": "starflow-backend"}); return
         if path == "/dljob":
             self._do_dljob(); return
         if path == "/":
             path = default_page()
-        # 防目录穿越
-        safe = os.path.normpath(os.path.join(ROOT, path.lstrip("/")))
-        if not safe.startswith(ROOT) or not os.path.isfile(safe):
+        # 旧文件名兼容映射（两个主页面已迁 extension/pages/，老链接不断）
+        LEGACY_NAMES = {
+            "prototype-multitool.html": "multitool.html",
+            "prototype-llmabacus.html": "llmabacus.html",
+        }
+        rel = LEGACY_NAMES.get(path.lstrip("/"), path.lstrip("/"))
+        # 防目录穿越 + 双目录查找（prototype/ 与 extension/pages/）
+        safe = None
+        for d in STATIC_DIRS:
+            cand = os.path.normpath(os.path.join(d, rel))
+            if (cand == d or cand.startswith(d + os.sep)) and os.path.isfile(cand):
+                safe = cand; break
+        if not safe:
             self.send_response(404); self._cors(); self.end_headers(); return
         ext = os.path.splitext(safe)[1].lower()
         ctype = CTYPES.get(ext, "application/octet-stream")
