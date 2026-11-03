@@ -1,0 +1,11 @@
+Package: starflow-backend
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: systemd
+Maintainer: Starflow Backend Maintainers <noreply@github.com>
+Homepage: https://github.com/Willie-Z/llm-benchmark
+Description: Starflow LLM verification local backend
+ Local proxy and static web service for the Starflow LLM verification tool.
+ The service binds only to 127.0.0.1:8000 and starts through systemd.

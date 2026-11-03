@@ -18,19 +18,55 @@ const TOOLS=[
   {id:'codex',name:'Codex (OpenAI)',repo:'openai/codex',cfgTitle:'~/.codex/config.toml',wire:'responses',
    cfgDesc:'OpenAI Codex CLI · 默认走 Responses API'},
 ];
-// 国外模型清单：启动时凭控制台 Cookie 在线拉取（IsGlobalServer=true，global-kspmas.ksyun.com）
+// 国外模型清单：用国外 Key 从 global-kspmas.ksyun.com/v1/models 拉取
 let FOREIGN_MODELS=[];
-// 国内模型清单：启动时凭控制台 Cookie 在线拉取（Region=Default-CN），无快照
+// 国内模型清单：用国内 Key 从 kspmas.ksyun.com/v1/models 拉取
 let DOMESTIC_MODELS=[];
 
 // ============ 状态与持久化 ============
+// 网关 Base URL 按区域默认（含 /v1），切换「模型来源」时自动跟随
+const DOM_BASE='https://kspmas.ksyun.com/v1',GLB_BASE='https://global-kspmas.ksyun.com/v1';
 const STORE_KEY='mt_cfg';
 const state=Object.assign({
   tool:'codex',region:'domestic',domesticIdx:0,foreignIdx:0,proto:'auto',
   ghProxyOn:false,proxyType:'l4',proxyAddr:'',
-  gwBase:'https://kspmas.ksyun.com',gwKey:'',testPrompt:'请只回复一个词：SPEC_TEXT_OK'
+  gwKeyDom:'',gwKeyGlb:'',testPrompt:'请只回复一个词：SPEC_TEXT_OK',params:{},
+  customHeaders:'',extraParams:'',modelSort:'vendor',domesticModelId:'',foreignModelId:''
 },(function(){try{return JSON.parse(localStorage.getItem(STORE_KEY))||{};}catch(e){return{};}})());
+// 旧版单一 gwKey 迁移：两把新 Key 均为空时原样带过去（行为不变，用户可再按区域分别替换）
+if(state.gwKey){
+  if(!state.gwKeyDom)state.gwKeyDom=state.gwKey;
+  if(!state.gwKeyGlb)state.gwKeyGlb=state.gwKey;
+  delete state.gwKey;
+}
+// 旧版单选 verTag → 多选 verTags 迁移（存 ver 字符串数组，与列表渲染顺序无关）
+if(state.verTag&&!(Array.isArray(state.verTags)&&state.verTags.length))state.verTags=[state.verTag];
+delete state.verTag;
+// 网关 Base URL 改为按区域固定（DOM_BASE / GLB_BASE），不再提供输入框；控制台 Cookie 已下线，清掉残留
+delete state.gwBase;
+delete state.consoleCookie;
+// 当前区域生效的网关 Key：国内 kspmas ↔ 国外 global-kspmas
+function activeKey(){return (state.region==='foreign'?state.gwKeyGlb:state.gwKeyDom)||'';}
+// 网关 API KEY 单输入框：标签/占位/提示随「模型来源」切换，值 = 当前区域那把 Key
+function renderKeyUI(){
+  const isF=state.region==='foreign';
+  $("#gwKeyLabel").textContent='网关 API KEY（'+(isF?'国外':'国内')+'）';
+  $("#gwKeyTip").textContent='随「模型来源」切换：当前填 '+
+    (isF?'global-kspmas.ksyun.com（国外）':'kspmas.ksyun.com（国内）')+
+    ' 的鉴权 Key，用于拉取模型列表 / 模型详情 / 连通性测试 / 工具测试。国内/国外两把 Key 分开存本机 localStorage，切换区域自动带出对应 Key';
+  const i=$("#gwKey");
+  i.placeholder=isF?'sk-...（global-kspmas）':'kspmas.ksyun.com 的 Key';
+  i.value=activeKey();
+}
 function saveState(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){}}
+function parseJsonObject(raw,label){
+  const text=String(raw||'').trim();
+  if(!text)return {};
+  let value;
+  try{value=JSON.parse(text);}catch(e){throw new Error(label+' 必须是有效 JSON 对象：'+e.message);}
+  if(!value||Array.isArray(value)||typeof value!=='object')throw new Error(label+' 必须是 JSON 对象，例如 {"key":"value"}');
+  return value;
+}
 
 // ============ 请求层（api.js 双模：扩展 background 直连 / serve.py 转发） ============
 // PROXY_OK：直连能力（LLM 真发 / GitHub / 模型列表）。扩展恒可用；服务模式取决于 serve.py。
@@ -93,27 +129,50 @@ async function fetchAtomReleases(repo){
   if(!out.length)throw new Error('atom 无版本');
   return out;
 }
+function verListMsg(msg){$("#verList").innerHTML='<div class="ver-item">'+esc(msg)+'</div>';const t=$("#verSelText");t.textContent=msg;t.className='ver-sel-text empty';}
+// 下拉框摘要：显示已选版本（与「模型」下拉同款视觉）
+function renderVerSummary(){
+  const tags=state.verTags||[],t=$("#verSelText");
+  if(!tags.length){t.textContent='请选择版本';t.className='ver-sel-text empty';}
+  else{t.textContent=tags.length<=2?tags.join('、'):tags[0]+'、'+tags[1]+' 等 '+tags.length+' 项';t.className='ver-sel-text';}
+}
+// 从勾选框 DOM 重建 state.verTags（顺序 = RELEASES 新→旧，故 verTags[0] 恒为最新勾选项）
+function syncVerTags(){
+  state.verTags=[...$("#verList").querySelectorAll('input:checked')].map(x=>RELEASES[+x.value].ver);
+  saveState();renderVerSummary();renderCfg();
+}
+function renderVerList(){
+  const box=$("#verList");box.innerHTML='';
+  RELEASES.forEach((v,i)=>{
+    const row=document.createElement('label');row.className='ver-item';
+    const cb=document.createElement('input');cb.type='checkbox';cb.value=i;
+    cb.checked=state.verTags.some(t=>t===v.ver||t===v.tag);
+    row.appendChild(cb);
+    const tx=document.createElement('span');
+    tx.innerHTML=esc(v.ver)+(v.pre?'<span class="vr-pre">（预发布）</span>':'')+(v.date?' · '+esc(v.date):'');
+    row.appendChild(tx);box.appendChild(row);
+  });
+  box.onchange=syncVerTags;  // 事件委托：innerHTML 重建后仍生效
+  renderVerSummary();
+}
 function applyReleases(list){
-  const vs=$('#verSelect');
   // 过滤 alpha 版本；去掉 tag 的 rust-v 前缀，仅展示纯版本号
   RELEASES=list.filter(x=>x&&x.tag&&!/alpha/i.test(x.tag));
-  vs.innerHTML='';vs.disabled=false;
-  RELEASES.forEach((v,i)=>{const o=document.createElement('option');o.value=i;o.textContent=v.ver+(v.pre?'（预发布）':'')+(v.date?' · '+v.date:'');vs.appendChild(o);});
-  // 默认最新正式版；有记忆的版本且仍存在则恢复
-  let idx=RELEASES.findIndex(v=>!v.pre);
-  if(state.verTag){const hit=RELEASES.findIndex(v=>v.ver===state.verTag||v.tag===state.verTag);if(hit>=0)idx=hit;}
-  vs.value=Math.max(0,idx);
-  state.verTag=RELEASES[+vs.value].ver;saveState();
-  vs.onchange=()=>{state.verTag=RELEASES[+vs.value].ver;saveState();renderCfg();};
-  renderCfg();
+  // 剪掉列表中已不存在的勾选（归一为 v.ver）；空则默认勾选最新正式版（保持旧单选行为）
+  state.verTags=(state.verTags||[]).map(t=>{const hit=RELEASES.find(v=>v.ver===t||v.tag===t);return hit?hit.ver:null;}).filter(Boolean);
+  if(!state.verTags.length&&RELEASES.length){
+    const idx=RELEASES.findIndex(v=>!v.pre);
+    state.verTags=[RELEASES[Math.max(0,idx)].ver];saveState();
+  }
+  renderVerList();renderCfg();
 }
 async function fetchReleases(retry){
   retry=retry||0;
-  const t=curTool(),vs=$('#verSelect');
-  if(!retry){ // 首次尝试：重置下拉并显示获取中
-    vs.disabled=true;vs.innerHTML='';const w=document.createElement('option');w.textContent='获取中…';vs.appendChild(w);
+  const t=curTool();
+  if(!retry){ // 首次尝试：重置列表并显示获取中
+    verListMsg('获取中…');
   }else{ // 重试：提示但不打断
-    vs.disabled=true;vs.innerHTML='';const w=document.createElement('option');w.textContent='获取失败，重试中（'+retry+'/2）…';vs.appendChild(w);
+    verListMsg('获取失败，重试中（'+retry+'/2）…');
   }
   try{
     const r=await githubFetch('/repos/'+t.repo+'/releases?per_page=40');
@@ -132,103 +191,121 @@ async function fetchReleases(retry){
     if(retry<2){ // 自动重试（间隔 2s / 4s）
       setTimeout(()=>fetchReleases(retry+1),2000*(retry+1));return;
     }
-    vs.innerHTML='';const o=document.createElement('option');o.textContent='获取失败（可启用代理或点刷新）';vs.appendChild(o);
+    verListMsg('获取失败（可启用代理或点刷新）');
   }
   saveState();
 }
 
 // ============ 模型下拉 ============
+function rawModelList(){
+  return state.region==='foreign'?FOREIGN_MODELS:DOMESTIC_MODELS;
+}
+function sortedModels(){
+  const list=rawModelList().slice();
+  const byText=(a,b,k)=>String(a[k]||'').localeCompare(String(b[k]||''),'zh-Hans-CN',{numeric:true,sensitivity:'base'});
+  if(state.modelSort==='vendor'){
+    list.sort((a,b)=>{
+      const av=String(a.vendor||''),bv=String(b.vendor||'');
+      const alatin=/^[\x20-\x7E]/.test(av),blatin=/^[\x20-\x7E]/.test(bv);
+      if(alatin!==blatin)return alatin?-1:1;
+      return av.localeCompare(bv,alatin?'en':'zh-Hans-CN',{numeric:true,sensitivity:'base'})||byText(a,b,'name');
+    });
+  }else{
+    list.sort((a,b)=>(b.ts||0)-(a.ts||0)||byText(a,b,'name'));
+  }
+  return list;
+}
+function currentModelId(){
+  return state.region==='foreign'?state.foreignModelId:state.domesticModelId;
+}
 function curModel(){
-  if(state.region==='foreign')return FOREIGN_MODELS[state.foreignIdx]||FOREIGN_MODELS[0];
-  return DOMESTIC_MODELS[state.domesticIdx]||DOMESTIC_MODELS[0];
+  const list=sortedModels();
+  const saved=currentModelId();
+  const byId=list.find(m=>m.id===saved);
+  if(byId)return byId;
+  const idx=state.region==='foreign'?state.foreignIdx:state.domesticIdx;
+  return list[idx]||list[0];
 }
 function renderModels(){
   const ms=$("#modelSelect");ms.innerHTML='';
-  const list=state.region==='foreign'?FOREIGN_MODELS:DOMESTIC_MODELS;
+  const list=sortedModels();
   if(!list.length){ // 列表为空：在线拉取前显示占位提示
     const o=document.createElement('option');
-    o.textContent=PROXY_OK?(API.IS_EXT?'（自动读取控制台 Cookie，可粘贴覆盖后拉取）':'（请粘贴控制台 Cookie 拉取模型列表）'):'（无本地后端，无法拉取模型列表）';
+    o.textContent=PROXY_OK?'（填好对应网关 API KEY 后自动拉取模型列表）':'（无本地后端，无法拉取模型列表）';
     ms.appendChild(o);
     renderCfg();return;
   }
   list.forEach((m,i)=>{const o=document.createElement('option');o.value=i;o.textContent=m.vendor+' · '+m.name;ms.appendChild(o);});
-  ms.value=state.region==='foreign'?(state.foreignIdx||0):(state.domesticIdx||0);
-  if(ms.value!==String(ms.selectedIndex)){ // 保存的索引越界时回退到第一项
-    if(state.region==='foreign')state.foreignIdx=0;else state.domesticIdx=0;saveState();ms.value=0;
+  const current=curModel(),idx=list.indexOf(current);
+  ms.value=String(idx<0?0:idx);
+  const idxKey=state.region==='foreign'?'foreignIdx':'domesticIdx';
+  const idKey=state.region==='foreign'?'foreignModelId':'domesticModelId';
+  if(current&&(state[idKey]!==current.id||state[idxKey]!==idx)){
+    state[idKey]=current.id;state[idxKey]=idx<0?0:idx;saveState();
   }
   renderCfg();
 }
 
-// ============ 从控制台拉取全量模型列表（Cookie 鉴权，经 serve.py 转发） ============
-const GQL_QUERY="query AicpDescribeModels($Region: String!, $Marker: Float!, $MaxResults: Float, $ActiveStatus: Float, $ModelCategory: [String!], $Provider: [String!], $ModelIds: [String!], $ModelName: String, $IsGlobalServer: Boolean, $Capabilities: [String!], $ContextLengthRanges: [String!]) {\n  AicpDescribeModels(\n    Region: $Region\n    Marker: $Marker\n    MaxResults: $MaxResults\n    ActiveStatus: $ActiveStatus\n    ModelCategory: $ModelCategory\n    Provider: $Provider\n    ModelIds: $ModelIds\n    ModelName: $ModelName\n    ContextLengthRanges: $ContextLengthRanges\n    Capabilities: $Capabilities\n    IsGlobalServer: $IsGlobalServer\n  ) {\n    RequestId\n    TotalCount\n    Marker\n    MaxResults\n    Data {\n      ...ModelsData\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment ModelsData on ModelsData {\n  ModelId\n  ModelName\n  Provider\n  ModelType\n  Description\n  IconUrl\n  Tags\n  UpdateTime\n  FreeTotalQuota\n  FreeUsedQuota\n  IsOverFreeDisable\n  ActiveStatus\n  Tpm\n  Rpm\n  Ipm\n  Status\n  CodeCase {\n    VideoModel\n    ModelKind\n    SupportTryout\n    RpmLimit\n    TpmLimit\n    MeteringMode\n    InCurrency\n    StepPrice\n    OnlineCalculateInput\n    OnlineCalculateOutput\n    OnlineCalculateRight\n    Batch\n    OnlineTime\n    DeprecationTime\n    SuggestModel\n    OfflineTime\n    OutputType\n    VideoModelModeSet {\n      Concurrency\n      __typename\n    }\n    ImageModelModeMap {\n      IPM\n      __typename\n    }\n    PricingRules {\n      ...PricingRules\n      __typename\n    }\n    __typename\n  }\n  ModelLimitConfig {\n    Status\n    QuotaType\n    QuotaDuration\n    QuotaLimit\n    UsedQuota\n    RemainingQuota\n    UpdateTime\n    AlertEnabled\n    AlertThreshold\n    __typename\n  }\n  LogPoolConfig {\n    Region\n    ProjectName\n    LogPoolName\n    __typename\n  }\n  FirewallEnabled\n  ExtraFields {\n    apiConfig {\n      code\n      externalBaseUrl\n      internalbaseUrl\n      label\n      __typename\n    }\n    baseConfig {\n      label\n      value\n      __typename\n    }\n    priceConfig {\n      priceItem {\n        label\n        price\n        unit\n        __typename\n      }\n      pricingRules {\n        label\n        price\n        __typename\n      }\n      stepPrice\n      __typename\n    }\n    restrictionConfig {\n      label\n      value\n      __typename\n    }\n    versionConfig {\n      comtent\n      content\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nfragment PricingRules on PricingRules {\n  BatchCalculateInput {\n    ...PricingRulesItem\n    __typename\n  }\n  BatchCalculateOutput {\n    ...PricingRulesItem\n    __typename\n  }\n  OnlineCalculateInput {\n    ...PricingRulesItem\n    __typename\n  }\n  OnlineCalculateOutput {\n    ...PricingRulesItem\n    __typename\n  }\n  BatchCalculateCacheRight {\n    ...PricingRulesItem\n    __typename\n  }\n  OnlineCalculateRight {\n    ...PricingRulesItem\n    __typename\n  }\n  OnlineCalculateDisplayCache {\n    ...PricingRulesItem\n    __typename\n  }\n  FiveMinuteInputCachePrice {\n    ...PricingRulesItem\n    __typename\n  }\n  OneHourInputCachePrice {\n    ...PricingRulesItem\n    __typename\n  }\n  __typename\n}\n\nfragment PricingRulesItem on PricingRulesItem {\n  InputMin\n  InputMax\n  OutputMin\n  OutputMax\n  Price\n  __typename\n}\n";
-// 提取规则与固件一致：chat/completions → chat；仅 /v1/responses → responses；嵌入/重排序/图片/视频/语音排除
-const EXC_TAGS=['文本嵌入','重排序','语音生成','视频生成','文生图','图片生成'];
-const VMAP={'月之暗面':'Kimi / 月之暗面','Qwen':'Qwen / 阿里','Xiaomi':'小米 MiMo','DeepSeek':'DeepSeek',
-  '智谱AI':'智谱','智谱':'智谱','MiniMax':'MiniMax','Minimax':'MiniMax','豆包':'豆包 / 火山引擎',
-  '火山引擎':'火山引擎','腾讯':'腾讯混元','可灵AI':'可灵AI','Vidu':'Vidu','ElevenLabs':'ElevenLabs','OpenAI':'OpenAI (开源)'};
-function extractModels(data){
+// ============ 从网关 /v1/models 拉取模型列表（国内/国外各用自己的 Key） ============
+// 只保留文本对话模型（output_modalities 含「文字」）：嵌入/重排/图片/视频/语音排除
+function vendorOf(id){
+  const map=[[/^kimi-/i,'Kimi / 月之暗面'],[/^qwen/i,'Qwen / 阿里'],[/^mimo-/i,'小米 MiMo'],
+    [/^deepseek-/i,'DeepSeek'],[/^glm-/i,'智谱'],[/^minimax-/i,'MiniMax'],[/^seed-/i,'豆包 / 火山引擎'],
+    [/^hunyuan-/i,'腾讯混元'],[/^gpt-oss-/i,'OpenAI (开源)']];
+  for(let i=0;i<map.length;i++)if(map[i][0].test(id))return map[i][1];
+  return '星流中转';
+}
+function extractModels(list){
   const out=[];
-  (data||[]).forEach(x=>{
-    const mid=x.ModelName,prov=x.Provider,tags=x.Tags||[];
-    if(EXC_TAGS.some(t=>tags.some(g=>String(g).indexOf(t)>=0)))return;
-    if(['图片生成','视频生成','语音模型'].some(k=>String(x.ModelType||'').indexOf(k)>=0))return;
-    const cfg=((x.ExtraFields||{}).apiConfig)||[];
-    const urls=cfg.map(c=>c.externalBaseUrl||'');
-    let wire;
-    if(urls.some(u=>u.indexOf('/chat/completions')>=0))wire='chat';
-    else if(urls.some(u=>u.indexOf('/v1/responses')>=0))wire='responses';
-    else if(cfg.length)return;   // 有示例但仅非对话端点（embeddings/rerank/t2a/images）
-    else wire='chat';            // 无示例的网关模型，默认 OpenAI 兼容
-    const vendor=(prov&&prov!=='-'&&VMAP[prov])?VMAP[prov]:'星流中转';
-    out.push({id:mid,name:mid,vendor:vendor,wire:wire,ts:x.UpdateTime||0});
+  (list||[]).forEach(x=>{
+    const outMod=(x.architecture||{}).output_modalities||[];
+    if(outMod.indexOf('文字')<0)return;
+    if(/embed|rerank/i.test(x.id))return;  // 嵌入/重排序（输出模态也标「文字」，按 ID 再排一次）
+    out.push({id:x.id,name:x.id,vendor:vendorOf(x.id),wire:'chat',ts:x.created||0});
   });
   out.sort((a,b)=>b.ts-a.ts);
-  return out.map(function(x){var r={id:x.id,name:x.name,vendor:x.vendor,wire:x.wire};return r;});
+  return out.map(x=>({id:x.id,name:x.name,vendor:x.vendor,wire:x.wire,ts:x.ts||0}));
 }
-async function fetchConsoleModels(isGlobal){
-  const body={operationName:'AicpDescribeModels',
-    variables:{Region:'Default-CN',Marker:1,MaxResults:500,IsGlobalServer:!!isGlobal,ModelIds:[]},
-    query:GQL_QUERY};
-  // Origin/Referer/Cookie 是浏览器禁止头：扩展下由 background 用 declarativeNetRequest 注入
-  //（Cookie 留空则 chrome.cookies 自动读控制台域），服务模式由 serve.py 转发时伪造
-  const r=await API.consoleFetch({
-    url:'https://overlord-api.ksyun.com/console-v2?action=AicpDescribeModels',
-    body:JSON.stringify(body),
-    cookie:state.consoleCookie||''});
+async function fetchRegionModels(region){
+  // 列表固定取该区域默认网关（DOM_BASE / GLB_BASE），随「模型来源」切换
+  const key=region==='foreign'?state.gwKeyGlb:state.gwKeyDom;
+  const base=region==='foreign'?GLB_BASE:DOM_BASE;
+  const r=await proxyFetch(base+'/models',{method:'GET',headers:{'Authorization':'Bearer '+key}});
   let j=null;try{j=JSON.parse(r.text);}catch(e){}
-  const res=j&&j.data&&j.data.AicpDescribeModels;
-  if(!res)throw new Error((j&&j.errors&&j.errors[0]&&j.errors[0].message)||('HTTP '+r.status));
-  return res;
+  if(!r.ok||!j||!Array.isArray(j.data))throw new Error((j&&j.error&&(j.error.message||j.error))||('HTTP '+r.status));
+  return extractModels(j.data);
 }
 async function fetchAllModels(silent){
-  const note=$("#consoleHint"),btn=$("#fetchModelsBtn");
-  if(!PROXY_OK){if(!silent)note.textContent='无本地后端(serve.py)，拉取功能不可用';return;}
-  // 扩展模式下 background 可用 chrome.cookies 自动读控制台 Cookie；服务模式需粘贴
-  if(!state.consoleCookie&&!API.IS_EXT){if(!silent)note.textContent='请先粘贴控制台 Cookie';return;}
+  const note=$("#modelHint"),btn=$("#fetchModelsBtn");
+  if(!PROXY_OK){if(!silent)note.textContent='无本地后端(serve.py) / 扩展通道，拉取功能不可用';return;}
+  const regions=[];
+  if(state.gwKeyDom)regions.push('domestic');
+  if(state.gwKeyGlb)regions.push('foreign');
+  if(!regions.length){if(!silent)note.textContent='请先填写网关 API KEY（国内/国外），填好后自动拉取对应模型列表';return;}
   if(!silent){btn.disabled=true;note.textContent='拉取中…';}
-  try{
-    const cn=await fetchConsoleModels(false);
-    const gl=await fetchConsoleModels(true);
-    const domList=extractModels(cn.Data),glList=extractModels(gl.Data);
-    if(!domList.length&&!glList.length)throw new Error('未提取到对话模型（Cookie 过期？）');
-    DOMESTIC_MODELS=domList.length?domList:DOMESTIC_MODELS;
-    FOREIGN_MODELS=glList.length?glList:FOREIGN_MODELS;
-    note.textContent='已更新：国内 '+domList.length+'/'+cn.TotalCount+'，国际 '+glList.length+'/'+gl.TotalCount+'（实时列表，刷新页面后如未拉取则回退内置清单）';
-    renderModels();
-  }catch(e){
-    if(!silent)note.textContent='拉取失败：'+(e.message||e);
+  const msgs=[];let ok=0;
+  for(const region of regions){
+    const label=region==='foreign'?'国外':'国内';
+    try{
+      const list=await fetchRegionModels(region);
+      if(region==='foreign')FOREIGN_MODELS=list;else DOMESTIC_MODELS=list;
+      ok++;msgs.push(label+' '+list.length+' 个');
+    }catch(e){msgs.push(label+'拉取失败：'+(e.message||e));}
   }
+  note.textContent=msgs.join('；')||'（无可拉取区域）';
+  renderModels();
+  if(ok)fetchModelDetail();
   if(!silent)btn.disabled=false;
 }
 
 // ============ 模型详情（用 Key 拉网关 /v1/models，定位当前选中模型） ============
 async function fetchModelDetail(){
   const m=curModel(),card=$("#mdCard"),meta=$("#mdMeta"),pre=$("#mdPre");
-  if(!PROXY_OK||!m||!state.gwKey){card.classList.remove('show');return;}
+  if(!PROXY_OK||!m||!activeKey()){card.classList.remove('show');return;}
   card.classList.add('show');
   meta.textContent='获取详情中…';pre.textContent='…';
   try{
-    const r=await proxyFetch(gwBaseClean()+'/v1/models',{method:'GET',headers:{'Authorization':'Bearer '+state.gwKey}});
+    const r=await proxyFetch(gwBaseClean()+'/v1/models',{method:'GET',headers:{'Authorization':'Bearer '+activeKey()}});
     let j=null;try{j=JSON.parse(r.text);}catch(e){}
     const list=(j&&j.data)||[];
     const info=list.find(x=>x.id===m.id);
@@ -249,27 +326,81 @@ async function fetchModelDetail(){
 
 // ============ 模型连通性测试 ============
 function gwBaseClean(){
-  // 规范化：去掉结尾 / 和已带的 /v1，避免拼接出 /v1/v1/chat/completions
-  return (state.gwBase||'').replace(/\/+$/,'').replace(/\/v1$/i,'');
+  // 网关地址按「模型来源」固定：国内 kspmas ↔ 国外 global-kspmas；去掉结尾 /v1，便于拼接 /v1/xxx
+  return (state.region==='foreign'?GLB_BASE:DOM_BASE).replace(/\/+$/,'').replace(/\/v1$/i,'');
 }
-function buildSmokeReq(m,forceWire){
+// ============ 协议参数（按「模型协议」动态显示；Auto 不显示、不发送） ============
+// 灰色占位=默认值：输入留空时发送默认值；stop/stop_sequences/top_k 默认不传（def 为空）
+const PROTO_PARAMS={
+  chat:[
+    {k:'temperature',def:'1',tip:'采样温度，范围 0~2（默认 1）。越高输出越发散'},
+    {k:'top_p',def:'1',tip:'核采样，范围 0~1（默认 1）。与 temperature 择一调节即可'},
+    {k:'max_tokens',def:'1024',tip:'最大输出 token 数（默认 1024）'},
+    {k:'stop',def:'',tip:'停止词，多个用英文逗号分隔；留空不传'},
+    {k:'presence_penalty',def:'0',tip:'存在惩罚，范围 -2~2（默认 0）。正值抑制重复已出现内容'},
+    {k:'frequency_penalty',def:'0',tip:'频率惩罚，范围 -2~2（默认 0）。正值抑制高频词'}
+  ],
+  anthropic:[
+    {k:'temperature',def:'1',tip:'采样温度，范围 0~1（默认 1）。⚠️ 与 OpenAI 协议的 0~2 不同'},
+    {k:'top_p',def:'1',tip:'核采样，范围 0~1（默认 1）'},
+    {k:'top_k',def:'',tip:'仅 Anthropic 协议支持：只从概率前 K 的 token 中采样；留空不传'},
+    {k:'max_tokens',def:'1024',tip:'最大输出 token 数。⚠️ Anthropic 协议必填（默认 1024）'},
+    {k:'stop_sequences',def:'',tip:'停止序列，多个用英文逗号分隔；留空不传'}
+  ],
+  responses:[
+    {k:'temperature',def:'1',tip:'采样温度，范围 0~2（默认 1）。越高输出越发散'},
+    {k:'top_p',def:'1',tip:'核采样，范围 0~1（默认 1）'},
+    {k:'max_output_tokens',def:'1024',tip:'最大输出 token 数（默认 1024）。⚠️ 该协议字段名与 max_tokens 不同'}
+  ]
+};
+function renderProtoParams(){
+  const bar=$("#protoParams"),hint=$("#protoParamsHint"),defs=PROTO_PARAMS[state.proto];
+  if(!defs){bar.style.display='none';hint.style.display='none';bar.innerHTML='';return;}
+  hint.style.display='';bar.style.display='';
+  state.params=state.params||{};
+  const user=state.params[state.proto]=state.params[state.proto]||{};
+  bar.innerHTML=defs.map(p=>{
+    const isText=(p.k==='stop'||p.k==='stop_sequences');
+    return '<div class="field" style="width:190px;flex:none">'
+      +'<label>'+p.k+'<span class="help">?<span class="tip">'+esc(p.tip)+'</span></span></label>'
+      +'<input data-k="'+p.k+'"'+(isText?' type="text"':' type="number" step="any"')
+      +' placeholder="默认 '+(p.def||'不传')+'" value="'+esc(user[p.k]||'')+'">'
+      +'</div>';
+  }).join('');
+}
+// 把当前协议参数写入请求体：留空→发送默认值（def 为空的参数不传）；仅 state.proto 非 auto 时调用
+function applyProtoParams(body,wire){
+  const defs=PROTO_PARAMS[wire];if(!defs)return body;
+  const user=(state.params||{})[wire]||{};
+  for(const p of defs){
+    const raw=(user[p.k]||'').trim();
+    if(raw===''){if(p.def!=='')body[p.k]=Number(p.def);continue;}
+    if(p.k==='stop'||p.k==='stop_sequences'){body[p.k]=raw.split(',').map(s=>s.trim()).filter(Boolean);continue;}
+    const n=Number(raw);if(!isNaN(n))body[p.k]=n;
+  }
+  return body;
+}
+function buildSmokeReq(m,forceWire,extraParams){
   // 协议：Auto = 按模型自动（codex 工具测试固定 Responses）；forceWire 由 Auto 检测逐个尝试时显式指定
   const auto=state.tool==='codex'?'responses':m.wire;
   const wire=forceWire||(state.proto==='auto'?auto:state.proto);
   if(wire==='responses'){
     // max_output_tokens 需容纳推理 token（如 kimi-k3.1 推理即耗 58+），太小会导致 incomplete 无正文
-    return{url:gwBaseClean()+'/v1/responses',
-      body:{model:m.id,input:[{role:'user',content:[{type:'input_text',text:(state.testPrompt||'请只回复一个词：SPEC_TEXT_OK')}]}],max_output_tokens:1024},
-      wire:wire};
+    const body={model:m.id,input:[{role:'user',content:[{type:'input_text',text:(state.testPrompt||'请只回复一个词：SPEC_TEXT_OK')}]}],max_output_tokens:1024};
+    if(state.proto!=='auto')applyProtoParams(body,'responses');
+    Object.assign(body,extraParams||{});
+    return{url:gwBaseClean()+'/v1/responses',body:body,wire:wire};
   }
   if(wire==='anthropic'){
-    return{url:gwBaseClean()+'/v1/messages',
-      body:{model:m.id,max_tokens:64,messages:[{role:'user',content:(state.testPrompt||'请只回复一个词：SPEC_TEXT_OK')}]},
-      wire:wire};
+    const body={model:m.id,max_tokens:64,messages:[{role:'user',content:(state.testPrompt||'请只回复一个词：SPEC_TEXT_OK')}]};
+    if(state.proto!=='auto')applyProtoParams(body,'anthropic');
+    Object.assign(body,extraParams||{});
+    return{url:gwBaseClean()+'/v1/messages',body:body,wire:wire};
   }
-  return{url:gwBaseClean()+'/v1/chat/completions',
-    body:{model:m.id,messages:[{role:'user',content:(state.testPrompt||'请只回复一个词：SPEC_TEXT_OK')}],max_tokens:64},
-    wire:wire};
+  const body={model:m.id,messages:[{role:'user',content:(state.testPrompt||'请只回复一个词：SPEC_TEXT_OK')}],max_tokens:64};
+  if(state.proto!=='auto')applyProtoParams(body,'chat');
+  Object.assign(body,extraParams||{});
+  return{url:gwBaseClean()+'/v1/chat/completions',body:body,wire:wire};
 }
 function extractText(j,wire){
   try{
@@ -285,11 +416,14 @@ function extractText(j,wire){
   }catch(e){return '';}
 }
 // 按 wire 发一次连通性测试请求并判定，返回 {req,r,ms,j,text,pass}
-async function judgeOne(m,wire){
-  const req=buildSmokeReq(m,wire);
+async function judgeOne(m,wire,customHeaders,extraParams){
+  const req=buildSmokeReq(m,wire,extraParams);
   const headers=wire==='anthropic'
-    ?{'Content-Type':'application/json','x-api-key':state.gwKey,'anthropic-version':'2023-06-01'}
-    :{'Content-Type':'application/json','Authorization':'Bearer '+state.gwKey};
+    ?{'Content-Type':'application/json','x-api-key':activeKey(),'anthropic-version':'2023-06-01'}
+    :{'Content-Type':'application/json','Authorization':'Bearer '+activeKey()};
+  for(const [k,v] of Object.entries(customHeaders||{})){
+    headers[k]=typeof v==='string'?v:JSON.stringify(v);
+  }
   const bodyStr=JSON.stringify(req.body);
   const t0=Date.now();
   const r=await proxyFetch(req.url,{method:'POST',headers:headers,body:bodyStr});
@@ -303,30 +437,49 @@ async function runSmoke(){
   const fail=(msg)=>{$("#resultCard").classList.add('show');$("#resTag").textContent='FAIL';$("#resTag").className='res-tag res-fail';$("#resMeta").textContent=msg;$("#reqPre").textContent='';$("#respPre").textContent='';btn.disabled=false;};
   if(!m){fail('无可用模型（请先拉取模型列表）');return;}
   if(!PROXY_OK){fail('无本地代理(serve.py)，真发禁用：请先 python serve.py 后刷新本页');return;}
-  if(!state.gwKey){fail('请先填写网关 API Key');return;}
+  if(!activeKey()){fail('请先填写网关 API Key（'+(state.region==='foreign'?'国外':'国内')+'）');return;}
+  let customHeaders={},extraParams={};
+  try{
+    customHeaders=parseJsonObject(state.customHeaders,'自定义 Headers');
+    extraParams=parseJsonObject(state.extraParams,'其他参数');
+  }catch(e){fail(e.message);return;}
   btn.disabled=true;
-  // Auto 档真正自动检测：从模型标记的协议起依次尝试 chat → responses → anthropic，首个通过即用
+  const WL={chat:'Completion',anthropic:'Anthropic',responses:'Responses'};
+  // Auto 档：三种协议全部按协议默认参数测一遍（自定义 Headers / 其他参数仍生效），指定协议只测该协议
   const first=state.tool==='codex'?'responses':(m.wire||'chat');
-  const attempts=state.proto==='auto'
+  const isAuto=state.proto==='auto';
+  const attempts=isAuto
     ?[first,'chat','responses','anthropic'].filter((w,i,a)=>a.indexOf(w)===i)
     :[state.proto];
   $("#resultCard").classList.add('show');
-  let winner=null,last=null;
-  const trail=[];
+  const results=[];
   for(const w of attempts){
-    const out=await judgeOne(m,w);
-    trail.push(w.toUpperCase()+(out.pass?' ✓':' ✗('+(out.r.status||'err')+')'));
-    $("#reqPre").textContent=out.req.url+'\n'+JSON.stringify(out.req.body);
-    $("#respPre").textContent=out.r.text||'(空)';
-    if(out.pass){winner=out;winner.wire=w;break;}
-    last=out;
+    const out=await judgeOne(m,w,customHeaders,extraParams);
+    out.w=w;
+    results.push(out);
+    if(!isAuto){ // 指定协议：边测边显示
+      $("#reqPre").textContent=out.req.url+'\n'+JSON.stringify(out.req.body);
+      $("#respPre").textContent=out.r.text||'(空)';
+    }
   }
-  const fin=winner||last;
+  const winner=results.find(r=>r.pass)||null;
+  const fin=winner||results[results.length-1];
+  // 协议支持标注（输出框顶部）
+  const support='【协议支持】'+results.map(r=>
+    (WL[r.w]||r.w)+'：'+(r.pass?'✓ 支持':'✗ 不支持（HTTP '+(r.r.status||'err')+'）')).join('　｜　');
+  if(isAuto){
+    $("#reqPre").textContent=results.map(r=>'=== '+(WL[r.w]||r.w)+' ===\n'+r.req.url+'\n'+JSON.stringify(r.req.body)).join('\n\n');
+    $("#respPre").textContent=support+'\n\n'
+      +results.map(r=>'--- '+(WL[r.w]||r.w)+' '+(r.pass?'✔':'❌')+'（'+r.ms+'ms）---\n'+String(r.text||r.r.text||'(空)').slice(0,400)).join('\n\n')
+      +(winner?'\n\n=== 首个通过协议 '+(WL[winner.w]||winner.w)+' 完整响应 ===\n'+winner.text:'');
+  }else{
+    $("#respPre").textContent=support+'\n\n'+(fin.r.text||'(空)');
+  }
   $("#resTag").textContent=winner?'PASS':'FAIL';
   $("#resTag").className='res-tag '+(winner?'res-pass':'res-fail');
-  $("#resMeta").textContent=(state.proto==='auto'?'Auto 检测 '+trail.join(' → ')+' · ':'')
+  $("#resMeta").textContent=(isAuto?'Auto 全协议检测 '+results.map(r=>(WL[r.w]||r.w)+(r.pass?' ✅':' ❌')).join(' · ')+' · ':'')
     +(fin?('HTTP '+fin.r.status+' · '+fin.ms+'ms · '):'')+m.vendor+' · '+m.id
-    +(winner?(' · '+winner.wire.toUpperCase()+' 协议'):'');
+    +(winner?(' · '+(WL[winner.w]||winner.w)+' 协议可用'):'');
   btn.disabled=false;
   renderCfg();
 }
@@ -342,7 +495,7 @@ function renderCfg(){
   $("#cfgFileTitle").textContent=t.cfgTitle;
   $("#cfgSub").textContent=t.cfgDesc+' · '+m.id;
   $("#cfgPre").textContent=
-'# 工具版本：'+(state.verTag||'未知')+'（'+t.repo+' Releases）\n'+
+'# 工具版本：'+((state.verTags||[])[0]||'未知')+'（'+t.repo+' Releases）\n'+
 'model = "'+m.id+'"\n'+
 'model_provider = "starflow"\n'+
 '\n'+
@@ -353,12 +506,77 @@ function renderCfg(){
 'env_key = "STARFLOW_API_KEY"\n';
   $("#cmdPre").textContent=
 '# 环境变量（当前会话）\n'+
-'export STARFLOW_API_KEY="'+(state.gwKey||'sk-...')+'"\n\n'+
+'export STARFLOW_API_KEY="'+(activeKey()||'sk-...')+'"\n\n'+
 '# 用页面写入的配置目录启动（<配置目录> 替换为「写入配置文件」提示里显示的路径）\n'+
 'CODEX_HOME=<配置目录> codex exec "请只回复一个词：SPEC_TEXT_OK"   # 非交互一次性测试\n'+
 'CODEX_HOME=<配置目录> codex                                      # 进入交互模式\n\n'+
 '# 或写入默认位置后直接启动（cp 配置目录/config.toml ~/.codex/ 后）\n'+
 'codex --model '+m.id+'\n';
+}
+
+// ============ 下载并验证（多版本并行） ============
+// 轮询 /dljob 后台任务至 done；onProgress(pct,received,total) 每 400ms 回调；连续 5 次查询失败才判该行失败
+async function pollDljob(jid,onProgress){
+  let fails=0;
+  for(;;){
+    const st=await API.localGet('/dljob?id='+encodeURIComponent(jid));
+    if(st&&st.ok){
+      fails=0;
+      if(st.status==='done')return st;
+      if(st.status==='error')throw new Error(st.error||'下载失败');
+      const pct=st.total?Math.min(100,Math.round(st.received/st.total*100)):0;
+      if(onProgress)onProgress(pct,st.received||0,st.total||0);
+    }else if(++fails>=5)throw new Error((st&&st.error)||'进度查询失败');
+    await new Promise(r=>setTimeout(r,400));
+  }
+}
+// 单版本：POST /dljob → pollDljob → done 后立即 POST /tool（缓存命中即时 --version）→ 更新该行 + 追加汇总；任何失败只终结本行
+async function dlVerifyOne(t,ver,proxy){
+  const row=document.createElement('div');row.className='prog-wrap';
+  row.innerHTML='<div class="prog-txt"></div><div class="prog"><div class="bar" style="width:0%"></div></div>';
+  $("#dlRows").appendChild(row);
+  const pt=row.querySelector(".prog-txt"),pb=row.querySelector(".bar");
+  const mb=v=>(v/1048576).toFixed(1);
+  const fin=(pass,txt)=>{pt.innerHTML='<span class="res-tag '+(pass?'res-pass':'res-fail')+'">'+(pass?'PASS':'FAIL')+'</span> '+esc(txt);
+    pb.style.width='100%';if(!pass)pb.style.background='var(--rd-solid)';};
+  const append=out=>{const pre=$("#dlPre");pre.textContent+=(pre.textContent?'\n\n':'')+'=== codex '+ver+' ===\n'+out;};
+  try{
+    pt.textContent='启动下载 codex '+ver+'…';
+    const sj=await API.local("/dljob",{repo:t.repo,tag:ver,ver:ver,proxy:proxy});
+    if(!sj.ok)throw new Error(sj.error||'启动下载失败');  // sj.already 同样 ok：共用 jid 轮询即可
+    await pollDljob(sj.id,(pct,recv,total)=>{
+      pt.textContent='下载 codex '+ver+'… '+pct+'%'+(total?('（'+mb(recv)+' / '+mb(total)+' MB）'):'（'+mb(recv)+' MB）');
+      pb.style.width=pct+'%';});
+    pt.textContent='验证 codex '+ver+'…';
+    const j=await API.local("/tool",{repo:t.repo,tag:ver,ver:ver,proxy:proxy});
+    const pass=!!j.ok,out=j.output||j.error||'(无输出)';
+    fin(pass,ver+' · '+out.trim().split('\n')[0].slice(0,120)+(j.code!=null?(' · exit '+j.code):''));
+    append(out);
+    return {pass:pass,platform:j.platform||''};
+  }catch(e){
+    fin(false,ver+' · '+(e.message||e));append('下载/验证失败：'+(e.message||e));
+    return {pass:false};
+  }
+}
+let dlRunning=false;  // 防重复触发兜底（按钮 disabled 之外）
+async function runDlVerify(){
+  const t=curTool(),btn=$("#dlBtn");
+  if(!LOCAL_OK){$("#dlCard").classList.add('show');$("#dlTag").textContent='FAIL';$("#dlTag").className='res-tag res-fail';$("#dlPre").textContent='本地后端未启动（二进制/serve.py），下载验证不可用';return;}
+  const vers=(state.verTags||[]).slice();  // 快照：下载中改勾选不影响本轮
+  if(!vers.length){$("#dlCard").classList.add('show');$("#dlTag").textContent='FAIL';$("#dlTag").className='res-tag res-fail';$("#dlMeta").textContent='';$("#dlPre").textContent='请先勾选至少一个版本';return;}
+  if(dlRunning)return;
+  dlRunning=true;btn.disabled=true;
+  $("#dlCard").classList.add('show');
+  $("#dlTag").textContent='下载中';$("#dlTag").className='res-tag res-skip';
+  $("#dlMeta").textContent=vers.length+' 个版本并行下载验证中…';$("#dlPre").textContent='';$("#dlRows").innerHTML='';
+  const proxy=(state.ghProxyOn&&state.proxyType==='l4')?state.proxyAddr:undefined;
+  const t0=Date.now();
+  const results=await Promise.all(vers.map(ver=>dlVerifyOne(t,ver,proxy)));  // dlVerifyOne 永不 throw
+  const pass=results.filter(r=>r.pass).length;
+  $("#dlTag").textContent=pass+'/'+vers.length+' PASS';
+  $("#dlTag").className='res-tag '+(pass===vers.length?'res-pass':(pass?'res-skip':'res-fail'));
+  $("#dlMeta").textContent=[results.find(r=>r.platform)&&results.find(r=>r.platform).platform,((Date.now()-t0)/1000).toFixed(1)+'s'].filter(Boolean).join(' · ');
+  dlRunning=false;btn.disabled=false;
 }
 
 // ============ 绑定 ============
@@ -388,20 +606,22 @@ function init(){
   ts.value=state.tool;
   ts.onchange=()=>{state.tool=ts.value;saveState();fetchReleases();renderCfg();};
 
-  $("#gwBase").value=state.gwBase||'';
-  $("#gwKey").value=state.gwKey||'';
-  $("#gwBase").oninput=e=>{state.gwBase=e.target.value.trim();saveState();renderCfg();};
-  $("#gwKey").oninput=e=>{state.gwKey=e.target.value.trim();saveState();renderCfg();};
-  $("#gwBase").onchange=fetchModelDetail;
-  $("#gwKey").onchange=fetchModelDetail;
+  // 单输入框编辑「当前区域」的 Key，标签随「模型来源」切换（两把 Key 分开存）
+  renderKeyUI();
+  $("#gwKey").oninput=e=>{
+    if(state.region==='foreign')state.gwKeyGlb=e.target.value.trim();else state.gwKeyDom=e.target.value.trim();
+    saveState();renderCfg();};
+  // 填好 Key 自动拉对应区域模型列表（onchange 触发，不逐键请求）
+  $("#gwKey").onchange=()=>{fetchAllModels(true);fetchModelDetail();};
 
   $("#testPrompt").value=state.testPrompt||'请只回复一个词：SPEC_TEXT_OK';
   $("#testPrompt").oninput=e=>{state.testPrompt=e.target.value;saveState();};
+  $("#customHeadersInput").value=state.customHeaders||'';
+  $("#customHeadersInput").oninput=e=>{state.customHeaders=e.target.value;saveState();};
+  $("#extraParamsInput").value=state.extraParams||'';
+  $("#extraParamsInput").oninput=e=>{state.extraParams=e.target.value;saveState();};
 
   // 控制台 Cookie：粘贴后自动拉全量模型列表；启动时已有 Cookie 则静默自动加载
-  $("#consoleCookie").value=state.consoleCookie||'';
-  $("#consoleCookie").oninput=e=>{state.consoleCookie=e.target.value.trim();saveState();};
-  $("#consoleCookie").onchange=()=>fetchAllModels(false);
   $("#fetchModelsBtn").onclick=()=>fetchAllModels(false);
 
   $("#regionSeg").querySelectorAll('.seg-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===state.region));
@@ -409,75 +629,76 @@ function init(){
     $("#regionSeg").querySelectorAll('.seg-btn').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
     const prev=state.region;state.region=b.dataset.v;saveState();
-    // 网关 Base URL 自动跟随区域：国内 kspmas.ksyun.com ↔ 国外 global-kspmas.ksyun.com（仅当当前值是另一区域的默认时才切换）
-    const DOM_BASE='https://kspmas.ksyun.com',GLB_BASE='https://global-kspmas.ksyun.com';
-    if(state.gwBase===(state.region==='foreign'?DOM_BASE:GLB_BASE)){
-      state.gwBase=(state.region==='foreign'?GLB_BASE:DOM_BASE);saveState();$("#gwBase").value=state.gwBase;
-    }
+    renderKeyUI(); // 标签（国内）/（国外）与输入框内的 Key 跟随区域切换
     renderModels();fetchModelDetail();
+    // 该区域还没有列表且已填 Key：切过去顺手拉一次
+    const empty=state.region==='foreign'?!FOREIGN_MODELS.length:!DOMESTIC_MODELS.length;
+    if(empty&&activeKey())fetchAllModels(true);
   });
   $("#modelSelect").onchange=e=>{
-    if(state.region==='foreign')state.foreignIdx=+e.target.value;else state.domesticIdx=+e.target.value;
+    const idx=+e.target.value,m=sortedModels()[idx];
+    if(state.region==='foreign')state.foreignIdx=idx;else state.domesticIdx=idx;
+    if(m){
+      if(state.region==='foreign')state.foreignModelId=m.id;else state.domesticModelId=m.id;
+    }
     saveState();renderCfg();fetchModelDetail();
+  };
+  $("#modelSortSelect").value=state.modelSort==='newest'?'newest':'vendor';
+  $("#modelSortSelect").onchange=e=>{
+    state.modelSort=e.target.value==='newest'?'newest':'vendor';
+    saveState();renderModels();fetchModelDetail();
   };
 
   $("#ghProxyOn").onchange=e=>{state.ghProxyOn=e.target.checked;saveState();renderProxyUI();fetchReleases();};
   bindSeg('proxyTypeSeg','proxyType',()=>{renderProxyUI();});
-  bindSeg('protoSeg','proto',()=>{renderCfg();});
+  bindSeg('protoSeg','proto',()=>{renderProtoParams();renderCfg();});
+  // 协议参数输入持久化（key 按协议分开存）
+  $("#protoParams").addEventListener('input',e=>{
+    const k=e.target.dataset.k;if(!k)return;
+    state.params=state.params||{};
+    (state.params[state.proto]=state.params[state.proto]||{})[k]=e.target.value;
+    saveState();
+  });
   $("#mdRefresh").onclick=fetchModelDetail;
   $("#proxyAddr").oninput=e=>{state.proxyAddr=e.target.value.trim();saveState();};
+  // 版本下拉面板：点框开关，点外部/Esc 关闭
+  const verSelectBox=$("#verSelectBox"),verPop=$("#verPop");
+  const closeVerPop=()=>{verPop.classList.remove('show');verSelectBox.classList.remove('open');};
+  verSelectBox.onclick=e=>{e.stopPropagation();const open=!verPop.classList.contains('show');verPop.classList.toggle('show',open);verSelectBox.classList.toggle('open',open);};
+  verPop.onclick=e=>e.stopPropagation();  // 面板内点击不关闭（勾选后可连续操作）
+  document.addEventListener('click',closeVerPop);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeVerPop();});
   $("#verRefresh").onclick=fetchReleases;
+  $("#popAll").onclick=()=>{$("#verList").querySelectorAll('input').forEach(cb=>cb.checked=true);syncVerTags();};
+  $("#popNone").onclick=()=>{$("#verList").querySelectorAll('input').forEach(cb=>cb.checked=false);syncVerTags();};
 
   $("#runBtn").onclick=runSmoke;
-  // 下载并验证工具二进制：平台自动识别 → GitHub Release 下载 → 解压临时目录 → codex-版本号 执行 --version → 自动删除
-  $("#dlBtn").onclick=async()=>{
-    const t=curTool(),btn=$("#dlBtn");
-    if(!LOCAL_OK){$("#dlCard").classList.add('show');$("#dlTag").textContent='FAIL';$("#dlTag").className='res-tag res-fail';$("#dlPre").textContent='本地后端未启动（二进制/serve.py），下载验证不可用';return;}
-    if(!state.verTag){return;}
-    const proxy=(state.ghProxyOn&&state.proxyType==='l4')?state.proxyAddr:undefined;
-    btn.disabled=true;
-    $("#dlCard").classList.add('show');
-    $("#dlTag").textContent='下载中';$("#dlTag").className='res-tag res-skip';
-    $("#dlPre").textContent='…';$("#dlMeta").textContent='';
-    try{
-      const j=await API.local("/tool",{repo:t.repo,tag:state.verTag,ver:state.verTag,proxy:proxy});
-      const pass=!!j.ok;
-      $("#dlTag").textContent=pass?'PASS':'FAIL';
-      $("#dlTag").className='res-tag '+(pass?'res-pass':'res-fail');
-      $("#dlMeta").textContent=[j.platform,j.asset,j.bin,j.code!=null?('exit '+j.code):null].filter(Boolean).join(' · ');
-      $("#dlPre").textContent=j.output||j.error||'(无输出)';
-    }catch(e){$("#dlTag").textContent='FAIL';$("#dlTag").className='res-tag res-fail';$("#dlPre").textContent=String(e);}
-    btn.disabled=false;
-  };
-  // 工具测试：拉起 codex（优先页面所选版本），用完整网关路径 + 所选模型端到端执行一次（serve.py /tooltest）
+  // 下载并验证工具二进制（多版本并行）：平台自动识别 → 逐版本 /dljob 后台下载 → 完成后 --version 验证
+  $("#dlBtn").onclick=runDlVerify;
+  // 工具测试：拉起 codex（优先页面勾选的第一个版本），用完整网关路径 + 所选模型端到端执行一次（serve.py /tooltest）
   $("#toolTestBtn").onclick=async()=>{
-    const m=curModel(),btn=$("#toolTestBtn");
+    const m=curModel(),btn=$("#toolTestBtn"),tv=(state.verTags||[])[0]||'';
     const fail=(msg)=>{$("#ttCard").classList.add('show');$("#ttTag").textContent='FAIL';$("#ttTag").className='res-tag res-fail';$("#ttMeta").textContent=msg;$("#ttPre").textContent='';btn.disabled=false;};
     if(!m){fail('无可用模型（请先拉取模型列表）');return;}
     if(!LOCAL_OK){fail('本地后端未启动（二进制/serve.py），工具测试不可用');return;}
-    if(!state.gwKey){fail('请先填写网关 API Key');return;}
+    if(!activeKey()){fail('请先填写网关 API Key（'+(state.region==='foreign'?'国外':'国内')+'）');return;}
     btn.disabled=true;
     $("#ttCard").classList.add('show');
     $("#ttTag").textContent='执行中';$("#ttTag").className='res-tag res-skip';
-    $("#ttMeta").textContent=m.id+' · '+gwBaseClean()+'/v1 · codex '+(state.verTag||'(本机)')+' exec';
+    $("#ttMeta").textContent=m.id+' · '+gwBaseClean()+'/v1 · codex '+(tv||'(本机)')+' exec';
     // 1. 指定版本：先经 /dljob 后台下载并轮询进度条（缓存命中则直接完成）
-    if(state.verTag){
+    if(tv){
       const pw=$("#ttProgWrap"),pt=$("#ttProgTxt"),pb=$("#ttProgBar");
       pw.style.display='block';pb.style.width='0%';
       try{
-        const sj=await API.local("/dljob",{repo:curTool().repo,tag:state.verTag,ver:state.verTag,
+        const sj=await API.local("/dljob",{repo:curTool().repo,tag:tv,ver:tv,
           proxy:(state.ghProxyOn&&state.proxyType==='l4')?state.proxyAddr:undefined});
         if(!sj.ok)throw new Error(sj.error||'启动下载失败');
         const mb=v=>(v/1048576).toFixed(1);
-        for(;;){
-          const st=await API.localGet('/dljob?id='+encodeURIComponent(sj.id));
-          if(st.status==='done'){pt.textContent='下载完成（'+(st.bin||state.verTag)+'）';pb.style.width='100%';break;}
-          if(st.status==='error')throw new Error(st.error||'下载失败');
-          const pct=st.total?Math.min(100,Math.round(st.received/st.total*100)):0;
-          pt.textContent='下载 codex '+state.verTag+'… '+pct+'%'+(st.total?('（'+mb(st.received)+' / '+mb(st.total)+' MB）'):'（'+mb(st.received)+' MB）');
-          pb.style.width=pct+'%';
-          await new Promise(r=>setTimeout(r,400));
-        }
+        const st=await pollDljob(sj.id,(pct,recv,total)=>{
+          pt.textContent='下载 codex '+tv+'… '+pct+'%'+(total?('（'+mb(recv)+' / '+mb(total)+' MB）'):'（'+mb(recv)+' MB）');
+          pb.style.width=pct+'%';});
+        pt.textContent='下载完成（'+(st.bin||tv)+'）';pb.style.width='100%';
       }catch(e){
         pw.style.display='none';
         $("#ttTag").textContent='FAIL';$("#ttTag").className='res-tag res-fail';
@@ -488,9 +709,9 @@ function init(){
     }
     $("#ttPre").textContent='…';
     try{
-      const j=await API.local("/tooltest",{base_url:gwBaseClean()+'/v1',model:m.id,api_key:state.gwKey,
+      const j=await API.local("/tooltest",{base_url:gwBaseClean()+'/v1',model:m.id,api_key:activeKey(),
         prompt:state.testPrompt||'请只回复一个词：SPEC_TEXT_OK',
-        repo:curTool().repo,tag:state.verTag||'',ver:state.verTag||'',
+        repo:curTool().repo,tag:tv,ver:tv,
         proxy:(state.ghProxyOn&&state.proxyType==='l4')?state.proxyAddr:undefined});
       const pass=!!j.ok;
       $("#ttTag").textContent=pass?'PASS':'FAIL';
@@ -504,7 +725,7 @@ function init(){
   $("#writeCfgBtn").onclick=async()=>{
     const note=$("#cfgNote"),btn=$("#writeCfgBtn");
     if(!LOCAL_OK){note.textContent='本地后端未启动（二进制/serve.py），写入功能不可用';return;}
-    const envTxt='export STARFLOW_API_KEY="'+(state.gwKey||'sk-...')+'"\n';
+    const envTxt='export STARFLOW_API_KEY="'+(activeKey()||'sk-...')+'"\n';
     btn.disabled=true;note.textContent='写入中…';
     try{
       const j=await API.local("/cfg",{content:$("#cfgPre").textContent,env:envTxt,
@@ -526,8 +747,9 @@ function init(){
 
   renderProxyUI();
   renderModels();
+  renderProtoParams();
   renderCfg();
   fetchReleases();
-  fetchAllModels(true); // 启动静默自动拉全量列表（扩展下 Cookie 自动读取，失败静默）
+  fetchAllModels(true); // 启动静默自动拉模型列表（哪把 Key 已填就拉哪个区域，失败静默）
 }
 init();

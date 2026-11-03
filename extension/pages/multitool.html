@@ -22,6 +22,7 @@
   --accent:#d97706; --accent-press:#b45309;
   --sans:"PingFang SC","Source Han Sans SC","Noto Sans SC","Microsoft YaHei",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono","SF Mono",ui-monospace,Consolas,monospace;
+  --sel-arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2378716c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   font-family:var(--sans);
   color:var(--ink); background:var(--bg);
   -webkit-font-smoothing:antialiased;
@@ -41,7 +42,8 @@
 body{font-size:14px;line-height:1.6;min-height:100vh}
 
 /* ============ 顶栏 ============ */
-header.topbar{position:sticky;top:0;z-index:30;border-bottom:1px solid var(--border-strong);background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+header.topbar{position:sticky;top:0;z-index:30;border-bottom:1px solid var(--border-strong);background:rgba(250,250,249,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+[data-theme="dark"] header.topbar{background:rgba(12,10,9,.85)}
 .topbar-inner{max-width:1152px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit}
 .brand .logo{color:var(--amber-700)}
@@ -68,7 +70,11 @@ main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
 .config-bar{margin:18px 0 8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;box-shadow:0 1px 2px rgba(28,25,23,.03)}
 .config-bar .field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .config-bar .field label{font-size:10px;color:var(--stone-500);font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
-.config-bar select,.config-bar input{border:1px solid var(--border-strong);border-radius:8px;padding:8px 11px;font-size:13px;background:var(--surface);color:var(--ink);font-family:var(--sans);min-width:120px}
+.config-bar select,.config-bar input{-webkit-appearance:none;appearance:none;border:1px solid var(--border-strong);border-radius:8px;padding:8px 11px;font-size:13px;background-color:var(--surface);color:var(--ink);font-family:var(--sans);min-width:120px;height:36px;line-height:1.4}
+/* toggle / seg 控件行与 input/select 等高（36px），各字段 label 上下对齐 */
+.config-bar .field > .toggle{min-height:36px}
+.config-bar .field > .seg{min-height:36px;box-sizing:border-box}
+.config-bar select{background-image:var(--sel-arrow);background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer}
 .config-bar input[type=password]{font-family:var(--mono)}
 .config-bar select:focus,.config-bar input:focus{outline:none;border-color:var(--amber-600);box-shadow:0 0 0 3px var(--amber-100)}
 .config-bar .right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -78,10 +84,12 @@ main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
 .hint{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:4px;word-break:break-all}
 
 /* 问号悬停说明 */
-.help{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--surface-3);color:var(--stone-500);font-size:10px;font-weight:700;cursor:help;position:relative;margin-left:4px;vertical-align:middle;transition:.15s}
+.help{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;padding:0;border:0;border-radius:50%;background:var(--surface-3);color:var(--stone-500);font-size:10px;font-weight:700;cursor:help;position:relative;margin-left:4px;vertical-align:middle;transition:.15s}
 .help:hover{background:var(--amber-600);color:#fff}
 .help .tip{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--stone-900);color:#fff;font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;font-family:var(--sans);line-height:1.6;padding:7px 10px;border-radius:6px;width:max-content;max-width:300px;white-space:normal;text-align:left;z-index:40;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .help:hover .tip{display:block}
+.help:focus-visible{outline:2px solid var(--amber-600);outline-offset:2px}
+.help:focus-visible .tip{display:block}
 .help .tip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--stone-900)}
 
 /* 分段按钮 */
@@ -92,7 +100,7 @@ main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
 .seg-btn.active{background:var(--amber-600);color:#fff}
 
 /* 开关 */
-.toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;user-select:none}
+.toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;-webkit-user-select:none;user-select:none}
 .toggle input{display:none}
 .toggle .track{width:34px;height:19px;background:var(--stone-300);border-radius:10px;position:relative;transition:.2s;flex-shrink:0}
 .toggle .track::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
@@ -113,6 +121,35 @@ main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
 .prog-txt{font-size:11px;color:var(--stone-500);font-family:var(--mono);margin-bottom:5px;font-variant-numeric:tabular-nums}
 .prog{background:var(--surface-2);border-radius:8px;height:8px;overflow:hidden;border:1px solid var(--border)}
 .prog .bar{height:100%;background:var(--em-solid);transition:width .3s;border-radius:8px}
+
+/* 版本多选：下拉列表样式（与「模型」下拉框视觉一致，点开浮层勾选） */
+.ver-select{width:100%;height:36px;box-sizing:border-box;border:1px solid var(--border-strong);border-radius:8px;background-color:var(--surface);background-image:var(--sel-arrow);background-repeat:no-repeat;background-position:right 10px center;padding:8px 28px 8px 11px;font-size:13px;font-family:var(--sans);color:var(--ink);cursor:pointer;display:flex;align-items:center;line-height:1.4;transition:border-color .15s,box-shadow .15s}
+.ver-select:hover{border-color:var(--amber-600)}
+.ver-select.open{border-color:var(--amber-600);box-shadow:0 0 0 3px var(--amber-100)}
+.ver-sel-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ver-sel-text.empty{color:var(--stone-400)}
+.ver-pop{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 16px 0 rgba(28,25,23,.1),0 3px 6px -4px rgba(28,25,23,.12),0 9px 28px 8px rgba(28,25,23,.06);z-index:50;display:none}
+.ver-pop.show{display:block}
+.ver-list{max-height:236px;overflow-y:auto;padding:4px}
+.ver-item{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:12px;font-family:var(--mono);cursor:pointer;border-radius:6px;white-space:nowrap}
+.ver-item:hover{background:var(--amber-50)}
+[data-theme="dark"] .ver-item:hover{background:var(--surface-2)}
+.ver-item:has(input:checked){color:var(--amber-700);background:var(--amber-50)}
+[data-theme="dark"] .ver-item:has(input:checked){color:var(--amber-300);background:var(--surface-2)}
+.ver-pop-foot{display:flex;gap:6px;padding:6px;border-top:1px solid var(--border)}
+.ver-foot-btn{border:none;background:none;padding:5px 10px;font-size:12px;font-family:var(--sans);color:var(--amber-700);cursor:pointer;border-radius:6px}
+.ver-foot-btn:hover{background:var(--amber-50)}
+[data-theme="dark"] .ver-foot-btn:hover{background:var(--surface-2)}
+/* 操作按钮（antd outlined 风格，独立圆角） */
+.act-row{display:flex;gap:8px}
+.act-btn{height:36px;padding:0 15px;font-size:13px;font-weight:400;font-family:var(--sans);border-radius:6px;background:var(--surface);color:var(--ink);border:1px solid var(--border-strong);box-shadow:0 2px 0 rgba(28,25,23,.02);cursor:pointer;transition:all .2s cubic-bezier(.645,.045,.355,1)}
+.act-btn:hover{color:var(--amber-700);border-color:var(--amber-600)}
+.act-btn:active{color:var(--amber-800);border-color:var(--amber-800)}
+.act-btn:disabled{opacity:.5;cursor:not-allowed}
+/* checkbox 会被 .config-bar input 通用样式（36px 输入框外观）误伤，此处显式重置回原生勾选框 */
+.ver-list .ver-item input{-webkit-appearance:checkbox;appearance:checkbox;width:auto;height:auto;min-width:0;padding:0;border:0;border-radius:0;background:none;accent-color:var(--amber-600);cursor:pointer}
+.ver-list .ver-item input:focus{border:none;box-shadow:none;outline:2px solid var(--amber-600);outline-offset:1px}
+.ver-item .vr-pre{color:var(--am-txt)}
 
 /* ============ 结果 ============ */
 .result-card{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;box-shadow:0 1px 2px rgba(28,25,23,.03);display:none}
@@ -136,6 +173,12 @@ main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
 .cfg-sub{font-size:11px;color:var(--faint);font-family:var(--mono);font-weight:400}
 
 .empty{padding:28px;text-align:center;color:var(--faint);font-size:13px}
+
+/* ============ 跨浏览器统一：滚动条（Safari 悬浮式 / Edge 经典式对齐） ============ */
+.out-pre::-webkit-scrollbar,.cfg-card pre::-webkit-scrollbar{width:9px;height:9px}
+.out-pre::-webkit-scrollbar-track,.cfg-card pre::-webkit-scrollbar-track{background:transparent}
+.out-pre::-webkit-scrollbar-thumb,.cfg-card pre::-webkit-scrollbar-thumb{background:var(--stone-300);border-radius:5px;border:2px solid transparent;background-clip:content-box}
+[data-theme="dark"] .out-pre::-webkit-scrollbar-thumb,[data-theme="dark"] .cfg-card pre::-webkit-scrollbar-thumb{background:var(--surface-3);border:2px solid transparent;background-clip:content-box}
 </style>
 </head>
 <body>
@@ -164,23 +207,37 @@ main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
   <!-- ============ 环境配置 ============ -->
   <h2 class="page-h2">环境配置<span class="cnt">SETUP</span></h2>
   <div class="config-bar">
-    <div class="field">
+    <div class="field" style="width:200px;flex:none">
       <label>工具</label>
       <select id="toolSelect"></select>
     </div>
-    <div class="field">
-      <label>版本号（GitHub Releases）<span class="help">?<span class="tip">自动从 GitHub Releases（openai/codex）拉取全部版本，默认选最新正式版（已过滤 alpha，展示时去掉 rust-v 前缀）。境内直连 GitHub 可能失败，获取失败时可勾选右侧「启用代理」（4 层 / 7 层）后重试</span></span></label>
-      <select id="verSelect"><option>获取中…</option></select>
+    <div class="field" style="width:280px;flex:none;position:relative">
+      <label>版本号（GitHub Releases）<span class="help">?<span class="tip">自动从 GitHub Releases（openai/codex）拉取全部版本，可多选，默认勾选最新正式版（已过滤 alpha，展示时去掉 rust-v 前缀）。勾选多个版本后点「下载并验证」并行下载，逐版本执行 --version 验证。境内直连 GitHub 可能失败，获取失败时可点「刷新版本」，或在下方「代理配置」启用代理（4 层 / 7 层）后重试</span></span></label>
+      <div class="ver-select" id="verSelectBox"><span class="ver-sel-text" id="verSelText">获取中…</span></div>
+      <div class="ver-pop" id="verPop">
+        <div class="ver-list" id="verList"><div class="ver-item">获取中…</div></div>
+        <div class="ver-pop-foot">
+          <button class="ver-foot-btn" type="button" id="popAll">全选</button>
+          <button class="ver-foot-btn" type="button" id="popNone">清空</button>
+        </div>
+      </div>
     </div>
     <div class="field">
       <label>&nbsp;</label>
-      <button class="btn ghost sm" id="verRefresh">刷新版本</button>
+      <div class="act-row">
+        <button class="act-btn" id="verRefresh" title="重新拉取 GitHub Releases 版本列表">刷新版本</button>
+        <button class="act-btn" id="dlBtn" title="按当前平台并行下载所勾选的版本，逐版本解压执行 --version 验证；工具仅保留 15 分钟">下载并验证</button>
+        <button class="help" type="button" aria-label="下载保留时间说明"><span aria-hidden="true">?</span><span class="tip">工具仅保留 15 分钟：下载验证后的二进制会在系统临时目录中缓存 15 分钟，期间可复用，到期后自动删除。</span></button>
+      </div>
     </div>
+  </div>
+
+  <!-- ============ 代理配置（GitHub 访问） ============ -->
+  <div class="config-bar">
     <div class="field">
-      <label>&nbsp;</label>
-      <button class="btn ghost sm" id="dlBtn" title="按当前平台下载所选版本，解压执行 --version 验证后自动删除">下载并验证</button>
+      <label>代理配置<span class="help">?<span class="tip">境内直连 GitHub 可能失败（获取版本列表 / 下载二进制），启用后经所选代理转发。4 层代理：gost / shadowsocks 等自建 HTTP 代理，填 http://IP:端口；7 层代理：公开镜像代理（如 gh-proxy.com），填 https://gh-proxy.com</span></span></label>
+      <label class="toggle"><input type="checkbox" id="ghProxyOn"><span class="track"></span>启用代理（GitHub 访问）</label>
     </div>
-    <label class="toggle"><input type="checkbox" id="ghProxyOn"><span class="track"></span>启用代理（GitHub 访问）</label>
     <div class="field">
       <label>代理类型<span class="help">?<span class="tip" id="proxyTip"></span></span></label>
       <div class="seg" id="proxyTypeSeg">
@@ -196,7 +253,7 @@ main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
 
   <div class="config-bar">
     <div class="field">
-      <label>模型来源</label>
+      <label>模型来源<span class="help">?<span class="tip">国内模型：kspmas.ksyun.com —— Base URL 默认 https://kspmas.ksyun.com/v1，模型列表拉 https://kspmas.ksyun.com/v1/models（用国内 Key）；国外模型：global-kspmas.ksyun.com —— Base URL 默认 https://global-kspmas.ksyun.com/v1，模型列表拉 https://global-kspmas.ksyun.com/v1/models（用国外 Key）。切换时 Base URL 与网关 API KEY 自动跟随</span></span></label>
       <div class="seg" id="regionSeg">
         <button class="seg-btn active" data-v="domestic">国内模型</button>
         <button class="seg-btn" data-v="foreign">国外模型</button>
@@ -206,25 +263,27 @@ main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
       <label>模型</label>
       <select id="modelSelect"></select>
     </div>
-    <div class="field" style="flex:1;min-width:240px">
-      <label>网关 Base URL</label>
-      <input type="text" id="gwBase" style="width:100%">
+    <div class="field" style="max-width:180px">
+      <label>模型排序</label>
+      <select id="modelSortSelect">
+        <option value="vendor">按厂商 A→Z</option>
+        <option value="newest">按最新创建</option>
+      </select>
     </div>
-    <div class="field" style="flex:1;min-width:200px">
-      <label>网关 API Key</label>
-      <input type="password" id="gwKey" placeholder="sk-..." style="width:100%">
+    <div class="field" style="flex:1;min-width:240px">
+      <label><span id="gwKeyLabel">网关 API KEY（国内）</span><span class="help">?<span class="tip" id="gwKeyTip">随「模型来源」切换：当前填 kspmas.ksyun.com（国内）的鉴权 Key，用于拉取模型列表 / 模型详情 / 连通性测试 / 工具测试。国内/国外两把 Key 分开存本机 localStorage，切换区域自动带出对应 Key</span></span></label>
+      <input type="password" id="gwKey" placeholder="kspmas.ksyun.com 的 Key" style="width:100%">
+    </div>
+    <div class="field">
+      <label>&nbsp;</label>
+      <button class="btn ghost sm" id="fetchModelsBtn">刷新模型列表</button>
     </div>
   </div>
 
   <div class="config-bar">
     <div class="field" style="flex:1;min-width:300px">
-      <label>控制台 Cookie（自动拉取全量模型列表）<span class="help">?<span class="tip">内置清单为固化快照；粘贴控制台 Cookie 后可实时拉取全量模型列表（国内 101 / 国际 34 个）替换内置清单。取法：浏览器登录星流控制台 → F12 Network → 找 console-v2 请求 → 复制请求头里的 Cookie 粘贴于此。Cookie 是控制台会话凭证，仅存本机 localStorage；过期后重新粘贴即可</span></span></label>
-      <input type="password" id="consoleCookie" placeholder="Hm_lpvt_...=...; kscdigest=iam_...; uid=..." style="width:100%">
-      <div class="hint" id="consoleHint"></div>
-    </div>
-    <div class="field">
-      <label>&nbsp;</label>
-      <button class="btn ghost sm" id="fetchModelsBtn">拉取模型列表</button>
+      <label>模型列表<span class="help">?<span class="tip">不走控制台 Cookie：填好对应网关 API KEY 后自动拉取——国内用 kspmas 的 Key 拉 kspmas.ksyun.com/v1/models，国外用 global-kspmas 的 Key 拉 global-kspmas.ksyun.com/v1/models，只保留文本对话模型（嵌入/重排/图片/视频/语音排除）。Key 仅存本机 localStorage</span></span></label>
+      <div class="hint" id="modelHint">填好对应网关 API KEY 后自动拉取，也可点 API KEY 旁的按钮手动刷新</div>
     </div>
   </div>
 
@@ -257,6 +316,18 @@ main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
       <input type="text" id="testPrompt" style="width:100%">
     </div>
   </div>
+  <div class="config-bar">
+    <div class="field" style="flex:1;min-width:260px">
+      <label>自定义 Headers<span class="help">?<span class="tip">JSON 对象，仅用于模型连通性测试；同名字段会覆盖默认 Headers</span></span></label>
+      <input type="text" id="customHeadersInput" placeholder='{"X-GW-Trace":"trace-123"}'>
+    </div>
+    <div class="field" style="flex:1;min-width:260px">
+      <label>其他参数<span class="help">?<span class="tip">JSON 对象，合并进连通性测试请求体；同名字段覆盖协议默认值，Auto 协议下同样生效</span></span></label>
+      <input type="text" id="extraParamsInput" placeholder='{"stream":false,"top_k":20}'>
+    </div>
+  </div>
+  <div class="hint" id="protoParamsHint" style="display:none;margin:8px 0 0">灰色占位为默认值，将随请求发送；Auto 协议下不发送以下参数（由服务端默认）</div>
+  <div class="config-bar" id="protoParams" style="display:none"></div>
   <div class="result-card" id="resultCard">
     <div class="res-head">
       <span class="res-tag" id="resTag">—</span>
@@ -273,7 +344,8 @@ main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
       <span class="res-tag" id="dlTag">—</span>
       <span class="res-meta" id="dlMeta"></span>
     </div>
-    <div class="out-label">执行输出（--version，验证后临时目录已删除）</div>
+    <div id="dlRows"></div>
+    <div class="out-label">执行输出汇总（工具仅保留 15 分钟）</div>
     <pre class="out-pre" id="dlPre"></pre>
   </div>
 

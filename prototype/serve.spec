@@ -1,11 +1,22 @@
 # -*- mode: python ; coding: utf-8 -*-
 # PyInstaller spec：把 serve.py 打成单文件后端（starflow-backend）
 # 用法：cd prototype && pyinstaller --clean --noconfirm serve.spec  （或 sh build.sh）
+import glob
+import os
+
+ROOT = os.path.abspath(os.path.join(SPECPATH, os.pardir))
+DATAS = [(os.path.join(ROOT, "extension", "pages"), "extension/pages")]
+for source in sorted(
+    glob.glob(os.path.join(ROOT, "prototype", "*.html"))
+    + [os.path.join(ROOT, "prototype", "_data.js")]
+):
+    DATAS.append((source, "prototype"))
+
 a = Analysis(
     ["serve.py"],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=DATAS,
     hiddenimports=[],
     hookspath=[],
     runtime_hooks=[],

@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ] && [ -d /run/systemd/system ]; then
+  systemctl daemon-reload || true
+  systemctl enable starflow-backend.service || true
+  systemctl restart starflow-backend.service || true
+fi
+
+exit 0

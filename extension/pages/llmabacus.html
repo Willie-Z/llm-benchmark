@@ -22,6 +22,7 @@
   --accent:#d97706; --accent-press:#b45309;
   --sans:"PingFang SC","Source Han Sans SC","Noto Sans SC","Microsoft YaHei",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono","SF Mono",ui-monospace,Consolas,monospace;
+  --sel-arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2378716c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   font-family:var(--sans);
   color:var(--ink); background:var(--bg);
   -webkit-font-smoothing:antialiased;
@@ -41,7 +42,8 @@
 body{font-size:14px;line-height:1.6;min-height:100vh}
 
 /* ============ 顶栏（sticky backdrop-blur） ============ */
-header.topbar{position:sticky;top:0;z-index:30;border-bottom:1px solid var(--border-strong);background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+header.topbar{position:sticky;top:0;z-index:30;border-bottom:1px solid var(--border-strong);background:rgba(250,250,249,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+[data-theme="dark"] header.topbar{background:rgba(12,10,9,.85)}
 .topbar-inner{max-width:1152px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit}
 .brand .logo{color:var(--amber-700)}
@@ -78,11 +80,12 @@ main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
 .config-bar{margin:18px 0 8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;box-shadow:0 1px 2px rgba(28,25,23,.03)}
 .config-bar .field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .config-bar .field label{font-size:10px;color:var(--stone-500);font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
-.config-bar select,.config-bar input{border:1px solid var(--border-strong);border-radius:8px;padding:8px 11px;font-size:13px;background:var(--surface);color:var(--ink);font-family:var(--sans);min-width:120px}
+.config-bar select,.config-bar input{-webkit-appearance:none;appearance:none;border:1px solid var(--border-strong);border-radius:8px;padding:8px 11px;font-size:13px;background-color:var(--surface);color:var(--ink);font-family:var(--sans);min-width:120px;height:36px;line-height:1.4}
+.config-bar select{background-image:var(--sel-arrow);background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer}
 .config-bar select:focus,.config-bar input:focus,.config-bar textarea:focus{outline:none;border-color:var(--amber-600);box-shadow:0 0 0 3px var(--amber-100)}
 .config-bar .ch-count{font-size:12px;color:var(--stone-500);font-family:var(--mono);padding:8px 0}
 .config-bar .right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;user-select:none}
+.toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;-webkit-user-select:none;user-select:none}
 .toggle input{display:none}
 .toggle .track{width:34px;height:19px;background:var(--stone-300);border-radius:10px;position:relative;transition:.2s;flex-shrink:0}
 .toggle .track::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
@@ -101,7 +104,8 @@ main{max-width:1152px;margin:0 auto;padding:28px 24px 64px}
 .ch-field{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:10px}
 .ch-field .field{display:flex;flex-direction:column;gap:5px}
 .ch-field label{font-size:10px;color:var(--stone-500);font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
-.ch-field select,.ch-field input{border:1px solid var(--border-strong);border-radius:8px;padding:7px 10px;font-size:12.5px;background:var(--surface);color:var(--ink);font-family:var(--sans);width:100%}
+.ch-field select,.ch-field input{-webkit-appearance:none;appearance:none;border:1px solid var(--border-strong);border-radius:8px;padding:7px 10px;font-size:12.5px;background-color:var(--surface);color:var(--ink);font-family:var(--sans);width:100%;height:32px;line-height:1.4}
+.ch-field select{background-image:var(--sel-arrow);background-repeat:no-repeat;background-position:right 9px center;padding-right:26px;cursor:pointer}
 .ch-field select:focus,.ch-field input:focus{outline:none;border-color:var(--amber-600);box-shadow:0 0 0 3px var(--amber-100)}
 .ch-row{border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--surface-2)}
 .ch-row-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
@@ -131,8 +135,8 @@ table.tbl th{font-size:10.5px;font-weight:600;color:var(--stone-500);text-transf
 table.tbl th.t-right{text-align:right}
 table.tbl th.t-center{text-align:center}
 table.tbl td{padding:11px 16px;border-top:1px solid var(--border);vertical-align:middle;color:var(--ink-2);transition:background .12s}
-table.tbl tbody tr:hover td{background:color-mix(in srgb,var(--amber-50) 40%,transparent)}
-[data-theme="dark"] table.tbl tbody tr:hover td{background:color-mix(in srgb,var(--amber-900) 18%,transparent)}
+table.tbl tbody tr:hover td{background:rgba(255,251,235,.4)}
+[data-theme="dark"] table.tbl tbody tr:hover td{background:rgba(120,53,15,.18)}
 
 td.c-case{color:var(--ink);font-weight:500;min-width:0}
 td.c-case .nm{display:block}
@@ -180,7 +184,7 @@ td.c-ch-cell{text-align:center;font-family:var(--mono)}
 .out-empty{font-size:11px;color:var(--faint);font-style:italic;padding:4px 0}
 
 /* ============ 官网基线 ============ */
-.bl-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--stone-900);font-family:var(--sans);user-select:none;margin-top:24px}
+.bl-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--stone-900);font-family:var(--sans);-webkit-user-select:none;user-select:none;margin-top:24px}
 [data-theme="dark"] .bl-toggle{color:var(--ink)}
 .bl-toggle .chev{transition:.2s;color:var(--stone-400)}
 .bl-toggle.open .chev{transform:rotate(90deg)}
@@ -212,7 +216,8 @@ td.c-ch-cell{text-align:center;font-family:var(--mono)}
 /* ============ 对话分析 ============ */
 .chat-bar{display:flex;gap:8px;margin:18px 0 14px;flex-wrap:wrap;align-items:center}
 .chat-bar label{font-size:10px;color:var(--stone-500);font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
-.chat-bar select,.chat-bar input{border:1px solid var(--border-strong);border-radius:8px;padding:8px 11px;font-size:13px;background:var(--surface);color:var(--ink);font-family:var(--sans)}
+.chat-bar select,.chat-bar input{-webkit-appearance:none;appearance:none;border:1px solid var(--border-strong);border-radius:8px;padding:8px 11px;font-size:13px;background-color:var(--surface);color:var(--ink);font-family:var(--sans);height:36px;line-height:1.4}
+.chat-bar select{background-image:var(--sel-arrow);background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer}
 .chat-bar select:focus,.chat-bar input:focus{outline:none;border-color:var(--amber-600);box-shadow:0 0 0 3px var(--amber-100)}
 .chat-log{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;min-height:280px;max-height:520px;overflow:auto;box-shadow:0 1px 2px rgba(28,25,23,.03)}
 .chat-msg{margin-bottom:14px}
@@ -238,9 +243,15 @@ td.c-ch-cell{text-align:center;font-family:var(--mono)}
 .seg-btn.active{background:var(--amber-600);color:#fff}
 [data-theme="dark"] .seg-btn:hover{color:var(--ink)}
 .think-bar .extra-field{flex:1;min-width:220px}
-.think-bar .extra-field input{border:1px solid var(--border-strong);border-radius:8px;padding:8px 11px;font-size:12.5px;background:var(--surface);color:var(--ink);font-family:var(--mono);width:100%}
+.think-bar .extra-field input{-webkit-appearance:none;appearance:none;border:1px solid var(--border-strong);border-radius:8px;padding:8px 11px;font-size:12.5px;background-color:var(--surface);color:var(--ink);font-family:var(--mono);width:100%;height:36px;line-height:1.4}
 .think-bar .extra-field input:focus{outline:none;border-color:var(--amber-600);box-shadow:0 0 0 3px var(--amber-100)}
 .think-hint{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:4px;word-break:break-all}
+
+/* ============ 跨浏览器统一：滚动条（Safari 悬浮式 / Edge 经典式对齐） ============ */
+.out-pre::-webkit-scrollbar,.chat-log::-webkit-scrollbar,.tbl-wrap::-webkit-scrollbar{width:9px;height:9px}
+.out-pre::-webkit-scrollbar-track,.chat-log::-webkit-scrollbar-track,.tbl-wrap::-webkit-scrollbar-track{background:transparent}
+.out-pre::-webkit-scrollbar-thumb,.chat-log::-webkit-scrollbar-thumb,.tbl-wrap::-webkit-scrollbar-thumb{background:var(--stone-300);border-radius:5px;border:2px solid transparent;background-clip:content-box}
+[data-theme="dark"] .out-pre::-webkit-scrollbar-thumb,[data-theme="dark"] .chat-log::-webkit-scrollbar-thumb,[data-theme="dark"] .tbl-wrap::-webkit-scrollbar-thumb{background:var(--surface-3);border:2px solid transparent;background-clip:content-box}
 </style>
 </head>
 <body>

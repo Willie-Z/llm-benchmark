@@ -25,20 +25,29 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 def _static_dirs():
     """静态查找目录：prototype/（历史原型）与 extension/pages/（两个主页面）。
-    PyInstaller 冻结后 __file__ 在解压临时目录，改以可执行文件位置为基准；
-    dist/starflow-backend 场景再回退上一级（prototype/）继续找仓库文件。
-    二进制单独拷走时找不到静态页（404），但 API 端点不受影响（插件模式够用）。"""
+    PyInstaller 冻结后静态资源解压到 sys._MEIPASS，同时兼容可执行文件旁的
+    dist/starflow-backend 场景；页面已随二进制打包，安装包不依赖仓库目录。"""
+    bases = []
     if getattr(sys, "frozen", False):
-        bases = [os.path.dirname(os.path.abspath(sys.executable))]
-        bases.append(os.path.dirname(bases[0]))
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            bases.append(os.path.abspath(meipass))
+        exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+        bases.extend([exe_dir, os.path.dirname(exe_dir)])
     else:
-        bases = [os.path.dirname(os.path.abspath(__file__))]
-    out = []
-    for b in bases:
-        for d in (b, os.path.normpath(os.path.join(b, os.pardir, "extension", "pages"))):
-            if d not in out:
-                out.append(d)
-    return out
+        bases.append(os.path.dirname(os.path.abspath(__file__)))
+
+    candidates = []
+    for base in bases:
+        for d in (
+            base,
+            os.path.join(base, "prototype"),
+            os.path.join(base, "extension", "pages"),
+            os.path.normpath(os.path.join(base, os.pardir, "extension", "pages")),
+        ):
+            if d not in candidates:
+                candidates.append(d)
+    return candidates
 
 ROOT = os.path.dirname(os.path.abspath(__file__)) if not getattr(sys, "frozen", False) \
     else os.path.dirname(os.path.abspath(sys.executable))

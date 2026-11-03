@@ -7,3 +7,6 @@ __pycache__/
 # PyInstaller 构建产物（prototype/build.sh）
 prototype/build/
 prototype/dist/
+# 安装包构建产物
+packaging/windows/dist/
+release/
