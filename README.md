@@ -14,8 +14,8 @@
 - **对话分析归因**：基于 TF-IDF 向量检索历史验收片段 + LLM 归因，自然语言提问（如「哪几项不一致？为什么 Kimi 判 INC 而 DeepSeek 判 PASS？」）。
 - **双主题**：浅色 / 深色，stone + amber 配色，本地偏好记忆。
 - **离线退回**：无本地后端时自动禁用真发、退回模拟演示，不报错。
-- **多工具测试**：`multitool` 页测试 AI 编码工具（codex 等）接入星流网关的可用性——工具版本号自动从 GitHub Release 获取（支持 4 层 / 7 层代理），模型列表按区域用对应网关 Key 从 `/v1/models` 在线获取（国内 kspmas / 国外 global-kspmas），真发请求做模型连通性测试判定连通，并生成 codex 接入配置（`config.toml` + 启动命令）。
-- **浏览器插件**：Chrome MV3 扩展（`extension/`），LLM 真发 / GitHub / 模型列表由扩展直连（`host_permissions` 绕 CORS），工具二进制下载验证、codex 端到端测试、配置写入由本地二进制承担；不装 Python——本地后端可编译为单文件二进制。
+- **多工具测试**：`multitool` 页测试 AI 编码工具（codex / claude-code 等）接入星流网关的可用性——工具版本号自动从 GitHub Release 获取（支持 4 层 / 7 层代理），模型列表按区域用对应网关 Key 从 `/v1/models` 在线获取（国内 kspmas / 国外 global-kspmas），真发请求做模型连通性测试判定连通，并生成对应工具接入配置（codex `config.toml` / claude `settings.json` + 启动命令）。
+- **浏览器插件**：Chrome MV3 扩展（`extension/`），LLM 真发 / GitHub / 模型列表由扩展直连（`host_permissions` 绕 CORS），工具二进制下载验证、工具端到端测试、配置写入由本地二进制承担；不装 Python——本地后端可编译为单文件二进制。
 
 ## 目录结构
 
@@ -32,7 +32,7 @@
 │   ├── background.js             # 直连转发 + console-v2 请求头改写 + Cookie 自动读取
 │   ├── popup.html/css/js         # 工具栏入口（两页入口 + 本地后端状态）
 │   └── pages/                    # 页面（由 prototype 单文件版抽出内联脚本迁移而来）
-│       ├── multitool.html/js     # 多工具测试：codex 接入星流网关连通性测试 + 配置生成
+│       ├── multitool.html/js     # 多工具测试：codex / claude-code 接入星流网关连通性测试 + 配置生成
 │       ├── llmabacus.html/js     # 主版本：4-tab + 真发对比 + 答案展开
 │       ├── api.js                # 双模请求层（扩展直连 / serve.py 转发自动切换）
 │       └── _data.js              # CATALOG 模型树 + PLAN 27 用例 + 示例结果
@@ -117,7 +117,7 @@ sc.exe stop starflow-backend
 | GitHub 版本列表 / 7 层代理 | ✅ | ✅ | ✅ |
 | 4 层上游代理（gost 等） | ❌ 需本地后端 | ✅ | ✅ |
 | 模型列表（网关 `/v1/models`） | ✅ 扩展直连 | ✅ | ✅（经 /proxy） |
-| 下载并验证 / codex 工具测试 / 配置写入 | ❌ | ✅ | ✅ |
+| 下载并验证 / 工具测试 / 配置写入 | ❌ | ✅ | ✅ |
 
 ## 使用
 
@@ -147,12 +147,12 @@ sc.exe stop starflow-backend
 
 打开插件里的「多工具测试」（或本地服务 http://127.0.0.1:8000/multitool.html ）：
 
-1. **选工具与模型**：工具下拉（目前 codex），版本下拉自动从 GitHub Releases（`openai/codex`）获取全部版本（默认最新正式版，列表接口受限时回退最新版；预发布标注）；模型分「国内 / 国外」两个选项，**模型列表在线获取**——填好对应网关 API KEY 后自动拉取：国内用 kspmas 的 Key 拉 `kspmas.ksyun.com/v1/models`，国外用 global-kspmas 的 Key 拉 `global-kspmas.ksyun.com/v1/models`（也可点「刷新模型列表」手动重拉），只保留文本对话模型填充下拉（嵌入/重排序/图片/视频/语音模型排除）。网关地址按「模型来源」固定、无需输入（国内 `https://kspmas.ksyun.com/v1` ↔ 国外 `https://global-kspmas.ksyun.com/v1`，切换自动跟随）；Key 为**单个「网关 API KEY」输入框**，标签随「模型来源」显示「（国内）」/「（国外）」，两把 Key 分开存本机 localStorage、切换区域自动带出对应那把，本页不依赖 `_data.js`、可独立打开。
+1. **选工具与模型**：工具下拉（codex / claude-code），版本下拉自动从 GitHub Releases（`openai/codex` / `anthropics/claude-code`）获取全部版本（默认最新正式版，列表接口受限时回退最新版；预发布标注）；模型分「国内 / 国外」两个选项，**模型列表在线获取**——填好对应网关 API KEY 后自动拉取：国内用 kspmas 的 Key 拉 `kspmas.ksyun.com/v1/models`，国外用 global-kspmas 的 Key 拉 `global-kspmas.ksyun.com/v1/models`（也可点「刷新模型列表」手动重拉），只保留文本对话模型填充下拉（嵌入/重排序/图片/视频/语音模型排除）。网关地址按「模型来源」固定、无需输入（国内 `https://kspmas.ksyun.com/v1` ↔ 国外 `https://global-kspmas.ksyun.com/v1`，切换自动跟随）；Key 为**单个「网关 API KEY」输入框**，标签随「模型来源」显示「（国内）」/「（国外）」，两把 Key 分开存本机 localStorage、切换区域自动带出对应那把，本页不依赖 `_data.js`、可独立打开。
 2. **GitHub 代理（境内访问失败时启用）**：4 层代理填 `http://10.0.0.1:8080`（gost / shadowsocks 等自建 HTTP 代理，经本地后端转发，插件模式需启动二进制）；7 层代理填 `https://gh-proxy.com` 这类公开代理（自动把完整 GitHub 地址拼接在代理地址后）。
 3. **模型详情**：选中模型后自动用 Key 拉取网关 `/v1/models` 详情（上下文 / 输出上限 / 输入输出模态 / 定价 / `owned_by`）。
-3. **模型连通性测试 / 工具测试**：填网关 API KEY（单输入框，标签随「模型来源」显示（国内）/（国外），两把 Key 分开存、自动带出）与测试 Prompt 后「开始测试」，真发一条请求判定 PASS / FAIL + 耗时 + 原始返回。**模型协议检测**四档可选：Auto（真自动检测——从模型标记的协议起依次尝试 chat → responses → anthropic，首个通过即用，结果卡显示每个协议的探测轨迹）/ Completion（`/v1/chat/completions`）/ Anthropic（`/v1/messages`，`x-api-key` 鉴权）/ Responses（`/v1/responses`，codex 工具测试默认）。**工具测试**则拉起 codex（优先页面所选版本二进制，与「下载并验证」同一套下载逻辑、缓存 15 分钟自动清理；未指定版本回退本机 codex），写入临时配置目录后执行 `codex exec` 用完整网关路径 + 所选模型端到端跑一次，结果卡显示 codex 路径、退出码与完整输出。
-5. **下载并验证**：点版本号旁的「下载并验证」，serve.py 自动识别平台（macOS/Linux/Windows × x86_64/arm64），从 GitHub Release 下载对应资产（优先直拼确定性 URL，绕开 API 限流；可走 4/7 层代理），解压到临时目录重命名为 `codex-版本号`，执行 `--version` 验证后**立即删除临时目录**。
-6. **配置生成**：自动生成 codex 的 `~/.codex/config.toml` 与环境变量、启动命令，一键复制；也可写入自定义路径（如 `/tmp/mytest`），或留空写入系统临时目录并按保留时长自动删除。
+3. **模型连通性测试 / 工具测试**：填网关 API KEY（单输入框，标签随「模型来源」显示（国内）/（国外），两把 Key 分开存、自动带出）与测试 Prompt（Prompt 供工具测试与数据集压测使用）。**模型协议检测**四档可选：Auto（真自动检测——从模型标记的协议起依次尝试 chat → responses → anthropic，首个通过即用，结果卡显示每个协议的探测轨迹）/ Completion（`/v1/chat/completions`）/ Anthropic（`/v1/messages`，`x-api-key` 鉴权）/ Responses（`/v1/responses`，codex 工具测试默认）。**工具测试**则拉起所选工具（优先页面所选版本二进制，与「下载并验证」同一套下载逻辑、缓存复用不自动删除；未指定版本回退本机工具）用完整网关路径 + 所选模型端到端跑一次——codex 写临时配置目录执行 `codex exec`，claude-code 走 `ANTHROPIC_BASE_URL`/`ANTHROPIC_AUTH_TOKEN` 环境变量执行 `claude -p`，结果卡显示工具路径、退出码与完整输出。**数据集压测**支持上传 Responses 请求快照（snapshot JSON / JSONL / 拼接文本，可含报错段）——本机解析出多轮脚本用例（input 里按序 user 文本为轮次、instructions 并入首轮、reasoning/工具轮不注入），按并发 × 重复拉起工具执行（codex：`exec` + `exec resume --last` 多轮续会话；claude：`-p` + `--resume`），结果卡逐用例逐轮展示并汇总成功率 / P50·P95 耗时 / 失败分类，哨兵可选；快照 HTML 转义自动反转义。
+5. **下载并验证**：点版本号旁的「下载并验证」，serve.py 自动识别平台（macOS/Linux/Windows × x86_64/arm64），从 GitHub Release 下载对应资产（优先直拼确定性 URL，绕开 API 限流；可走 4/7 层代理），解压到临时目录重命名为 `工具名-版本号`，执行 `--version` 验证后**立即删除临时目录**。
+6. **配置生成**：自动生成对应工具配置与环境变量、启动命令（codex: `~/.codex/config.toml` + `STARFLOW_API_KEY`；claude: `~/.claude/settings.json` 自含 `ANTHROPIC_BASE_URL` 与 Key），一键复制；点「**覆盖配置文件**」直接覆盖真实配置文件（codex `~/.codex/config.toml` / claude `~/.claude/settings.json`），覆盖后即可直接启动工具。
 
 ### 如何判断真跑通
 
@@ -202,7 +202,7 @@ sh build.sh        # 需先 pip install pyinstaller
 
 - 无构建步骤、无第三方运行时依赖，原生 JavaScript（HTML + 外部 JS + `_data.js` + `serve.py`）。
 - **扩展**：Chrome MV3（service worker 直连转发、`declarativeNetRequest` 注入禁止头、`chrome.cookies` 自动读控制台 Cookie）；页面脚本已抽出内联以符合扩展 CSP（`script-src 'self'`）。
-- **本地后端**：`serve.py` 硬编码端口 8000，提供 `/proxy`（LLM 转发 + 4 层代理）、`/cfg`（配置写入 + 临时目录自动删除）、`/tool`（工具二进制下载验证，缓存 15 分钟复用）、`/tooltest`（codex 端到端测试）、`/healthz`（存活探测）端点 + 静态文件服务（托管 `prototype/` 与 `extension/pages/`）；`build.sh` 可打包为单文件二进制分发。
+- **本地后端**：`serve.py` 硬编码端口 8000，提供 `/proxy`（LLM 转发 + 4 层代理）、`/cfg`（覆盖真实配置文件 / 临时目录写入）、`/tool`（工具二进制下载验证，缓存复用不自动删除）、`/tooltest`（工具端到端测试）、`/datasetrun`（数据集压测 job）、`/healthz`（存活探测）端点 + 静态文件服务（托管 `prototype/` 与 `extension/pages/`）；`build.sh` 可打包为单文件二进制分发。
 - `pages/api.js` 为双模请求层：扩展下走 background 直连 / 本地二进制，`serve.py` 打开时自动回退相对路径，同一份页面两种形态通用。
 - `_data.js` 提供 CATALOG（模型树）/ PLAN（27 用例）/ 示例结果，前后端共享。
 
