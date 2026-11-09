@@ -45,7 +45,7 @@ Filename: "{sys}\sc.exe"; \
 
 [Code]
 const
-  ServiceName = "starflow-backend";
+  ServiceName = 'starflow-backend';
 
 function RunSc(const Parameters: String): Boolean;
 var
