@@ -17,9 +17,17 @@ env:
 
 jobs:
   macos-pkg:
-    name: macOS PKG
-    runs-on: macos-latest
+    name: macOS PKG (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            arch: arm64
+          - runner: macos-13
+            arch: x86_64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,12 +58,12 @@ jobs:
           version="${PACKAGE_VERSION#v}"
           mkdir -p release
           cp prototype/dist/starflow-backend.pkg \
-            "release/starflow-backend-${version}-macos-$(uname -m).pkg"
+            "release/starflow-backend-${version}-macos-${{ matrix.arch }}.pkg"
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-pkg
+          name: macos-pkg-${{ matrix.arch }}
           path: release/*.pkg
           if-no-files-found: error
 
@@ -126,7 +134,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.26.3"
+          go-version: "1.26.x"
           cache-dependency-path: packaging/windows/service/go.sum
 
       - name: Install pinned build dependencies
