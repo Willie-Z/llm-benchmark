@@ -23,6 +23,13 @@
 import os, sys, json, ssl, time, shutil, tempfile, threading, platform, subprocess, tarfile, zipfile, urllib.request, urllib.error, urllib.parse
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
+# Windows 控制台默认 cp1252，编码不了中文会崩溃（PyInstaller 打包后无 PYTHONIOENCODING），强制 UTF-8
+for _s in ( sys.stdout, sys.stderr ):
+    try:
+        _s.reconfigure( encoding = "utf-8", errors = "replace" )
+    except Exception:
+        pass
+
 
 def _static_dirs():
     """静态查找目录：prototype/（历史原型）与 extension/pages/（两个主页面）。
