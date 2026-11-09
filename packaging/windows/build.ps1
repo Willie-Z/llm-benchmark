@@ -23,7 +23,7 @@ $ServiceExe = Join-Path $DistDir "starflow-backend-service.exe"
 
 New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
 
-python -m PyInstaller --clean --noconfirm $BackendSpec
+python -m PyInstaller --clean --noconfirm --distpath "$Root\prototype\dist" $BackendSpec
 if ($LASTEXITCODE -ne 0) {
     throw "PyInstaller build failed with exit code $LASTEXITCODE"
 }
