@@ -16,6 +16,28 @@ env:
   GOSUMDB: sum.golang.google.cn
 
 jobs:
+  extension-zip:
+    name: Extension ZIP
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Package extension
+        run: |
+          version="${PACKAGE_VERSION#v}"
+          mkdir -p release
+          zip -r "release/starflow-extension-${version}.zip" extension/ \
+            -x "*.DS_Store" -x "*__pycache__*"
+
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-zip
+          path: release/*.zip
+          if-no-files-found: error
+
   macos-pkg:
     name: macOS PKG (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
@@ -166,6 +188,7 @@ jobs:
     name: GitHub Release
     if: github.ref_type == 'tag'
     needs:
+      - extension-zip
       - macos-pkg
       - linux-packages
       - windows-installer
