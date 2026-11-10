@@ -22,7 +22,7 @@ UninstallDisplayName=Starflow LLM Verification Backend
 UninstallDisplayIcon={app}\starflow-backend.exe
 
 [Files]
-Source: "..\..\prototype\dist\starflow-backend.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\dist\starflow-backend.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\starflow-backend-service.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.txt"; DestDir: "{app}"; Flags: isreadme
 

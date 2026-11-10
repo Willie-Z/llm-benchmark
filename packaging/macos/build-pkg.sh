@@ -2,17 +2,17 @@
 # 把 dist/starflow-backend 打成 macOS 安装包（.pkg）：
 #   - 二进制安装到 /usr/local/bin/starflow-backend（755，root:wheel）
 #   - LaunchAgent 安装到 /Library/LaunchAgents/com.starflow.backend.plist（登录自启）
-# 用法：先 sh prototype/build.sh，再 sh packaging/macos/build-pkg.sh
-# 安装：sudo installer -pkg prototype/dist/starflow-backend.pkg -target /
+# 用法：先 sh build.sh，再 sh packaging/macos/build-pkg.sh
+# 安装：sudo installer -pkg dist/starflow-backend.pkg -target /
 set -e
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)
 
-BIN="${BIN:-$REPO_ROOT/prototype/dist/starflow-backend}"
+BIN="${BIN:-$REPO_ROOT/dist/starflow-backend}"
 PKG_ID=com.starflow.backend
 PKG_VER="${PKG_VER:-${PACKAGE_VERSION:-1.0.0}}"
 PKG_VER="${PKG_VER#v}"
-PKG_OUT="${PKG_OUT:-$REPO_ROOT/prototype/dist/starflow-backend.pkg}"
+PKG_OUT="${PKG_OUT:-$REPO_ROOT/dist/starflow-backend.pkg}"
 
 if [ ! -f "$BIN" ]; then
   echo "未找到 $BIN，请先执行：sh build.sh" >&2

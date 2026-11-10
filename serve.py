@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-星流 LLM 验收工具 · 本地代理 + 静态服务（prototype 目录版）
+星流 LLM 验收工具 · 本地代理 + 静态服务
 - GET /healthz  →  存活探测 {ok:true}（浏览器插件与 popup 用它判断本地后端是否在跑）
 - GET /  →  默认返回 index.html，没有则回退 multitool.html（同源，浏览器无跨域问题）
-- GET /<file>  →  返回静态文件（先查 prototype/，再查 extension/pages/——
-  多工具页与 LLM 验收页已迁往扩展目录，本服务同时托管以便不开扩展时使用）
+- GET /<file>  →  返回静态文件（extension/pages/——
+  多工具页与 LLM 验收页，本服务同时托管以便不开扩展时使用）
 - POST /proxy  {url, method, headers, body, proxy}  →  转发到真实 LLM Endpoint，返回 {ok,status,body,headers}
   浏览器直连 LLM Endpoint 常被 CORS 拦截；经本机代理转发即可绕开。
   Key 仅在本机内存中转发，不落盘、不记日志。
@@ -15,7 +15,6 @@
 - POST /cfg  {content, env?, path?, ttl?}  →  写入工具接入配置 config.toml（可选 env.sh）
   path 指定（如 /tmp/mytest）则写到该目录；path 留空写系统临时目录并在 ttl 秒（默认 600）后自动删除。
 用法（在本文件所在目录运行）：
-    cd prototype
     python serve.py
   然后浏览器开 http://127.0.0.1:8000/   （会自动打开 multitool.html）
   分发为单文件二进制（免装 Python）：sh build.sh  →  dist/starflow-backend
@@ -32,7 +31,7 @@ for _s in ( sys.stdout, sys.stderr ):
 
 
 def _static_dirs():
-    """静态查找目录：prototype/（历史原型）与 extension/pages/（两个主页面）。
+    """静态查找目录：extension/pages/（两个主页面）。
     PyInstaller 冻结后静态资源解压到 sys._MEIPASS，同时兼容可执行文件旁的
     dist/starflow-backend 场景；页面已随二进制打包，安装包不依赖仓库目录。"""
     bases = []
@@ -49,7 +48,6 @@ def _static_dirs():
     for base in bases:
         for d in (
                 base,
-                os.path.join( base, "prototype" ),
                 os.path.join( base, "extension", "pages" ),
                 os.path.normpath( os.path.join( base, os.pardir, "extension", "pages" ) ),
         ):
@@ -597,7 +595,7 @@ class Handler( BaseHTTPRequestHandler ):
             "prototype-llmabacus.html": "llmabacus.html",
         }
         rel = LEGACY_NAMES.get( path.lstrip( "/" ), path.lstrip( "/" ) )
-        # 防目录穿越 + 双目录查找（prototype/ 与 extension/pages/）
+        # 防目录穿越 + 目录查找（extension/pages/）
         safe = None
         for d in STATIC_DIRS:
             cand = os.path.normpath( os.path.join( d, rel ) )

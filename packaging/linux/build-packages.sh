@@ -1,10 +1,10 @@
 #!/bin/sh
-# Build native Debian and RPM packages from prototype/dist/starflow-backend.
+# Build native Debian and RPM packages from dist/starflow-backend.
 # Requirements: dpkg-deb, rpmbuild, install, sed.
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
-BIN="${BIN:-$ROOT/prototype/dist/starflow-backend}"
+BIN="${BIN:-$ROOT/dist/starflow-backend}"
 UNIT="$ROOT/packaging/linux/starflow-backend.service"
 CONTROL_IN="$ROOT/packaging/linux/debian/control.in"
 SPEC="$ROOT/packaging/linux/starflow-backend.spec"

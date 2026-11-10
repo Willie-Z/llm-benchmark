@@ -16,14 +16,14 @@ if (-not $env:GOSUMDB) {
 }
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$BackendSpec = Join-Path $Root "prototype\serve.spec"
+$BackendSpec = Join-Path $Root "serve.spec"
 $ServiceDir = Join-Path $PSScriptRoot "service"
 $DistDir = Join-Path $PSScriptRoot "dist"
 $ServiceExe = Join-Path $DistDir "starflow-backend-service.exe"
 
 New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
 
-python -m PyInstaller --clean --noconfirm --distpath "$Root\prototype\dist" $BackendSpec
+python -m PyInstaller --clean --noconfirm --distpath "$Root\dist" $BackendSpec
 if ($LASTEXITCODE -ne 0) {
     throw "PyInstaller build failed with exit code $LASTEXITCODE"
 }

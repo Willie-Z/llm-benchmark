@@ -44,10 +44,9 @@ jobs:
 
       - name: Build backend binary
         run: sh build.sh
-        working-directory: prototype
 
       - name: Smoke test packaged backend
-        run: python packaging/smoke_test.py prototype/dist/starflow-backend
+        run: python packaging/smoke_test.py dist/starflow-backend
 
       - name: Build macOS package
         run: sh build-pkg.sh
@@ -57,7 +56,7 @@ jobs:
         run: |
           version="${PACKAGE_VERSION#v}"
           mkdir -p release
-          cp prototype/dist/starflow-backend.pkg \
+          cp dist/starflow-backend.pkg \
             "release/starflow-backend-${version}-macos-${{ matrix.arch }}.pkg"
 
       - name: Upload macOS artifact
@@ -99,10 +98,9 @@ jobs:
 
       - name: Build backend binary
         run: sh build.sh
-        working-directory: prototype
 
       - name: Smoke test packaged backend
-        run: python packaging/smoke_test.py prototype/dist/starflow-backend
+        run: python packaging/smoke_test.py dist/starflow-backend
 
       - name: Build DEB and RPM packages
         run: sh packaging/linux/build-packages.sh
@@ -149,7 +147,7 @@ jobs:
 
       - name: Smoke test packaged backend
         shell: pwsh
-        run: python packaging/smoke_test.py prototype/dist/starflow-backend.exe
+        run: python packaging/smoke_test.py dist/starflow-backend.exe
 
       - name: Stage release artifact
         shell: pwsh
