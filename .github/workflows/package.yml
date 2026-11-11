@@ -1,0 +1,220 @@
+name: Build installers
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHON_VERSION: "3.12"
+  PACKAGE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || format('0.0.0.{0}', github.run_number) }}
+  GOPROXY: https://goproxy.cn
+  GOSUMDB: sum.golang.google.cn
+
+jobs:
+  extension-zip:
+    name: Extension ZIP
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Package extension
+        run: |
+          version="${PACKAGE_VERSION#v}"
+          mkdir -p release
+          zip -r "release/starflow-extension-${version}.zip" extension/ \
+            -x "*.DS_Store" -x "*__pycache__*"
+
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-zip
+          path: release/*.zip
+          if-no-files-found: error
+
+  macos-pkg:
+    name: macOS PKG (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: packaging/requirements-build.txt
+
+      - name: Install pinned build dependencies
+        run: python -m pip install -r packaging/requirements-build.txt
+
+      - name: Build backend binary
+        run: sh build.sh
+
+      - name: Smoke test packaged backend
+        run: python packaging/smoke_test.py dist/starflow-backend
+
+      - name: Build macOS package
+        run: sh build-pkg.sh
+        working-directory: packaging/macos
+
+      - name: Stage release artifact
+        run: |
+          version="${PACKAGE_VERSION#v}"
+          mkdir -p release
+          cp dist/starflow-backend.pkg \
+            "release/starflow-backend-${version}-macos-${{ matrix.arch }}.pkg"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-pkg-${{ matrix.arch }}
+          path: release/*.pkg
+          if-no-files-found: error
+
+  linux-packages:
+    name: Linux DEB and RPM
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: packaging/requirements-build.txt
+
+      - name: Install pinned RPM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends rpm
+
+      - name: Install pinned build dependencies
+        run: python -m pip install -r packaging/requirements-build.txt
+
+      - name: Validate packaging scripts
+        run: |
+          sh -n packaging/linux/build-packages.sh
+          sh -n packaging/linux/scripts/postinst
+          sh -n packaging/linux/scripts/prerm
+          sh -n packaging/linux/scripts/postrm
+
+      - name: Build backend binary
+        run: sh build.sh
+
+      - name: Smoke test packaged backend
+        run: python packaging/smoke_test.py dist/starflow-backend
+
+      - name: Build DEB and RPM packages
+        run: sh packaging/linux/build-packages.sh
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: |
+            release/*.deb
+            release/*.rpm
+          if-no-files-found: error
+
+  windows-installer:
+    name: Windows EXE
+    runs-on: windows-2022
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: packaging/requirements-build.txt
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache-dependency-path: packaging/windows/service/go.sum
+
+      - name: Install pinned build dependencies
+        shell: pwsh
+        run: |
+          python -m pip install -r packaging/requirements-build.txt
+          choco install innosetup --yes --no-progress
+
+      - name: Build Windows installer and service
+        shell: pwsh
+        run: ./packaging/windows/build.ps1 -PackageVersion "$env:PACKAGE_VERSION"
+
+      - name: Smoke test packaged backend
+        shell: pwsh
+        run: python packaging/smoke_test.py dist/starflow-backend.exe
+
+      - name: Stage release artifact
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          Copy-Item packaging/windows/dist/*-windows-x64-setup.exe release/
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: release/*.exe
+          if-no-files-found: error
+
+  release:
+    name: GitHub Release
+    if: github.ref_type == 'tag'
+    needs:
+      - extension-zip
+      - macos-pkg
+      - linux-packages
+      - windows-installer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: release
+        run: sha256sum * > SHA256SUMS.txt
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" release/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$tag" release/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$tag" \
+              --generate-notes
+          fi

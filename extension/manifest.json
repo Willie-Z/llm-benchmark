@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "星流 LLM 验收工具",
+  "version": "1.0.0",
+  "description": "星流网关多工具连通性测试与 LLM 验收对比。LLM 真发/GitHub/模型列表由扩展直连；工具二进制下载验证、codex 端到端测试、配置写入由本地二进制承担（可选）。",
+  "permissions": ["cookies", "declarativeNetRequest"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "星流 LLM 验收工具"
+  }
+}

@@ -1,0 +1,21 @@
+#!/bin/sh
+# 安装后置脚本：修正文件权限，并为当前登录用户立即加载 LaunchAgent
+set -e
+BIN=/usr/local/bin/starflow-backend
+PLIST=/Library/LaunchAgents/com.starflow.backend.plist
+
+chmod 755 "$BIN"
+chown root:wheel "$BIN"
+chmod 644 "$PLIST"
+chown root:wheel "$PLIST"
+
+# 加载 LaunchAgent（失败不阻塞安装，下次登录会自动加载）
+CONSOLE_USER=$(stat -f %Su /dev/console 2>/dev/null || true)
+if [ -n "$CONSOLE_USER" ] && [ "$CONSOLE_USER" != "root" ]; then
+  USER_ID=$(id -u "$CONSOLE_USER")
+  launchctl bootout "gui/${USER_ID}/com.starflow.backend" 2>/dev/null || true
+  launchctl bootstrap "gui/${USER_ID}" "$PLIST" 2>/dev/null || \
+    launchctl asuser "$USER_ID" launchctl load -w "$PLIST" 2>/dev/null || true
+fi
+
+exit 0
