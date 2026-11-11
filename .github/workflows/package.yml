@@ -28,7 +28,8 @@ jobs:
         run: |
           version="${PACKAGE_VERSION#v}"
           mkdir -p release
-          zip -r "release/starflow-extension-${version}.zip" extension/ \
+          cd extension
+          zip -r "../release/starflow-extension-${version}.zip" . \
             -x "*.DS_Store" -x "*__pycache__*"
 
       - name: Upload extension artifact
