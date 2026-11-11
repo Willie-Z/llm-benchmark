@@ -163,6 +163,10 @@ jobs:
           python -m pip install -r packaging/requirements-build.txt
           choco install innosetup --yes --no-progress
 
+      - name: Exclude workspace from Windows Defender
+        shell: pwsh
+        run: Add-MpPreference -ExclusionPath (Get-Location).Path
+
       - name: Build Windows installer and service
         shell: pwsh
         run: ./packaging/windows/build.ps1 -PackageVersion "$env:PACKAGE_VERSION"
