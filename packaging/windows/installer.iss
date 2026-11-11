@@ -26,23 +26,6 @@ Source: "..\..\dist\starflow-backend.exe"; DestDir: "{app}"; Flags: ignoreversio
 Source: "dist\starflow-backend-service.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.txt"; DestDir: "{app}"; Flags: isreadme
 
-[Run]
-Filename: "{sys}\sc.exe"; \
-  Parameters: "create starflow-backend start= auto binPath= ""{app}\starflow-backend-service.exe"" obj= ""NT AUTHORITY\LocalService"" DisplayName= ""Starflow LLM Verification Backend"""; \
-  Flags: runhidden waituntilterminated ignoreerrors
-Filename: "{sys}\sc.exe"; \
-  Parameters: "description starflow-backend ""Local proxy and static web service for the Starflow LLM verification tool"""; \
-  Flags: runhidden waituntilterminated
-Filename: "{sys}\sc.exe"; \
-  Parameters: "failure starflow-backend reset= 86400 actions= restart/5000/restart/15000/restart/60000"; \
-  Flags: runhidden waituntilterminated
-Filename: "{sys}\sc.exe"; \
-  Parameters: "failureflag starflow-backend 1"; \
-  Flags: runhidden waituntilterminated
-Filename: "{sys}\sc.exe"; \
-  Parameters: "start starflow-backend"; \
-  Flags: runhidden waituntilterminated
-
 [Code]
 const
   ServiceName = 'starflow-backend';
@@ -89,4 +72,20 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then
     StopAndDeleteService();
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  App: String;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    App := ExpandConstant('{app}');
+    // sc create：服务已存在时返回非零，Exec 不报错，自然容错
+    RunSc('create ' + ServiceName + ' start= auto binPath= "' + App + '\starflow-backend-service.exe" obj= "NT AUTHORITY\LocalService" DisplayName= "Starflow LLM Verification Backend"');
+    RunSc('description ' + ServiceName + ' "Local proxy and static web service for the Starflow LLM verification tool"');
+    RunSc('failure ' + ServiceName + ' reset= 86400 actions= restart/5000/restart/15000/restart/60000');
+    RunSc('failureflag ' + ServiceName + ' 1');
+    RunSc('start ' + ServiceName);
+  end;
 end;
