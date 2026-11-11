@@ -805,14 +805,14 @@ async function dlVerifyOne(t, ver, proxy) {
     };
     try {
         pt.textContent = '启动下载 ' + (t.bin || t.id) + ' ' + ver + '…';
-        const sj = await API.local("/dljob", {kind: t.id, repo: t.repo, tag: ver, ver: ver, proxy: proxy});
+        const sj = await API.local("/dljob", {kind: t.id, repo: t.repo, tag: ver, ver: ver, proxy: proxy, l7proxy: l7proxy});
         if (!sj.ok) throw new Error(sj.error || '启动下载失败');  // sj.already 同样 ok：共用 jid 轮询即可
         await pollDljob(sj.id, (pct, recv, total) => {
             pt.textContent = '下载 ' + (t.bin || t.id) + ' ' + ver + '… ' + pct + '%' + (total ? ('（' + mb(recv) + ' / ' + mb(total) + ' MB）') : '（' + mb(recv) + ' MB）');
             pb.style.width = pct + '%';
         });
         pt.textContent = '验证 ' + (t.bin || t.id) + ' ' + ver + '…';
-        const j = await API.local("/tool", {kind: t.id, repo: t.repo, tag: ver, ver: ver, proxy: proxy});
+        const j = await API.local("/tool", {kind: t.id, repo: t.repo, tag: ver, ver: ver, proxy: proxy, l7proxy: l7proxy});
         const pass = !!j.ok, out = j.output || j.error || '(无输出)';
         fin(pass, ver + ' · ' + out.trim().split('\n')[0].slice(0, 120) + (j.code != null ? (' · exit ' + j.code) : ''));
         append(out);
@@ -853,6 +853,7 @@ async function runDlVerify() {
     $("#dlPre").textContent = '';
     $("#dlRows").innerHTML = '';
     const proxy = (state.ghProxyOn && state.proxyType === 'l4') ? state.proxyAddr : undefined;
+    const l7proxy = (state.ghProxyOn && state.proxyType === 'l7') ? state.proxyAddr : undefined;
     const t0 = Date.now();
     const results = await Promise.all(vers.map(ver => dlVerifyOne(t, ver, proxy)));  // dlVerifyOne 永不 throw
     const pass = results.filter(r => r.pass).length;
@@ -992,7 +993,8 @@ async function runDataset() {
             kind: t.id, repo: t.repo, tags: tvs,
             base_url: gwBaseClean() + (t.id === 'claude-code' ? '' : '/v1'), model: m.id, api_key: activeKey(),
             cases: cases, conc: conc, repeat: rep, timeout: +$("#dsTimeout").value || 180,
-            proxy: (state.ghProxyOn && state.proxyType === 'l4') ? state.proxyAddr : undefined
+            proxy: (state.ghProxyOn && state.proxyType === 'l4') ? state.proxyAddr : undefined,
+            l7proxy: (state.ghProxyOn && state.proxyType === 'l7') ? state.proxyAddr : undefined
         });
         if (!sj.ok) throw new Error(sj.error || '启动失败');
         const st = await pollDsjob(sj.id, (done, total, stage) => {
@@ -1351,7 +1353,8 @@ function init() {
             try {
                 const sj = await API.local("/dljob", {
                     kind: t.id, repo: t.repo, tag: tv, ver: tv,
-                    proxy: (state.ghProxyOn && state.proxyType === 'l4') ? state.proxyAddr : undefined
+                    proxy: (state.ghProxyOn && state.proxyType === 'l4') ? state.proxyAddr : undefined,
+                    l7proxy: (state.ghProxyOn && state.proxyType === 'l7') ? state.proxyAddr : undefined
                 });
                 if (!sj.ok) throw new Error(sj.error || '启动下载失败');
                 const mb = v => (v / 1048576).toFixed(1);
@@ -1378,7 +1381,8 @@ function init() {
                 kind: t.id, base_url: toolBase, model: m.id, api_key: activeKey(),
                 prompt: state.testPrompt || '请只回复一个词：SPEC_TEXT_OK',
                 repo: t.repo, tag: tv, ver: tv,
-                proxy: (state.ghProxyOn && state.proxyType === 'l4') ? state.proxyAddr : undefined
+                proxy: (state.ghProxyOn && state.proxyType === 'l4') ? state.proxyAddr : undefined,
+                l7proxy: (state.ghProxyOn && state.proxyType === 'l7') ? state.proxyAddr : undefined
             });
             const pass = !!j.ok;
             $("#ttTag").textContent = pass ? 'PASS' : 'FAIL';

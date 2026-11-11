@@ -29,7 +29,7 @@ Source: "README.txt"; DestDir: "{app}"; Flags: isreadme
 [Run]
 Filename: "{sys}\sc.exe"; \
   Parameters: "create starflow-backend start= auto binPath= ""{app}\starflow-backend-service.exe"" obj= ""NT AUTHORITY\LocalService"" DisplayName= ""Starflow LLM Verification Backend"""; \
-  Flags: runhidden waituntilterminated
+  Flags: runhidden waituntilterminated ignoreerrors
 Filename: "{sys}\sc.exe"; \
   Parameters: "description starflow-backend ""Local proxy and static web service for the Starflow LLM verification tool"""; \
   Flags: runhidden waituntilterminated
@@ -61,12 +61,17 @@ begin
   ) and (ResultCode = 0);
 end;
 
-procedure StopExistingService();
+procedure StopService();
+begin
+  RunSc('stop ' + ServiceName);
+  Sleep(2000);
+end;
+
+procedure StopAndDeleteService();
 begin
   if RunSc('query ' + ServiceName) then
   begin
-    RunSc('stop ' + ServiceName);
-    Sleep(2000);
+    StopService();
     RunSc('delete ' + ServiceName);
     Sleep(500);
   end;
@@ -74,12 +79,14 @@ end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
-  StopExistingService();
+  // 升级安装：只停止服务，不删除注册（保留故障恢复等配置）
+  if RunSc('query ' + ServiceName) then
+    StopService();
   Result := '';
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then
-    StopExistingService();
+    StopAndDeleteService();
 end;
