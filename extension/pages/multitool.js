@@ -197,7 +197,7 @@ function githubFetch(url) {
 // 失败自动重试 2 次（限流/网络抖动时免手动开关代理），初始加载与手动刷新共用
 // 备用源：GitHub 官方 releases.atom 订阅（公开、无 API 配额限制，含最近约 10 个版本）
 async function fetchAtomReleases(repo) {
-    const r = await proxyFetch('https://github.com/' + repo + '/releases.atom', {
+    const r = await proxyFetch(buildGithubUrl('https://github.com/' + repo + '/releases.atom'), {
         method: 'GET',
         headers: {'Accept': 'application/atom+xml'}
     });
