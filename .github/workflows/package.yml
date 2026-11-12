@@ -27,6 +27,14 @@ jobs:
       - name: Package extension
         run: |
           version="${PACKAGE_VERSION#v}"
+          # manifest 版本号跟发版号走，便于 chrome://extensions 区分安装的构建
+          python3 - "$version" <<'EOF'
+          import json, sys
+          p = "extension/manifest.json"
+          m = json.load(open(p, encoding="utf-8"))
+          m["version"] = sys.argv[1]
+          open(p, "w", encoding="utf-8").write(json.dumps(m, ensure_ascii=False, indent=2) + "\n")
+          EOF
           mkdir -p release
           cd extension
           zip -r "../release/starflow-extension-${version}.zip" . \
