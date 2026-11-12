@@ -27,8 +27,17 @@ jobs:
       - name: Package extension
         run: |
           version="${PACKAGE_VERSION#v}"
+          # manifest 版本号跟发版号走，便于 chrome://extensions 区分安装的构建
+          python3 - "$version" <<'EOF'
+          import json, sys
+          p = "extension/manifest.json"
+          m = json.load(open(p, encoding="utf-8"))
+          m["version"] = sys.argv[1]
+          open(p, "w", encoding="utf-8").write(json.dumps(m, ensure_ascii=False, indent=2) + "\n")
+          EOF
           mkdir -p release
-          zip -r "release/starflow-extension-${version}.zip" extension/ \
+          cd extension
+          zip -r "../release/starflow-extension-${version}.zip" . \
             -x "*.DS_Store" -x "*__pycache__*"
 
       - name: Upload extension artifact
@@ -162,6 +171,10 @@ jobs:
         run: |
           python -m pip install -r packaging/requirements-build.txt
           choco install innosetup --yes --no-progress
+
+      - name: Exclude workspace from Windows Defender
+        shell: pwsh
+        run: Add-MpPreference -ExclusionPath (Get-Location).Path
 
       - name: Build Windows installer and service
         shell: pwsh

@@ -20,30 +20,20 @@
 ## 目录结构
 
 ```
-├── docs/                         # 规格文档（PRD、架构图、建站主规格、拆解报告）
-├── .github/workflows/package.yml # GitHub Actions：macOS PKG / Linux DEB+RPM / Windows EXE
+├── .github/workflows/package.yml # GitHub Actions：macOS PKG / Linux DEB+RPM / Windows EXE + extension zip
 ├── packaging/                    # macOS PKG、systemd、Debian/RPM 与 Windows 安装脚本
-├── baselines/                    # 5 家官方参数基线
-│   ├── v2/                       # 最新基线（DeepSeek / Kimi / MiMo / MiniMax / 智谱）
-│   └── v1/                       # 旧版保留
-├── data/                         # 参考站点数据（27 用例、运行结果、聚合模型树）
 ├── extension/                    # Chrome MV3 浏览器插件（自包含）
 │   ├── manifest.json             # MV3 配置（cookies / declarativeNetRequest / <all_urls>）
 │   ├── background.js             # 直连转发 + console-v2 请求头改写 + Cookie 自动读取
 │   ├── popup.html/css/js         # 工具栏入口（两页入口 + 本地后端状态）
-│   └── pages/                    # 页面（由 prototype 单文件版抽出内联脚本迁移而来）
-│       ├── multitool.html/js     # 多工具测试：codex / claude-code 接入星流网关连通性测试 + 配置生成
+│   └── pages/                    # 页面
+│       ├── multitool.html/js     # 多工具测试：codex / claude-code 连通性 + 配置生成 + 数据集压测
 │       ├── llmabacus.html/js     # 主版本：4-tab + 真发对比 + 答案展开
 │       ├── api.js                # 双模请求层（扩展直连 / serve.py 转发自动切换）
 │       └── _data.js              # CATALOG 模型树 + PLAN 27 用例 + 示例结果
-└── prototype/                    # 本地服务与历史原型
-    ├── serve.py                  # 本地代理 + 静态服务（/proxy /tool /tooltest /cfg /dljob /healthz）
-    ├── build.sh + serve.spec     # PyInstaller 打包：serve.py → 单文件二进制（免装 Python）
-    ├── prototype-promptfoo.html  # promptfoo 风格双主题版本
-    ├── prototype-v3.html         # v3 工作版本
-    ├── prototype-coze.html       # Coze 风格版本
-    ├── prototype.html            # 早期版本
-    └── _data.js                  # CATALOG 模型树 + PLAN 27 用例 + 示例结果（历史页面用）
+├── serve.py                      # 本地代理 + 静态服务（/proxy /tool /tooltest /cfg /dljob /datasetrun /clearcache /healthz）
+├── build.sh + serve.spec         # PyInstaller 打包：serve.py → 单文件二进制（免装 Python）
+└── README.md
 ```
 
 ## 安装
@@ -61,7 +51,7 @@
 3. （可选，工具测试 / 下载验证 / 配置写入需要）启动本地后端——有 Python 直接跑，没有就用二进制：
 
    ```bash
-   cd llm-benchmark/prototype
+   cd llm-benchmark
    python serve.py            # 有 Python 3 时
    # 或构建单文件二进制（在目标平台上执行，PyInstaller 不交叉编译）：
    pip install pyinstaller
@@ -71,11 +61,11 @@
 
 ### 方式二：本地服务（不开插件）
 
-1. 克隆仓库并进入 prototype 目录：
+1. 克隆仓库并进入项目目录：
 
    ```bash
    git clone https://github.com/Willie-Z/llm-benchmark.git
-   cd llm-benchmark/prototype
+   cd llm-benchmark
    python serve.py
    ```
 
@@ -191,7 +181,7 @@ node --check extension/pages/llmabacus.js
 node --check extension/background.js
 node --check extension/popup.js
 # 启动本地服务
-cd prototype && python serve.py
+python serve.py
 # 单文件二进制构建
 sh build.sh        # 需先 pip install pyinstaller
 ```
@@ -202,7 +192,7 @@ sh build.sh        # 需先 pip install pyinstaller
 
 - 无构建步骤、无第三方运行时依赖，原生 JavaScript（HTML + 外部 JS + `_data.js` + `serve.py`）。
 - **扩展**：Chrome MV3（service worker 直连转发、`declarativeNetRequest` 注入禁止头、`chrome.cookies` 自动读控制台 Cookie）；页面脚本已抽出内联以符合扩展 CSP（`script-src 'self'`）。
-- **本地后端**：`serve.py` 硬编码端口 8000，提供 `/proxy`（LLM 转发 + 4 层代理）、`/cfg`（覆盖真实配置文件 / 临时目录写入）、`/tool`（工具二进制下载验证，缓存复用不自动删除）、`/tooltest`（工具端到端测试）、`/datasetrun`（数据集压测 job）、`/healthz`（存活探测）端点 + 静态文件服务（托管 `prototype/` 与 `extension/pages/`）；`build.sh` 可打包为单文件二进制分发。
+- **本地后端**：`serve.py` 硬编码端口 8000，提供 `/proxy`（LLM 转发 + 4 层代理）、`/cfg`（覆盖真实配置文件 / 临时目录写入）、`/tool`（工具二进制下载验证，缓存复用不自动删除）、`/tooltest`（工具端到端测试）、`/dljob`（二进制下载 job）、`/datasetrun`（数据集压测 job，多版本对比）、`/clearcache`（清理二进制缓存与临时目录）、`/healthz`（存活探测）端点 + 静态文件服务（托管 `extension/pages/`）；`build.sh` 可打包为单文件二进制分发。
 - `pages/api.js` 为双模请求层：扩展下走 background 直连 / 本地二进制，`serve.py` 打开时自动回退相对路径，同一份页面两种形态通用。
 - `_data.js` 提供 CATALOG（模型树）/ PLAN（27 用例）/ 示例结果，前后端共享。
 

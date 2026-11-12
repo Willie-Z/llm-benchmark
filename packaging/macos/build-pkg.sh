@@ -32,6 +32,8 @@ cp "$SCRIPT_DIR/com.starflow.backend.plist" "$ROOT/Library/LaunchAgents/"
 chmod 644 "$ROOT/Library/LaunchAgents/com.starflow.backend.plist"
 cp "$SCRIPT_DIR/postinstall" "$WORK/scripts/postinstall"
 chmod 755 "$WORK/scripts/postinstall"
+cp "$SCRIPT_DIR/preinstall" "$WORK/scripts/preinstall"
+chmod 755 "$WORK/scripts/preinstall"
 
 pkgbuild \
   --root "$ROOT" \

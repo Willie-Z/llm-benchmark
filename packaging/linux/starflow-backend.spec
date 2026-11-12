@@ -24,6 +24,12 @@ The service binds only to 127.0.0.1:8000 and starts through systemd.
 install -D -m 0755 "%{backend_source}" "%{buildroot}/usr/bin/starflow-backend"
 install -D -m 0644 "%{unit_source}" "%{buildroot}/etc/systemd/system/starflow-backend.service"
 
+%pre
+# 安装/升级前停止服务：旧进程持有旧代码，停止后再替换文件，%post 重新启动
+if [ -d /run/systemd/system ]; then
+  systemctl stop starflow-backend.service >/dev/null 2>&1 || :
+fi
+
 %post
 if [ -d /run/systemd/system ]; then
   systemctl daemon-reload || :

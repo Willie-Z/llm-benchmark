@@ -197,7 +197,7 @@ function githubFetch(url) {
 // 失败自动重试 2 次（限流/网络抖动时免手动开关代理），初始加载与手动刷新共用
 // 备用源：GitHub 官方 releases.atom 订阅（公开、无 API 配额限制，含最近约 10 个版本）
 async function fetchAtomReleases(repo) {
-    const r = await proxyFetch('https://github.com/' + repo + '/releases.atom', {
+    const r = await proxyFetch(buildGithubUrl('https://github.com/' + repo + '/releases.atom'), {
         method: 'GET',
         headers: {'Accept': 'application/atom+xml'}
     });
@@ -787,7 +787,7 @@ async function pollDljob(jid, onProgress) {
 }
 
 // 单版本：POST /dljob → pollDljob → done 后立即 POST /tool（缓存命中即时 --version）→ 更新该行 + 追加汇总；任何失败只终结本行
-async function dlVerifyOne(t, ver, proxy) {
+async function dlVerifyOne(t, ver, proxy, l7proxy) {
     const row = document.createElement('div');
     row.className = 'prog-wrap';
     row.innerHTML = '<div class="prog-txt"></div><div class="prog"><div class="bar" style="width:0%"></div></div>';
@@ -805,14 +805,14 @@ async function dlVerifyOne(t, ver, proxy) {
     };
     try {
         pt.textContent = '启动下载 ' + (t.bin || t.id) + ' ' + ver + '…';
-        const sj = await API.local("/dljob", {kind: t.id, repo: t.repo, tag: ver, ver: ver, proxy: proxy});
+        const sj = await API.local("/dljob", {kind: t.id, repo: t.repo, tag: ver, ver: ver, proxy: proxy, l7proxy: l7proxy});
         if (!sj.ok) throw new Error(sj.error || '启动下载失败');  // sj.already 同样 ok：共用 jid 轮询即可
         await pollDljob(sj.id, (pct, recv, total) => {
             pt.textContent = '下载 ' + (t.bin || t.id) + ' ' + ver + '… ' + pct + '%' + (total ? ('（' + mb(recv) + ' / ' + mb(total) + ' MB）') : '（' + mb(recv) + ' MB）');
             pb.style.width = pct + '%';
         });
         pt.textContent = '验证 ' + (t.bin || t.id) + ' ' + ver + '…';
-        const j = await API.local("/tool", {kind: t.id, repo: t.repo, tag: ver, ver: ver, proxy: proxy});
+        const j = await API.local("/tool", {kind: t.id, repo: t.repo, tag: ver, ver: ver, proxy: proxy, l7proxy: l7proxy});
         const pass = !!j.ok, out = j.output || j.error || '(无输出)';
         fin(pass, ver + ' · ' + out.trim().split('\n')[0].slice(0, 120) + (j.code != null ? (' · exit ' + j.code) : ''));
         append(out);
@@ -853,8 +853,9 @@ async function runDlVerify() {
     $("#dlPre").textContent = '';
     $("#dlRows").innerHTML = '';
     const proxy = (state.ghProxyOn && state.proxyType === 'l4') ? state.proxyAddr : undefined;
+    const l7proxy = (state.ghProxyOn && state.proxyType === 'l7') ? state.proxyAddr : undefined;
     const t0 = Date.now();
-    const results = await Promise.all(vers.map(ver => dlVerifyOne(t, ver, proxy)));  // dlVerifyOne 永不 throw
+    const results = await Promise.all(vers.map(ver => dlVerifyOne(t, ver, proxy, l7proxy)));  // dlVerifyOne 永不 throw
     const pass = results.filter(r => r.pass).length;
     $("#dlTag").textContent = pass + '/' + vers.length + ' PASS';
     $("#dlTag").className = 'res-tag ' + (pass === vers.length ? 'res-pass' : (pass ? 'res-skip' : 'res-fail'));
@@ -992,7 +993,8 @@ async function runDataset() {
             kind: t.id, repo: t.repo, tags: tvs,
             base_url: gwBaseClean() + (t.id === 'claude-code' ? '' : '/v1'), model: m.id, api_key: activeKey(),
             cases: cases, conc: conc, repeat: rep, timeout: +$("#dsTimeout").value || 180,
-            proxy: (state.ghProxyOn && state.proxyType === 'l4') ? state.proxyAddr : undefined
+            proxy: (state.ghProxyOn && state.proxyType === 'l4') ? state.proxyAddr : undefined,
+            l7proxy: (state.ghProxyOn && state.proxyType === 'l7') ? state.proxyAddr : undefined
         });
         if (!sj.ok) throw new Error(sj.error || '启动失败');
         const st = await pollDsjob(sj.id, (done, total, stage) => {
@@ -1312,10 +1314,10 @@ function init() {
             b.textContent = '下载结果';
         }, 1500);
     };
-    // 工具测试：拉起所选工具（优先页面勾选的第一个版本），用完整网关路径 + 所选模型端到端执行一次（serve.py /tooltest）
+    // 工具测试：多版本各测一遍——先并发下载全部勾选版本（缓存命中秒过），再逐版本拉起端到端测试（serve.py /tooltest）
     $("#toolTestBtn").onclick = async () => {
-        const m = curModel(), btn = $("#toolTestBtn"), tv = (state.verTags || [])[0] || '', t = curTool(),
-            tn = t.bin || t.id;
+        const m = curModel(), btn = $("#toolTestBtn"), t = curTool(), tn = t.bin || t.id;
+        const tvs = (state.verTags || []).slice();  // 勾选的每个版本各测一遍（空 = 本机工具）
         const fail = (msg) => {
             $("#ttCard").classList.add('show');
             $("#ttTag").textContent = 'FAIL';
@@ -1338,58 +1340,76 @@ function init() {
         }
         // codex 走 /v1（wire_api=responses）；claude 的 ANTHROPIC_BASE_URL 不带 /v1
         const toolBase = gwBaseClean() + (t.id === 'claude-code' ? '' : '/v1');
+        const proxy = (state.ghProxyOn && state.proxyType === 'l4') ? state.proxyAddr : undefined;
+        const l7proxy = (state.ghProxyOn && state.proxyType === 'l7') ? state.proxyAddr : undefined;
         btn.disabled = true;
         $("#ttCard").classList.add('show');
         $("#ttTag").textContent = '执行中';
         $("#ttTag").className = 'res-tag res-skip';
-        $("#ttMeta").textContent = m.id + ' · ' + toolBase + ' · ' + tn + ' ' + (tv || '(本机)') + (t.id === 'claude-code' ? ' -p' : ' exec');
-        // 1. 指定版本：先经 /dljob 后台下载并轮询进度条（缓存命中则直接完成）
-        if (tv) {
+        $("#ttMeta").textContent = m.id + ' · ' + toolBase + ' · ' + tn + ' ' + (tvs.length ? tvs.join('、') : '(本机)') + (t.id === 'claude-code' ? ' -p' : ' exec');
+        $("#ttPre").textContent = '';
+        const mb = v => (v / 1048576).toFixed(1);
+        // 1. 并发下载全部勾选版本（/dljob 后台任务，缓存命中秒过）；某版本失败不阻塞其他版本
+        const dlFail = {};
+        if (tvs.length) {
             const pw = $("#ttProgWrap"), pt = $("#ttProgTxt"), pb = $("#ttProgBar");
             pw.style.display = 'block';
             pb.style.width = '0%';
-            try {
-                const sj = await API.local("/dljob", {
-                    kind: t.id, repo: t.repo, tag: tv, ver: tv,
-                    proxy: (state.ghProxyOn && state.proxyType === 'l4') ? state.proxyAddr : undefined
-                });
-                if (!sj.ok) throw new Error(sj.error || '启动下载失败');
-                const mb = v => (v / 1048576).toFixed(1);
-                const st = await pollDljob(sj.id, (pct, recv, total) => {
-                    pt.textContent = '下载 ' + tn + ' ' + tv + '… ' + pct + '%' + (total ? ('（' + mb(recv) + ' / ' + mb(total) + ' MB）') : '（' + mb(recv) + ' MB）');
-                    pb.style.width = pct + '%';
-                });
-                pt.textContent = '下载完成（' + (st.bin || tv) + '）';
-                pb.style.width = '100%';
-            } catch (e) {
-                pw.style.display = 'none';
-                $("#ttTag").textContent = 'FAIL';
-                $("#ttTag").className = 'res-tag res-fail';
-                $("#ttMeta").textContent = '下载 ' + tn + ' 失败：' + (e.message || e);
-                $("#ttPre").textContent = '';
-                btn.disabled = false;
-                return;
-            }
+            let doneCnt = 0;
+            await Promise.all(tvs.map(async tv => {
+                try {
+                    const sj = await API.local("/dljob", {
+                        kind: t.id, repo: t.repo, tag: tv, ver: tv,
+                        proxy: proxy, l7proxy: l7proxy
+                    });
+                    if (!sj.ok) throw new Error(sj.error || '启动下载失败');
+                    await pollDljob(sj.id, (pct, recv, total) => {
+                        pt.textContent = '下载 ' + tn + ' ' + tv + '… ' + pct + '%' + (total ? ('（' + mb(recv) + ' / ' + mb(total) + ' MB）') : ('（' + mb(recv) + ' MB）'));
+                    });
+                } catch (e) {
+                    dlFail[tv] = e.message || e;
+                }
+                doneCnt++;
+                pb.style.width = Math.round(doneCnt / tvs.length * 100) + '%';
+                pt.textContent = '工具下载 ' + doneCnt + '/' + tvs.length + ' 完成';
+            }));
             pw.style.display = 'none';
         }
-        $("#ttPre").textContent = '…';
-        try {
-            const j = await API.local("/tooltest", {
-                kind: t.id, base_url: toolBase, model: m.id, api_key: activeKey(),
-                prompt: state.testPrompt || '请只回复一个词：SPEC_TEXT_OK',
-                repo: t.repo, tag: tv, ver: tv,
-                proxy: (state.ghProxyOn && state.proxyType === 'l4') ? state.proxyAddr : undefined
-            });
-            const pass = !!j.ok;
-            $("#ttTag").textContent = pass ? 'PASS' : 'FAIL';
-            $("#ttTag").className = 'res-tag ' + (pass ? 'res-pass' : 'res-fail');
-            $("#ttMeta").textContent = [j.tool || j.codex, j.model, j.base_url, j.code != null ? ('exit ' + j.code) : null].filter(Boolean).join(' · ');
-            $("#ttPre").textContent = j.output || j.error || '(无输出)';
-        } catch (e) {
-            $("#ttTag").textContent = 'FAIL';
-            $("#ttTag").className = 'res-tag res-fail';
-            $("#ttPre").textContent = String(e);
+        // 2. 逐版本端到端测试（多版本顺序执行，结果独立）
+        const outs = [];
+        let passCnt = 0;
+        for (const tv of (tvs.length ? tvs : [''])) {
+            const vk = tv || '(本机)';
+            if (tv && dlFail[tv]) {
+                outs.push({vk: vk, ok: false, meta: '下载失败', out: dlFail[tv]});
+                continue;
+            }
+            try {
+                const j = await API.local("/tooltest", {
+                    kind: t.id, base_url: toolBase, model: m.id, api_key: activeKey(),
+                    prompt: state.testPrompt || '请只回复一个词：SPEC_TEXT_OK',
+                    repo: t.repo, tag: tv, ver: tv,
+                    proxy: proxy, l7proxy: l7proxy
+                });
+                const pass = !!j.ok;
+                if (pass) passCnt++;
+                outs.push({
+                    vk: vk, ok: pass,
+                    meta: [j.tool || j.codex, j.code != null ? ('exit ' + j.code) : null].filter(Boolean).join(' · '),
+                    out: j.output || j.error || '(无输出)'
+                });
+            } catch (e) {
+                outs.push({vk: vk, ok: false, meta: '', out: String(e)});
+            }
         }
+        // 3. 汇总：多版本逐版本分组展示
+        const all = outs.length;
+        $("#ttTag").textContent = all > 1 ? (passCnt + '/' + all + ' PASS') : (passCnt ? 'PASS' : 'FAIL');
+        $("#ttTag").className = 'res-tag ' + (passCnt >= all ? 'res-pass' : (passCnt ? 'res-skip' : 'res-fail'));
+        $("#ttMeta").textContent = m.id + ' · ' + toolBase + ' · ' + all + ' 个版本';
+        $("#ttPre").textContent = outs.map(o =>
+            '===== ' + tn + ' ' + o.vk + ' ' + (o.ok ? 'PASS' : 'FAIL') + (o.meta ? ' · ' + o.meta : '') + ' =====\n' + o.out
+        ).join('\n\n');
         btn.disabled = false;
     };
     // 覆盖真实配置文件（codex: ~/.codex/config.toml / claude: ~/.claude/settings.json），结果闪现在按钮上

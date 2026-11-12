@@ -1,0 +1,15 @@
+#!/bin/sh
+# 安装前停止服务：旧进程持有旧代码，停止后再覆盖文件，postinstall 重新启动
+# （与 Linux preinst、Windows PrepareToInstall 对齐）
+set -e
+
+CONSOLE_USER=$(stat -f %Su /dev/console 2>/dev/null || true)
+if [ -n "$CONSOLE_USER" ] && [ "$CONSOLE_USER" != "root" ]; then
+  USER_ID=$(id -u "$CONSOLE_USER")
+  launchctl bootout "gui/${USER_ID}/com.starflow.backend" 2>/dev/null || true
+fi
+
+# 兜底：结束 LaunchAgent 之外手动运行的残留实例
+pkill -x starflow-backend 2>/dev/null || true
+
+exit 0

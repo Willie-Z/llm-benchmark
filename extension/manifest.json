@@ -1,10 +1,16 @@
 {
   "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5pDnjGlPfO/7t8NVPPYL8aswp4bMuUCMwA5e72fDXUn7+z9xRL8PmlUaws4p42z5v+n+B2ce2sD/saHydJnk5RZFIZz0ZbiGR3yqymRqT8SVha7ofe3ljQe/hKiUMlAHEup8kf31uPZQNg2B72IeETOKGTuV9FHoGlZ77XqWfEQ2JWjcMF3ImgkYJDHPI+X68w/63irn529XVOks1c/rT6/PC0zvxsKRWF6ejFGsbNdp1wjwjXrfJ2n1FZ47KtPcGTC3hqFEdeK1oAKShm+q7BhU5qtInMnz9IIB7h6zRRntwJmbKoiMEA/t2qCJkk/AWfXW0sQ8CVzujumQWDfPOQIDAQAB",
   "name": "星流 LLM 验收工具",
-  "version": "1.0.0",
+  "version": "0.7.0",
   "description": "星流网关多工具连通性测试与 LLM 验收对比。LLM 真发/GitHub/模型列表由扩展直连；工具二进制下载验证、codex 端到端测试、配置写入由本地二进制承担（可选）。",
-  "permissions": ["cookies", "declarativeNetRequest"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": [
+    "cookies",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "background.js"
   },

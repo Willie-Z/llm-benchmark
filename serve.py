@@ -84,7 +84,9 @@ _CODEX_BIN_CACHE = { }  # key -> {"dir","path"}，进程内复用，不设过期
 _CODEX_BIN_LOCK = threading.Lock( )
 
 
-def _open_url( url, proxy=None, timeout=60 ):
+def _open_url( url, proxy=None, timeout=60, l7proxy=None ):
+    if l7proxy:
+        url = l7proxy.rstrip( "/" ) + "/" + url
     r = urllib.request.Request( url, headers={ "User-Agent": "starflow-verify/1.0 (local-proxy)" } )
     ctx = ssl.create_default_context( )
     ctx.check_hostname = False
@@ -107,14 +109,14 @@ def _platform_triple():
     return None
 
 
-def _resolve_codex_asset( repo, tag, plat, proxy ):
+def _resolve_codex_asset( repo, tag, plat, proxy, l7proxy=None ):
     """解析 Release 资产：优先直拼确定性 URL（不耗 API 限额），404 再回退资产清单。返回 (asset_name, dl_url, err)"""
     exe_sfx = ".exe" if plat.endswith( "windows-msvc" ) else ""
     base = "https://github.com/%s/releases/download/%s/" % (repo, tag)
     api_err = None
     for name in ("codex-%s%s.tar.gz" % (plat, exe_sfx), "codex-%s%s.zip" % (plat, exe_sfx)):
         try:
-            with _open_url( base + name, proxy, 30 ) as resp:
+            with _open_url( base + name, proxy, 30, l7proxy=l7proxy ) as resp:
                 if resp.status == 200: return name, base + name, None
         except urllib.error.HTTPError as e:
             if e.code == 404: continue
@@ -125,7 +127,7 @@ def _resolve_codex_asset( repo, tag, plat, proxy ):
             break
     rel = None
     try:
-        with _open_url( "https://api.github.com/repos/%s/releases/tags/%s" % (repo, tag), proxy, 60 ) as resp:
+        with _open_url( "https://api.github.com/repos/%s/releases/tags/%s" % (repo, tag), proxy, 60, l7proxy=l7proxy ) as resp:
             rel = json.loads( resp.read( ).decode( "utf-8", "replace" ) )
     except urllib.error.HTTPError as e:
         try:
@@ -168,7 +170,7 @@ def _codex_cache_put( key, path ):
         _CODEX_BIN_CACHE[key] = { "dir": os.path.dirname( path ), "path": path }
 
 
-def _download_codex_bin( repo, tag, ver, proxy, prog=None ):
+def _download_codex_bin( repo, tag, ver, proxy, prog=None, l7proxy=None ):
     """下载指定版本 codex 二进制（带缓存）。prog 为可选进度 dict（received/total）。返回 (bin_path, asset_name, err)"""
     plat = _platform_triple( )
     if not plat: return None, None, "不支持的平台: %s" % sys.platform
@@ -176,12 +178,12 @@ def _download_codex_bin( repo, tag, ver, proxy, prog=None ):
     key = "%s#%s#%s" % (repo, tag, plat)
     hit = _codex_cache_get( key )
     if hit: return hit, None, None
-    asset_name, dl_url, err = _resolve_codex_asset( repo, tag, plat, proxy )
+    asset_name, dl_url, err = _resolve_codex_asset( repo, tag, plat, proxy, l7proxy=l7proxy )
     if not asset_name: return None, None, err
     d = tempfile.mkdtemp( prefix="codex-bin-" )
     try:
         arc = os.path.join( d, asset_name )
-        with _open_url( dl_url, proxy, 600 ) as resp, open( arc, "wb" ) as f:
+        with _open_url( dl_url, proxy, 600, l7proxy=l7proxy ) as resp, open( arc, "wb" ) as f:
             if prog is not None:
                 try:
                     prog["total"] = int( resp.headers.get( "Content-Length" ) or 0 )
@@ -238,14 +240,14 @@ def _claude_plat():
     return None
 
 
-def _resolve_claude_asset( repo, tag, plat, proxy ):
+def _resolve_claude_asset( repo, tag, plat, proxy, l7proxy=None ):
     """解析 Claude Release 资产：优先直拼 claude-<plat>.tar.gz/.zip，404 回退资产清单。返回 (asset_name, dl_url, err)"""
     base = "https://github.com/%s/releases/download/%s/" % (repo, tag)
     names = ("claude-%s.zip" % plat,) if plat.startswith( "win32" ) else ("claude-%s.tar.gz" % plat,)
     api_err = None
     for name in names:
         try:
-            with _open_url( base + name, proxy, 30 ) as resp:
+            with _open_url( base + name, proxy, 30, l7proxy=l7proxy ) as resp:
                 if resp.status == 200: return name, base + name, None
         except urllib.error.HTTPError as e:
             if e.code == 404: continue
@@ -256,7 +258,7 @@ def _resolve_claude_asset( repo, tag, plat, proxy ):
             break
     rel = None
     try:
-        with _open_url( "https://api.github.com/repos/%s/releases/tags/%s" % (repo, tag), proxy, 60 ) as resp:
+        with _open_url( "https://api.github.com/repos/%s/releases/tags/%s" % (repo, tag), proxy, 60, l7proxy=l7proxy ) as resp:
             rel = json.loads( resp.read( ).decode( "utf-8", "replace" ) )
     except urllib.error.HTTPError as e:
         try:
@@ -275,7 +277,7 @@ def _resolve_claude_asset( repo, tag, plat, proxy ):
     return None, None, "未能解析下载地址" + (("：" + msg) if msg else "") + (api_err or "") + hint
 
 
-def _download_claude_bin( repo, tag, ver, proxy, prog=None ):
+def _download_claude_bin( repo, tag, ver, proxy, prog=None, l7proxy=None ):
     """下载指定版本 Claude Code 二进制（带缓存）。tag 自动补 v 前缀（v2.1.317）。返回 (bin_path, asset_name, err)"""
     plat = _claude_plat( )
     if not plat: return None, None, "不支持的平台: %s" % sys.platform
@@ -283,12 +285,12 @@ def _download_claude_bin( repo, tag, ver, proxy, prog=None ):
     key = "claude#%s#%s#%s" % (repo, tag, plat)
     hit = _codex_cache_get( key )
     if hit: return hit, None, None
-    asset_name, dl_url, err = _resolve_claude_asset( repo, tag, plat, proxy )
+    asset_name, dl_url, err = _resolve_claude_asset( repo, tag, plat, proxy, l7proxy=l7proxy )
     if not asset_name: return None, None, err
     d = tempfile.mkdtemp( prefix="claude-bin-" )
     try:
         arc = os.path.join( d, asset_name )
-        with _open_url( dl_url, proxy, 600 ) as resp, open( arc, "wb" ) as f:
+        with _open_url( dl_url, proxy, 600, l7proxy=l7proxy ) as resp, open( arc, "wb" ) as f:
             if prog is not None:
                 try:
                     prog["total"] = int( resp.headers.get( "Content-Length" ) or 0 )
@@ -326,11 +328,11 @@ def _download_claude_bin( repo, tag, ver, proxy, prog=None ):
         return None, asset_name, str( e )
 
 
-def _download_tool_bin( kind, repo, tag, ver, proxy, prog=None ):
+def _download_tool_bin( kind, repo, tag, ver, proxy, prog=None, l7proxy=None ):
     """按工具类型分发下载：claude-code → GitHub claude-<plat> 资产；其余 → codex rust 三段资产"""
     if kind == "claude-code":
-        return _download_claude_bin( repo, tag, ver, proxy, prog=prog )
-    return _download_codex_bin( repo, tag, ver, proxy, prog=prog )
+        return _download_claude_bin( repo, tag, ver, proxy, prog=prog, l7proxy=l7proxy )
+    return _download_codex_bin( repo, tag, ver, proxy, prog=prog, l7proxy=l7proxy )
 
 
 # ============ 数据集压测（快照多轮脚本 → 并发拉起 codex/claude 执行） ============
@@ -533,6 +535,7 @@ class Handler( BaseHTTPRequestHandler ):
             tag = (req.get( "tag" ) or "").strip( )
             ver = (req.get( "ver" ) or tag.replace( "rust-v", "" ).lstrip( "v" )).strip( )
             proxy = req.get( "proxy" )
+            l7proxy = req.get( "l7proxy" )
             if not tag:
                 self._send_json( 400, { "error": "no tag" } )
                 return
@@ -547,7 +550,7 @@ class Handler( BaseHTTPRequestHandler ):
             
             def run():
                 try:
-                    bin_path, asset, err = _download_tool_bin( kind, repo, tag, ver, proxy, prog=prog )
+                    bin_path, asset, err = _download_tool_bin( kind, repo, tag, ver, proxy, prog=prog, l7proxy=l7proxy )
                     with _DL_JOBS_LOCK:
                         if bin_path:
                             _DL_JOBS[jid] = { "status": "done", "bin": os.path.basename( bin_path ), "bin_path": bin_path }
@@ -643,6 +646,7 @@ class Handler( BaseHTTPRequestHandler ):
         tag = (req.get( "tag" ) or "").strip( )  # 纯版本号或完整 tag（codex: rust-v0.164.0 / claude: v2.1.317）
         ver = (req.get( "ver" ) or tag.replace( "rust-v", "" ).lstrip( "v" )).strip( )
         proxy = req.get( "proxy" )
+        l7proxy = req.get( "l7proxy" )
         if not tag:
             self._send_json( 400, { "error": "no tag" } )
             return
@@ -651,7 +655,7 @@ class Handler( BaseHTTPRequestHandler ):
             self._send_json( 200, { "ok": False, "error": "不支持的平台: %s" % sys.platform } )
             return
         try:
-            bin_path, asset_name, err = _download_tool_bin( kind, repo, tag, ver, proxy )
+            bin_path, asset_name, err = _download_tool_bin( kind, repo, tag, ver, proxy, l7proxy=l7proxy )
             if not bin_path:
                 self._send_json( 200, { "ok": False, "error": err or "下载失败", "platform": plat } )
                 return
@@ -719,13 +723,14 @@ class Handler( BaseHTTPRequestHandler ):
         tag = (req.get( "tag" ) or "").strip( )
         ver = (req.get( "ver" ) or tag.replace( "rust-v", "" ).lstrip( "v" )).strip( )
         proxy = req.get( "proxy" )
+        l7proxy = req.get( "l7proxy" )
         if not base or not model:
             self._send_json( 400, { "error": "需要 base_url 与 model" } )
             return
         tool = None
         tool_label = None
         if tag:
-            tool, _, err = _download_tool_bin( kind, repo, tag, ver, proxy )
+            tool, _, err = _download_tool_bin( kind, repo, tag, ver, proxy, l7proxy=l7proxy )
             if not tool:
                 self._send_json( 200, { "ok": False, "error": "获取指定版本工具失败：" + (err or "") } )
                 return
@@ -818,6 +823,7 @@ class Handler( BaseHTTPRequestHandler ):
                 return
             key = req.get( "api_key" ) or ""
             proxy = req.get( "proxy" )
+            l7proxy = req.get( "l7proxy" )
             
             def to_int( v, d, lo, hi ):
                 try:
@@ -845,7 +851,7 @@ class Handler( BaseHTTPRequestHandler ):
                 for v in vers:
                     vk = v["ver"] or "本机"
                     if v["tag"]:
-                        tool, _, err = _download_tool_bin( kind, repo, v["tag"], v["ver"], proxy )
+                        tool, _, err = _download_tool_bin( kind, repo, v["tag"], v["ver"], proxy, l7proxy=l7proxy )
                     else:
                         tool = self._find_claude( ) if kind == "claude-code" else self._find_codex( )
                         err = None if tool else "未找到工具二进制"
