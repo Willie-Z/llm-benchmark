@@ -4,6 +4,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,6 +19,9 @@ const (
 	backendName = "starflow-backend.exe"
 	stopTimeout = 15 * time.Second
 )
+
+// version 构建时经 -ldflags "-X main.version=…" 注入发版号
+var version = "0.0.0"
 
 type backendService struct{}
 
@@ -90,6 +94,10 @@ func (service *backendService) Execute(
 }
 
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "version") {
+		fmt.Println("starflow-backend-service " + version)
+		return
+	}
 	if err := svc.Run(serviceName, &backendService{}); err != nil {
 		os.Exit(1)
 	}

@@ -23,6 +23,8 @@ $ServiceExe = Join-Path $DistDir "starflow-backend-service.exe"
 
 New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
 
+# exe 文件属性版本跟发版号走（serve.spec 读 STARFLOW_VERSION 生成 PE 版本资源）
+$env:STARFLOW_VERSION = $PackageVersion
 python -m PyInstaller --clean --noconfirm --distpath "$Root\dist" $BackendSpec
 if ($LASTEXITCODE -ne 0) {
     throw "PyInstaller build failed with exit code $LASTEXITCODE"
@@ -36,7 +38,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "go vet failed" }
     go test .
     if ($LASTEXITCODE -ne 0) { throw "go test failed" }
-    go build -trimpath -buildvcs=false -ldflags "-s -w" -o $ServiceExe .
+    go build -trimpath -buildvcs=false -ldflags "-s -w -X main.version=$PackageVersion" -o $ServiceExe .
     if ($LASTEXITCODE -ne 0) { throw "go build failed" }
 }
 finally {
