@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -82,6 +83,14 @@ func (service *backendService) Execute(
 				select {
 				case <-wait:
 				case <-time.After(stopTimeout):
+					// 兜底：子进程未退出则按 PID 杀整棵进程树（含孙进程）。
+					// 服务进程退出后 SCM 不再管理子进程，留着就是孤儿：占用 exe/端口，
+					// 导致升级安装复制失败反复重试
+					exec.Command("taskkill.exe", "/F", "/T", "/PID", strconv.Itoa(command.Process.Pid)).Run()
+					select {
+					case <-wait:
+					case <-time.After(3 * time.Second):
+					}
 				}
 				changes <- svc.Status{State: svc.Stopped}
 				return false, 0
