@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+# 安装/升级前停止服务：旧进程在运行中会持有旧代码，
+# 停止后再替换文件，postinst configure 阶段重新启动（与 Windows 升级流程对齐）
+if [ -d /run/systemd/system ]; then
+  systemctl stop starflow-backend.service 2>/dev/null || true
+fi
+
+exit 0
